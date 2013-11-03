@@ -1,7 +1,7 @@
 
-
+# Git test...
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
-
+ 
 #[point.co for point in bpy.context.active_object.data.splines[0].bezier_points]
 # ToDo: handle und tilt zur Ausrichtung jedes PathPoints verwenden (ueber Eingabefeld)
 # handling vom POP UP window: alternativ *.src laden ODER default TP auswaehlen --> Panel(bpy_struct)
@@ -67,7 +67,7 @@ from bpy.types import Operator
 
 
 # todo: globale variablen definieren.....
-
+ 
 
 #### import modules
 #import bpy
