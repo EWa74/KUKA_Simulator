@@ -1,5 +1,5 @@
 
-# Git test...
+# Git test...  
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
  
 #[point.co for point in bpy.context.active_object.data.splines[0].bezier_points]
