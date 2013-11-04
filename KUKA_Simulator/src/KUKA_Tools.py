@@ -91,7 +91,7 @@ def BasePos2File(BASEPos_Koord, BASEPos_Angle, filepath):
     FilenameSRC = filepath
     FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
     fout = open(FilenameSRC, 'w')
-    
+     
     SkalierungPTP = 1000
     
     fout.write("BASEPos {" + 
