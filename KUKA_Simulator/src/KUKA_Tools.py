@@ -1,5 +1,5 @@
 
-# Git test... 2
+# 
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
  
 #[point.co for point in bpy.context.active_object.data.splines[0].bezier_points]
@@ -23,9 +23,7 @@
  
 
 # ToDo: ToolPosition auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
-# BasePosition auslesen (noch kein korrespondierender KUKA File bekannt !!! -> ALe
-# SafePosition auslesen (*.src)
-
+# BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
 
 '''
 
@@ -403,18 +401,13 @@ def SetKukaToCurve(objCurve):
     print('_____________________________________________________________________________')
     print('SetKukaToCurve')
     # Achtung: SetKukaToCurve funktioniert nur richtig, wenn das Parenting vorher geloest wurde!
-    # todo : laeuft nicht.... Scaling von Zentralhand beachten, skripts von .blend V65 kopieren...
-    # 2. Parenting zwischen Zentralhand_A6 (Empty) und Kurve loesen:
     
     '''
     bpy.ops.object.select_all(action='DESELECT')
-    
     bpy.data.objects['Empty_Zentralhand_A6'].select
     bpy.data.objects['BezierCircle'].select
     bpy.ops.object.parent_clear(type='CLEAR')
     '''
-    
-    
     
     # Empty_Zentralhand_A6 auf Startpunkt der Kurve setzen
     # Achtung: Delta Location muss auf Nullgesetzt werden:
@@ -460,8 +453,8 @@ def RfS_BasePos(objCurve, filepath):
     SetOrigin(objBase, objBase)
     
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
-    # Achtung: Die Winkel BASEPos_Angle werden in Grad benoetigt (wie auch im Import File angegeben):
     
+    # Achtung: Die Winkel BASEPos_Angle werden in Grad benoetigt (wie auch im Import File angegeben):
     BASEPos_Angle = []
     BASEPos_Angle = BASEPos_Angle + [bpy.data.objects[objBase.name].rotation_euler.x * 360 / (2*math.pi)]
     BASEPos_Angle = BASEPos_Angle + [bpy.data.objects[objBase.name].rotation_euler.y * 360 / (2*math.pi)]
@@ -469,8 +462,6 @@ def RfS_BasePos(objCurve, filepath):
     
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
     print('BASEPos_Angle: ' +str(BASEPos_Angle))
-    
-    
     print('Read from Scene - RfS_BasePos done')
     print('_____________________________________________________________________________')
     return BASEPos_Koord, BASEPos_Angle
@@ -478,10 +469,6 @@ def RfS_BasePos(objCurve, filepath):
 def RfF_BasePos(filepath):
     print('_____________________________________________________________________________')
     print('Read from File - RfF_BasePos')
-    # Achtung: Curve Object wird uebergeben aber nicht genutzt!
-    # -> feste Zuweisung von Objekt 'Sphere_BasePos'
-    
-    #objBase = bpy.data.objects['Sphere_BASEPos']
     
     # ==========================================    
     # Import der BasePosition = KUKA (*.cfg) Kreation von mir!
@@ -558,32 +545,21 @@ def RfF_BasePos(filepath):
     print('_____________________________________________________________________________')
     return BASEPos_Koord, BASEPos_Angle    
 
-def SetBasePos(objCurve, BASEPos_Koord, BASEPos_Angle):
+def SetBasePos(objCurve, objBase, BASEPos_Koord, BASEPos_Angle):
     print('_____________________________________________________________________________')
     print('SetBasePos: Globale Koordinaten!')
-    objBase = bpy.data.objects['Sphere_BASEPos']
-    #objCurve = bpy.data.objects['BezierCircle']
     print('BASEPos_Koord' + str(BASEPos_Koord)) 
     print('BASEPos_Angle' + str(BASEPos_Angle))
     
     #-----------------------------------
     # Origin der Base auf Vertex[0] setzen   (ohne die Base zu verschieben)
     SetOrigin(objBase, objBase)
-    #-----------------------------------
-    # Origin der Curve auf BASEPosition setzen   (ohne die Curve zu verschieben)
-    SetOrigin(objCurve, objBase)
       
     try:  
         # BasePosition initialisieren:
-        bpy.data.objects[objBase.name].location.x = BASEPos_Koord.x
-        bpy.data.objects[objBase.name].location.y = BASEPos_Koord.y
-        bpy.data.objects[objBase.name].location.z = BASEPos_Koord.z
+        objBase.location = BASEPos_Koord.x, BASEPos_Koord.y, BASEPos_Koord.z
         print('BASEPos_Koord' + str(BASEPos_Koord)) 
         print('BASEPos_Angle' + str(BASEPos_Angle))
-        # Kurve: Origin der Kurve auf BASEPosition verschieben
-        bpy.data.objects[objCurve.name].location.x = BASEPos_Koord.x 
-        bpy.data.objects[objCurve.name].location.y = BASEPos_Koord.y
-        bpy.data.objects[objCurve.name].location.z = BASEPos_Koord.z
         
     except: 
         print('SetBasePos exception')
@@ -592,29 +568,34 @@ def SetBasePos(objCurve, BASEPos_Koord, BASEPos_Angle):
         
         # POP UP Window:
         # todo: POP UP window ....
-        bpy.ops.object.dialog_operator('INVOKE_DEFAULT')
-       
-        bpy.data.objects[objBase.name].location.x = 0
-        bpy.data.objects[objBase.name].location.y = 0
-        bpy.data.objects[objBase.name].location.z = 0
-        bpy.data.objects[objBase.name].rotation_euler.x = 0
-        bpy.data.objects[objBase.name].rotation_euler.y = 0
-        bpy.data.objects[objBase.name].rotation_euler.z = 0
+        #bpy.ops.object.dialog_operator('INVOKE_DEFAULT')
+        objBase.location = 0,0,0
+        objBase.rotation_euler = 0,0,0
     
-    print('vor bpy.context.area.type')
-    print('BASEPos_Angle' + str(BASEPos_Angle))
-     
-    print('nach bpy.context.area.type')
-    print('BASEPos_Angle' + str(BASEPos_Angle))
-    
-    bpy.data.objects[objBase.name].rotation_euler.x = (BASEPos_Angle[0] * (2*math.pi) /360) # in Grad angeben?????????????
-    bpy.data.objects[objBase.name].rotation_euler.y = (BASEPos_Angle[1] * (2*math.pi) /360)
-    bpy.data.objects[objBase.name].rotation_euler.z = (BASEPos_Angle[2] * (2*math.pi) /360)
+    objBase.rotation_euler.x = (BASEPos_Angle[0] * (2*math.pi) /360) 
+    objBase.rotation_euler.y = (BASEPos_Angle[1] * (2*math.pi) /360)
+    objBase.rotation_euler.z = (BASEPos_Angle[2] * (2*math.pi) /360)
     print('nach rotation_euler')
     print('BASEPos_Angle' + str(BASEPos_Angle))
     print('SetBasePos done')
     print('_____________________________________________________________________________')
 
+
+def SetCurvePos(objCurve, objBase, BASEPos_Koord, BASEPos_Angle):
+    print('_____________________________________________________________________________')
+    print('SetCurvePos: in Abhaengigkeit von Base Position')
+    print('BASEPos_Koord' + str(BASEPos_Koord)) 
+    print('BASEPos_Angle' + str(BASEPos_Angle))
+    #-----------------------------------
+    # Origin der Curve auf BASEPosition setzen   (ohne die Curve zu verschieben)
+    SetOrigin(objCurve, objBase)
+    # Kurve: Origin der Kurve auf BASEPosition verschieben
+    objCurve.location = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
+    
+    print('SetCurvePos done')
+    print('_____________________________________________________________________________')
+
+    
 def RfS_SafePos():
     print('_____________________________________________________________________________')
     print('Read from Scene - RfS_SafePos')
@@ -764,7 +745,7 @@ def RfF_SafePos(filepath):
         
         # POP UP Window:
         # todo: POP UP window ....
-        bpy.ops.object.dialog_operator('INVOKE_DEFAULT')
+        #bpy.ops.object.dialog_operator('INVOKE_DEFAULT')
         print('RfF_SafePos - exeption - INVOKE_DEFAULT')
     print('Read from File - RfF_SafePos done')
     print('_____________________________________________________________________________')
@@ -831,7 +812,7 @@ def SetSafePos(filepath, objCurve, SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, 
     
     SetOrigin(objSafe, objSafe)
     
-    bpy.data.objects[objSafe.name].location = point_world
+    objSafe.location = point_world
     print('Safe-Origin  = SafePos auf point_world  gesetzt.')
     #-----------------------------------
     # todo: Info - aktuell treten im Debug Mode Fehler auf falsche/ ueberfluessige Funktionsaufrufe....
@@ -1060,6 +1041,10 @@ class CurveExport (bpy.types.Operator, ExportHelper):
     def execute(self, context):
         
         print('FUNKTIONSAUFRUF - CurveExport')
+        objBase = bpy.data.objects['Sphere_BASEPos']
+        objSafe = bpy.data.objects['Sphere_SAFEPos']
+        objCurve = bpy.data.objects['BezierCircle']
+        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
         filename = os.path.basename(self.filepath)
         #realpath = os.path.realpath(os.path.expanduser(self.filepath))
         #fp = open(realpath, 'w')
@@ -1140,7 +1125,10 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
         print(' FUNKTIONSAUFRUF CurveImport')
         print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-              
+        objBase = bpy.data.objects['Sphere_BASEPos']
+        objSafe = bpy.data.objects['Sphere_SAFEPos']
+        objCurve = bpy.data.objects['BezierCircle']
+        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']      
     
         filename = os.path.basename(self.filepath)
         #realpath = os.path.realpath(os.path.expanduser(self.filepath))
@@ -1155,7 +1143,8 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         BASEPos_Koord, BASEPos_Angle = RfF_BasePos(self.filepath)
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'A {0:.3f}'.format(BASEPos_Angle[0])+' B {0:.3f}'.format(BASEPos_Angle[1])+' C {0:.3f}'.format(BASEPos_Angle[2]))
-        SetBasePos(context.object, BASEPos_Koord, BASEPos_Angle)
+        SetBasePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+        SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' + str(BASEPos_Angle))
         SAFEPos_Koord, SAFEPos_Angle = RfF_SafePos(self.filepath)
@@ -1293,6 +1282,8 @@ class KUKAPanel(bpy.types.Panel):
         row.operator("curve.curveexport")      
     print('KUKAPanel done')
     print('_____________________________________________________________________________')
+    
+    
 ###------------------------------------------------------------
 #------------------------------------------------------------
 #------------------------------------------------------------
@@ -1371,6 +1362,7 @@ def vertsToPoints(Verts, splineType):
 #--- ### Register
 
 #ToDo: KUKA Operator nicht regestriert....
+
 
 def register():
     bpy.utils.register_class(KUKAPanel)  
