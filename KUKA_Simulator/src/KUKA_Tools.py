@@ -1,4 +1,4 @@
-
+#git7 
 # 
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
  
