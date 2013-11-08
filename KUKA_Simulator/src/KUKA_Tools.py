@@ -1456,9 +1456,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
         delList = [PATHPTSCountFile]*(PATHPTSCountFile+zuViel)
         
         for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
-            bpy.data.objects[PATHPTSObjList[n]].select
-            objDelete = bpy.data.objects[PATHPTSObjList[n]]
-            bpy.context.scene.objects.active = objDelete
+            bpy.data.objects[PATHPTSObjList[n]].select = True
             bpy.ops.object.delete()
             bpy.ops.object.select_all(action='DESELECT')
         countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj('PTPObj_')
