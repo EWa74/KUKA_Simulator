@@ -1,4 +1,4 @@
-#git7 8 9
+#git
 # 
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
  
@@ -11,7 +11,11 @@
 # button um nach editieren der Kurve das Kuka_Empty auf den ersten Kurvenpunkt zu setzen
 # todo: rotation des Empty (Zentralhand_A6)  muss extra eingestellte werden! (A, B, C aus .dat -> Kurve)
 # bpy.data.objects['OBJ_KUKA_Armature'].pose.bones['Bone_KUKA_Zentralhand_A4'].rotation_euler
-
+# KUKA Modell richtig ausrichten (und spiegeln, da z.Zt. spiegelverkehrt)
+# ARMATURE: Position und Winkel auf Plausibilitaet abfragen
+# Eigenes Menue erstellen (aus specials Menue entfernen) [done: --> Object Fenster]
+# Phyton code aufraeumen
+# Doku update
 # Info: 
 # 0. SAFE POSITION: muss immer von Hand im Menue angegeben werden. auch BASEPosition????
 # 1. Kuka startet von HOMEPOSITION und faehrt zur BASEPosition
@@ -319,18 +323,18 @@ def Angle2Vector(obj, filepath):
     print('_____________________________________________________________________________')
     
     
-class EWaMatrix(object):
+class createMatrix(object):
     print('_____________________________________________________________________________')
-    print('EWaMatrix')
+    print('createMatrix')
     def __init__(self, rows, columns, default=0):
         self.m = []
         for i in range(rows):
             self.m.append([default for j in range(columns)])
     def __getitem__(self, index):
         return self.m[index]
-    print('EWaMatrix done')
+    print('createMatrix done')
     print('_____________________________________________________________________________')
-#m = EWaMatrix(10,5)
+#m = createMatrix(10,5)
 #m[3][6] = 7
 
 def ApplyScale(objCurve):
@@ -488,16 +492,16 @@ def RfF_BasePos(filepath):
         # ==========================================
         suchAnf = "BASEPos {X"
         suchEnd = "BASEPos {X"
-        PathCountPTP = len(zeilenliste)
+        PATHPTSCountPTP = len(zeilenliste)
         PathIndexAnf = 0
-        PathIndexEnd = PathCountPTP
-        for i in range(PathCountPTP):
+        PathIndexEnd = PATHPTSCountPTP
+        for i in range(PATHPTSCountPTP):
             if zeilenliste[i].find(suchAnf)!=-1: 
                 PathIndexAnf = i
             if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
                 PathIndexEnd = i
                 break
-        PathCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
+        PATHPTSCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
         
         # ==========================================
         # Einlesen der PTP Werte (X, Y, Z, A, B C) 
@@ -511,7 +515,7 @@ def RfF_BasePos(filepath):
         PTPAngleC = []
         beg=0
         # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
-        for i in range(0,PathCountPTP,1):
+        for i in range(0,PATHPTSCountPTP,1):
             IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
             IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf]))
             PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
@@ -683,16 +687,16 @@ def RfF_SafePos(filepath):
         # ==========================================
         suchAnf = "PTP {X"
         suchEnd = "PTP {X"
-        PathCountPTP = len(zeilenliste)
+        PATHPTSCountPTP = len(zeilenliste)
         PathIndexAnf = 0
-        PathIndexEnd = PathCountPTP
-        for i in range(PathCountPTP):
+        PathIndexEnd = PATHPTSCountPTP
+        for i in range(PATHPTSCountPTP):
             if zeilenliste[i].find(suchAnf)!=-1: 
                 PathIndexAnf = i
             if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
                 PathIndexEnd = i
                 break
-        PathCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
+        PATHPTSCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
         
         # ==========================================
         # Einlesen der PTP Werte (X, Y, Z, A, B C) 
@@ -706,7 +710,7 @@ def RfF_SafePos(filepath):
         PTPAngleC = []
         beg=0
         # die Schleife ist eigentlich unnoetig da es nur eine SAFEPosition gibt...
-        for i in range(0,PathCountPTP,1):
+        for i in range(0,PATHPTSCountPTP,1):
             IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
             IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf]))
             PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
@@ -833,13 +837,12 @@ def SetSafePos(filepath, objCurve, SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, 
     
     
         
-def File2Curve(obj, filepath):     
+def RfF_PATHPTS_LocRot(objCurve, filepath):     
     print('_____________________________________________________________________________')
-    print('File2Curve')
+    print('RfF_PATHPTS_LocRot')
     #todo: Abfragen ob selektiertes Obj. auch wirklich curve ist (und nur ein Obj. selectiert ist)
     #bpy.data.curves[DataName].splines[0].bezier_points[0].co=(0,1,1)
-    
-   
+    SkalierungPTP  = 1000
     # Zugriffsversuch
     #try:
     d = open(filepath)
@@ -851,10 +854,8 @@ def File2Curve(obj, filepath):
     
     # lesen der gesamten Textdatei (*.dat)
     gesamtertext = d.read()
-    
     # schliessen der Datei
     d.close
-    
     # Umwandeln in eine Liste
     zeilenliste = gesamtertext.split(chr(10))
 
@@ -863,17 +864,17 @@ def File2Curve(obj, filepath):
     # ==========================================
     suchAnf = "FOLD PATH DATA"
     suchEnd = "ENDFOLD"
-    PathCount = len(zeilenliste)
+    PATHPTSCount = len(zeilenliste)
     PathIndexAnf = 0
-    PathIndexEnd = PathCount
-    for i in range(PathCount):
+    PathIndexEnd = PATHPTSCount
+    for i in range(PATHPTSCount):
         if zeilenliste[i].find(suchAnf)!=-1: 
             PathIndexAnf = i
-        if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathCount): 
+        if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PATHPTSCount): 
             PathIndexEnd = i
             break
-    print("Hallo Welt - File2Curve")
-    PathCount = PathIndexEnd - (PathIndexAnf+1) # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
+    print("...")
+    PATHPTSCount = PathIndexEnd - (PathIndexAnf+1) # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
     
     # ==========================================
     # Einlesen der PATHPTS Werte (X, Y, Z, A, B C) 
@@ -887,18 +888,18 @@ def File2Curve(obj, filepath):
     PathAngleC = []
     beg=0
    
-    for i in range(0,PathCount,1):
+    for i in range(0,PATHPTSCount,1):
         IndXA = zeilenliste[PathIndexAnf+1+i].index("X ", beg, len(zeilenliste[PathIndexAnf+1])) # Same as find(), but raises an exception if str not found 
         IndXE = zeilenliste[PathIndexAnf+1+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+1]))
-        PathPointX = PathPointX + [float(zeilenliste[PathIndexAnf+1+i][IndXA+2:IndXE])]
+        PathPointX = PathPointX + [float(zeilenliste[PathIndexAnf+1+i][IndXA+2:IndXE])/SkalierungPTP]
    
         IndYA = zeilenliste[PathIndexAnf+1+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+1]))  
         IndYE = zeilenliste[PathIndexAnf+1+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+1]))
-        PathPointY = PathPointY + [float(zeilenliste[PathIndexAnf+1+i][IndYA+2:IndYE])]
+        PathPointY = PathPointY + [float(zeilenliste[PathIndexAnf+1+i][IndYA+2:IndYE])/SkalierungPTP]
    
         IndZA = zeilenliste[PathIndexAnf+1+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+1])) 
         IndZE = zeilenliste[PathIndexAnf+1+i].index(", A", beg, len(zeilenliste[PathIndexAnf+1]))
-        PathPointZ = PathPointZ + [float(zeilenliste[PathIndexAnf+1+i][IndZA+2:IndZE])]
+        PathPointZ = PathPointZ + [float(zeilenliste[PathIndexAnf+1+i][IndZA+2:IndZE])/SkalierungPTP]
    
         IndAA = zeilenliste[PathIndexAnf+1+i].index("A ", beg, len(zeilenliste[PathIndexAnf+1])) 
         IndAE = zeilenliste[PathIndexAnf+1+i].index(", B", beg, len(zeilenliste[PathIndexAnf+1]))
@@ -912,69 +913,32 @@ def File2Curve(obj, filepath):
         IndCE = len(zeilenliste[PathIndexAnf+1+i])-2 # }   " "+chr(125) funktioniert nicht?!
         PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+1+i][IndCA+2:IndCE]) ] # in Grad
 
-    print('File2Curve - Pathpositions und Angles initialisiert')
+    print('RfF_PATHPTS_LocRot - Pathpositions und Angles initialisiert')
     # ==========================================    
-    # Erstellen der BezierCurve
+    # Erstellen der Datenkontainer fuer location und rotation
     # ==========================================    
     
-    # create list of vectors (clist)
-    
-    mList= EWaMatrix(PathCount,1) # eigene Class "EWaMatrix" erstellt
-    cList = []
-    for i in range(0,PathCount,1):
-        #mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
+    mList= createMatrix(PATHPTSCount,1) # eigene Class "createMatrix" erstellt
+    dataPATHPTS_Loc = []
+    for i in range(0,PATHPTSCount,1):
         mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-        cList = cList + [mList[i]] 
-        
-        
-    #ToDo: recalculate Angle -> Vector
-    
-    sLList = []
-    for i in range(0,PathCount,1):
-        #mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-        mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-        sLList = sLList + [mList[i]] 
-    sRList = []
-    for i in range(0,PathCount,1):
-        #mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-        mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-        sRList = sRList + [mList[i]]
-    #MakePolyLine(bpy.context.active_object.name, "Bahnkurve", cList, PathCount)
-    #MakePolyLine(filename, filename, cList, PathCount) # EWa 20130905: Filename verwenden!!!
-    splineType = 'BEZIER'
-    vertArray = vertsToPoints(cList, splineType)
-    EWacreateCurve(vertArray, cList, PathCount)
-    #EWacreateCurve(cList)
-    #MakePolyLine(bpy.context.active_object.name, bpy.context.active_object.name, cList, PathCount)
-    
-    print("Erstellen der BezierCurve: done")
-    
-    # turn verts into array
-    #vertArray = vertsToPoints(verts, splineType)
-    '''
-    splineType = 'BEZIER'
-    vertArray = vertsToPoints(cList, splineType)
-    '''
-    # create object
-    
-    
-    
-    #align_matrix = Matrix() #Matrix(PathCount, 6)
-    
-    '''
-    createCurve(vertArray, self, align_matrix)
-    '''
-    
-    # ToDo: 
-    # BASEPostion definieren und Verschiebung in mList verrechnen [done: ueber Verschiebung der ORIGIN]
+        dataPATHPTS_Loc = dataPATHPTS_Loc + [mList[i]] 
+     
+    mList= createMatrix(PATHPTSCount,1)  
+    dataPATHPTS_Rot =[]
+    for i in range(0,PATHPTSCount,1):
+        mList[i][0:3] = [PathAngleA[i], PathAngleB[i], PathAngleC[i]]
+        dataPATHPTS_Rot = dataPATHPTS_Rot + [mList[i]]
+
+    # ToDo: !!!!
     # Curve Type auf Bezier umstellen und A, B, C Winkel einlesen, 
-    # KUKA Modell richtig ausrichten (und spiegeln, da z.Zt. spiegelverkehrt)
-    # ARMATURE: Position und Winkel auf Plausibilitaet abfragen
-    # Eigenes Menue erstellen (aus specials Menue entfernen) [done: --> Object Fenster]
-    # Phyton code aufraeumen
-    # Doku update
-    print('File2Curve - Curve data - splines ersetzt')
-       
+    
+    print('RfF_PATHPTS_LocRot - Curve data - splines ersetzt')
+    print('_____________________________________________________________________________')
+    return dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCount
+
+
+   
     # ==========================================    
     # Suche nach "FOLD LOAD DATA" und "ENDFOLD"
     # Einlesen der LOADPTS Werte ()
@@ -998,24 +962,7 @@ def File2Curve(obj, filepath):
     # Einlesen der ACTIONMSK Werte )
     # ACTIONMSK[1]=0
     # ==========================================
-    print('_____________________________________________________________________________')
 
-def EWacreateCurve(vertArray, cList, PathCount): 
-    print('_____________________________________________________________________________')
-    print('EWacreateCurve')
-    #origin = (0,0,0)
-    bezierCurve = bpy.data.curves[bpy.context.active_object.data.name] #bpy.context.active_object #.data.name
-    replace_CP(bezierCurve, cList, PathCount) 
-    print('EWacreateCurve done')
-    print('_____________________________________________________________________________')
-'''  
-    #scene.objects.link(new_obj) # place in active scene
-    #new_obj.select = True # set as selected
-    #scene.objects.active = new_obj  # set as active
-    
-    #new_obj.matrix_world = align_matrix # apply matrix
-'''
-    
     
 class CurveExport (bpy.types.Operator, ExportHelper):
     print('CurveExport - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
@@ -1128,6 +1075,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         objBase = bpy.data.objects['Sphere_BASEPos']
         objSafe = bpy.data.objects['Sphere_SAFEPos']
         objCurve = bpy.data.objects['BezierCircle']
+        #objCurve = bpy.data.curves[bpy.context.active_object.data.name]
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']      
     
         filename = os.path.basename(self.filepath)
@@ -1138,13 +1086,24 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         ClearParenting()
         ApplyScale(context.object)
         #--------------------------------------------------------------------------------
-        File2Curve(context.object, self.filepath)
         
+        # create Container (Location, Rotation) for each path point (PTP): dataPATHPTS_Loc, dataPATHPTS_Rot
+        dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfF_PATHPTS_LocRot(context.object, self.filepath) 
+        bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
+        replace_CP(bezierCurve, dataPATHPTS_Loc, PATHPTSCountFile) 
+        # todo: testen!!!!
+        create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile)
+        
+        print("Erstellen der BezierCurve: done")
         BASEPos_Koord, BASEPos_Angle = RfF_BasePos(self.filepath)
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'A {0:.3f}'.format(BASEPos_Angle[0])+' B {0:.3f}'.format(BASEPos_Angle[1])+' C {0:.3f}'.format(BASEPos_Angle[2]))
-        SetBasePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+        
+        # Achtung: die Reihenfolge fon SetCurvePos und SetBasePos muss eingehalten werden! 
+        # (da sonst die Curve nicht mit der Base mit verschoben wird!
         SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+        SetBasePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+        
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' + str(BASEPos_Angle))
         SAFEPos_Koord, SAFEPos_Angle = RfF_SafePos(self.filepath)
@@ -1333,29 +1292,8 @@ def setBezierHandles(obj, mode = 'AUTOMATIC'):
     bpy.ops.object.mode_set(mode='OBJECT', toggle=True)
     print('setBezierHandles done')
     print('_____________________________________________________________________________')
-# get array of vertcoordinates acording to splinetype
-def vertsToPoints(Verts, splineType):
-    print('_____________________________________________________________________________')
-    print('vertsToPoints')
-    # main vars
-    vertArray = []
 
-    # array for BEZIER spline output (V3)
-    if splineType == 'BEZIER':
-        for v in Verts:
-            vertArray += v
 
-    # array for nonBEZIER output (V4)
-    else:
-        for v in Verts:
-            vertArray += v
-            if splineType == 'NURBS':
-                vertArray.append(1) #for nurbs w=1
-            else: #for poly w=0
-                vertArray.append(0)
-    return vertArray
-    print('vertsToPoints done')
-    print('_____________________________________________________________________________')
 # ----------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------
 
@@ -1381,7 +1319,7 @@ if __name__ == '__main__':
 
 # ________________________________________________________________________________________________________________________
 
-def replace_CP(cu, cList, PathCountFile):
+def replace_CP(cu, dataPATHPTS_Loc, PATHPTSCountFile):
     print('_____________________________________________________________________________')
     print('replace_CP')
     #bpy.data.curves[bpy.context.active_object.data.name].user_clear()
@@ -1392,27 +1330,27 @@ def replace_CP(cu, cList, PathCountFile):
     cu.dimensions = '3D'
     
     bzs = bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points
-    PathCount = len(bzs)
+    PATHPTSCount = len(bzs)
     
     # sicherstellen das kein ControlPoint selektiert ist:
-    for n in range(PathCount):
+    for n in range(PATHPTSCount):
         bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[n].select_control_point= False
         bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[n].select_right_handle = False
         bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[n].select_left_handle = False             
     CountCP = 0
     
-    if PathCountFile <= PathCount:
-        CountCP = PathCount
-    if PathCountFile >= PathCount:
-        CountCP = PathCountFile
+    if PATHPTSCountFile <= PATHPTSCount:
+        CountCP = PATHPTSCount
+    if PATHPTSCountFile > PATHPTSCount:
+        CountCP = PATHPTSCountFile
     
     # kuerze die Laenge der aktuellen Kurve auf die File-Kurve, wenn noetig
-    if PathCountFile < PathCount:
+    if PATHPTSCountFile < PATHPTSCount:
         delList =[]
-        zuViel = PathCount - PathCountFile
-        delList = [PathCountFile]*(PathCountFile+zuViel)
+        zuViel = PATHPTSCount - PATHPTSCountFile
+        delList = [PATHPTSCountFile]*(PATHPTSCountFile+zuViel)
         
-        for n in range(PathCountFile, PathCountFile+zuViel, 1):      
+        for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
             bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[delList[n]].select_control_point=True
             bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[delList[n]].select_right_handle = True
             bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[delList[n]].select_left_handle = True
@@ -1420,7 +1358,7 @@ def replace_CP(cu, cList, PathCountFile):
         CountCP = len(bzs)
     
     for n in range(CountCP):
-        if (PathCount-1) >= n: # Wenn ein Datenpunkt auf der vorhandenen Kurve da ist,
+        if (PATHPTSCount-1) >= n: # Wenn ein Datenpunkt auf der vorhandenen Kurve da ist,
             # Waehle einen Punkt auf der vorhandenen Kurve aus:
             bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[n].select_control_point = True
             print(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[n])
@@ -1433,17 +1371,17 @@ def replace_CP(cu, cList, PathCountFile):
             print(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[n].handle_right_type)
             
             
-            if (PathCountFile-1) >= n: # Wenn ein Datenpunkt im File da ist, nehm ihn und ersetzte damit den aktellen Punkt
-                bzs[n].co = Vector(cList[n])/1000
-                bzs[n].handle_left = Vector(cList[n-1])/1000
-                bzs[n].handle_right = Vector(cList[n-PathCountFile+1])/1000 # n-PathCount+1 weil er nur vom ersten Element auf das letzte springt
+            if (PATHPTSCountFile-1) >= n: # Wenn ein Datenpunkt im File da ist, nehm ihn und ersetzte damit den aktellen Punkt
+                bzs[n].co = Vector(dataPATHPTS_Loc[n])
+                bzs[n].handle_left = Vector(dataPATHPTS_Loc[n-1])
+                bzs[n].handle_right = Vector(dataPATHPTS_Loc[n-PATHPTSCountFile+1]) # n-PATHPTSCount+1 weil er nur vom ersten Element auf das letzte springt
                 bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[n].select_control_point = False      
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
             bzs.add(1) #spline.bezier_points.add(1)
             
-            bzs[n].co = Vector(cList[n])/1000
-            bzs[n].handle_left = Vector(cList[n-1])/1000 #bzs[n-1].co
-            bzs[n].handle_right = Vector(cList[n-PathCountFile+1])/1000 #bzs[n+1].co
+            bzs[n].co = Vector(dataPATHPTS_Loc[n])
+            bzs[n].handle_left = Vector(dataPATHPTS_Loc[n-1]) #bzs[n-1].co
+            bzs[n].handle_right = Vector(dataPATHPTS_Loc[n-PATHPTSCountFile+1]) #bzs[n+1].co
             bzs[n].handle_right_type='VECTOR'
             bzs[n].handle_left_type='VECTOR'
             print(bzs[n])
@@ -1455,6 +1393,105 @@ def replace_CP(cu, cList, PathCountFile):
     
     bpy.ops.object.mode_set(mode='OBJECT', toggle=False) # switch back to object mode
     print('replace_CP done')
+    print('_____________________________________________________________________________')
+    
+
+def count_PATHPTSObj(PATHPTSObjName):
+    print('_____________________________________________________________________________')
+    print('count_PATHPTSObj')
+    countPATHPTSObj = 0
+    countObj = 0
+    PATHPTSObjList=[]
+    #PATHPTSObjName = 'PTPObj_'
+    for item in bpy.data.objects:
+        if item.type == "MESH":
+            countObj = countObj +1
+            print(item.name)  
+            if PATHPTSObjName in item.name:
+                countPATHPTSObj = countPATHPTSObj +1
+                PATHPTSObjList = PATHPTSObjList + [item.name]
+    print('Anzahl an Objekten in der Szene - countObj: ' +str(countObj))
+    print('Anzahl an PathPoint Objekten in der Szene - countPATHPTSObj: ' +str(countPATHPTSObj))
+    print('count_PATHPTSObj')
+    print('_____________________________________________________________________________')
+    return countPATHPTSObj, PATHPTSObjList,
+    
+    
+def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
+    
+    # TESTEN !!!!!!!!!!!!!!!!!!
+    
+    print('_____________________________________________________________________________')
+    print('create_PATHPTSObj')
+    # erstellen von 'PATHPTSCountFile' Mesh Objekten an den Positionen 'dataPATHPTS_Loc' mit der Ausrichtung 'dataPATHPTS_Rot'
+    
+    # 1. Wieviele PTPObj Objekte sind in der Scene vorhanden? (Beachte: Viele Objekte koennen den selben Datencontainer verwenden)
+    countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj('PTPObj_')
+    print('Es sind ' + str(countPATHPTSObj) + 'PATHPTSObj in der Szene vorhanden.' )
+    print('Folgende PATHPTSObj wurden in der Szene gefunden: ' + str(PATHPTSObjList))
+    # Datencontainer:  
+    for mesh in bpy.data.meshes:
+        print(mesh.name)  
+        
+    
+    # 2. Anpassen der Anzahl der Objekte auf 'PATHPTSCountFile'
+    # sicherstellen das kein ControlPoint selektiert ist:
+    bpy.ops.object.select_all(action='DESELECT')
+    
+    if PATHPTSCountFile <= countPATHPTSObj:
+        CountCP = countPATHPTSObj
+        print('Der Import hat weniger oder gleich viele PATHPTS als in der Szene bereits vorhanden.')
+    if PATHPTSCountFile > countPATHPTSObj:
+        CountCP = PATHPTSCountFile
+        print('Der Import hat mehr PATHPTS als in der Szene bereits vorhanden.')
+    # 3. Zuweisen von dataPATHPTS_Loc
+    # 4. Zuweisen von dataPATHPTS_Rot
+    # kuerze die Laenge der aktuellen Kurve auf die File-Kurve, wenn noetig
+    if PATHPTSCountFile < countPATHPTSObj:
+        print('Loeschen der ueberfluessigen PATHPTS Objekte aus der Szene...')
+        delList =[]
+        zuViel = countPATHPTSObj - PATHPTSCountFile
+        delList = [PATHPTSCountFile]*(PATHPTSCountFile+zuViel)
+        
+        for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
+            bpy.data.objects[PATHPTSObjList[n]].select
+            bpy.ops.object.delete()
+        countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj('PTPObj_')
+        CountCP = countPATHPTSObj
+        
+    for n in range(CountCP):
+        if (countPATHPTSObj-1) >= n: # Wenn ein PATHPTS Objekt vorhandenen ist,
+            # Waehle eine PATHPTS Objekt aus:
+            bpy.data.objects[PATHPTSObjList[n]].select
+            print('Waehle Objekt aus: ' + str(PATHPTSObjList[n]))
+            
+            if (PATHPTSCountFile-1) >= n: # Wenn ein Datenpunkt (PATHPTS) im File da ist, uebertrage loc und rot auf PATHPTSObj
+                print('PATHPTS Objekt ' + str(n) + ' vorhanen:' + str(bpy.data.objects[PATHPTSObjList[n]].name))
+                print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
+                      + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
+                      + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
+                
+                # Achtung - TODO: die loc rot angaben stehen in Bezug auf die BasePos im File. D.h. sie müssen hier noch transformiert werden.
+                # Skalierung der loc rot noch nicht berücksichtigt... neue Funktion erstellen
+                
+                bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_Loc[n]     
+                bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_Rot[n]
+        else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
+            print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
+            print('Erstelle neues PATHPTS Objekt.')
+            
+            # add an new MESH object, place it in 'EDIT' mode  
+            bpy.ops.object.add(type='MESH')  
+            bpy.context.object.name = PATHPTSObjList[n] 
+            bpy.data.objects[PATHPTSObjList[n]].data = bpy.data.objects[PATHPTSObjList[1]].data
+            print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
+                      + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
+                      + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
+            bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_Loc[n]     
+            bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_Rot[n] 
+    
+    
+    print('create_PATHPTSObj done')
     print('_____________________________________________________________________________')
 # ________________________________________________________________________________________________________________________
 
