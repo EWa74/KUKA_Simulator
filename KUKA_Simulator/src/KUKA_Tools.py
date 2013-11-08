@@ -1420,13 +1420,15 @@ def count_PATHPTSObj(PATHPTSObjName):
 def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
     
     # TESTEN !!!!!!!!!!!!!!!!!!
-    
+    original_type = bpy.context.area.type
+    bpy.context.area.type = "VIEW_3D" 
+    bpy.ops.object.select_all(action='DESELECT')
     print('_____________________________________________________________________________')
     print('create_PATHPTSObj')
     # erstellen von 'PATHPTSCountFile' Mesh Objekten an den Positionen 'dataPATHPTS_Loc' mit der Ausrichtung 'dataPATHPTS_Rot'
-    
+    PATHPTSObjName = 'PTPObj_'
     # 1. Wieviele PTPObj Objekte sind in der Scene vorhanden? (Beachte: Viele Objekte koennen den selben Datencontainer verwenden)
-    countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj('PTPObj_')
+    countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj(PATHPTSObjName)
     print('Es sind ' + str(countPATHPTSObj) + 'PATHPTSObj in der Szene vorhanden.' )
     print('Folgende PATHPTSObj wurden in der Szene gefunden: ' + str(PATHPTSObjList))
     # Datencontainer:  
@@ -1455,7 +1457,10 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
         
         for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
             bpy.data.objects[PATHPTSObjList[n]].select
+            objDelete = bpy.data.objects[PATHPTSObjList[n]]
+            bpy.context.scene.objects.active = objDelete
             bpy.ops.object.delete()
+            bpy.ops.object.select_all(action='DESELECT')
         countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj('PTPObj_')
         CountCP = countPATHPTSObj
         
@@ -1473,6 +1478,8 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
                 
                 # Achtung - TODO: die loc rot angaben stehen in Bezug auf die BasePos im File. D.h. sie müssen hier noch transformiert werden.
                 # Skalierung der loc rot noch nicht berücksichtigt... neue Funktion erstellen
+                # Aufgabe schon in import der SafePos gelöst!
+                
                 
                 bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_Loc[n]     
                 bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_Rot[n]
@@ -1480,9 +1487,11 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
             print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
             print('Erstelle neues PATHPTS Objekt.')
             
-            # add an new MESH object, place it in 'EDIT' mode  
+            # add an new MESH object
+            print('bpy.context.area.type: ' + bpy.context.area.type)
             bpy.ops.object.add(type='MESH')  
-            bpy.context.object.name = PATHPTSObjList[n] 
+            bpy.context.object.name = PATHPTSObjName + str(n+1) 
+            countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj(PATHPTSObjName)
             bpy.data.objects[PATHPTSObjList[n]].data = bpy.data.objects[PATHPTSObjList[1]].data
             print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
@@ -1490,6 +1499,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
             bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_Loc[n]     
             bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_Rot[n] 
     
+    bpy.context.area.type = original_type 
     
     print('create_PATHPTSObj done')
     print('_____________________________________________________________________________')
