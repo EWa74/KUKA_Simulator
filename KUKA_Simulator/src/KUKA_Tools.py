@@ -1419,7 +1419,7 @@ def count_PATHPTSObj(PATHPTSObjName):
     
 def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
     
-    # TESTEN !!!!!!!!!!!!!!!!!!
+    # TESTEN !!!!!!!!!!!!!!!!!! -> OK, transform loc, global fehlt noch....
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D" 
     bpy.ops.object.select_all(action='DESELECT')
