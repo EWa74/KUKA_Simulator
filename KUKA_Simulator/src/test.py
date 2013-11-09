@@ -1148,5 +1148,51 @@ class DialogPanel(bpy.types.Panel):
         self.layout.operator("object.dialog_operator")
     print('DialogPanel done')
  
+# Axis: ( used in 3DCurve Turbulence )
+def AxisFlip(x,y,z, x_axis=1, y_axis=1, z_axis=1, flip=0 ):
+    print('_____________________________________________________________________________')
+    print('AxisFlip')
+    if flip != 0:
+        flip *= -1
+    else: flip = 1
+    x *= x_axis*flip
+    y *= y_axis*flip
+    z *= z_axis*flip
+    return x,y,z
+    print('AxisFlip done')
+    print('_____________________________________________________________________________')
+
+# calculates the matrix for the new object
+# depending on user pref
+def align_matrix(context):
+    print('_____________________________________________________________________________')
+    print('align_matrix')
+    loc = Matrix.Translation(context.scene.cursor_location)
+    obj_align = context.user_preferences.edit.object_align
+    if (context.space_data.type == 'VIEW_3D'
+        and obj_align == 'VIEW'):
+        rot = context.space_data.region_3d.view_matrix.to_3x3().inverted().to_4x4()
+    else:
+        rot = Matrix()
+    align_matrix = loc * rot
+    return align_matrix
+    print('align_matrix done')
+    print('_____________________________________________________________________________')
+    
+    # sets bezierhandles to auto
+def setBezierHandles(obj, mode = 'AUTOMATIC'):
+    print('_____________________________________________________________________________')
+    print('setBezierHandles')
+    scene = bpy.context.scene
+    if obj.type != 'CURVE':
+        return
+    scene.objects.active = obj
+    bpy.ops.object.mode_set(mode='EDIT', toggle=True)
+    bpy.ops.curve.select_all(action='SELECT')
+    bpy.ops.curve.handle_type_set(type=mode)
+    bpy.ops.object.mode_set(mode='OBJECT', toggle=True)
+    print('setBezierHandles done')
+    print('_____________________________________________________________________________')
+    
 
     

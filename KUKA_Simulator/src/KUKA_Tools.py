@@ -25,7 +25,6 @@
 # 5. Keine Wiederholung: fahre zur HOMEPOSITION
 # 6. Wiederholung: Wiederhole Punkte 2, 3, 4
  
-
 # ToDo: ToolPosition auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
 # BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
 
@@ -35,7 +34,7 @@ ${workspace_loc:CurveExport/src/curve_export.py}
 
 Bevel add-on
 bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co=(0,1,1)
-''' 
+'''  
 #--- ### Header 
 bl_info = { 
     "name": "CurveExport",
@@ -54,9 +53,10 @@ bl_info = {
 import bpy, os
 import sys
 from bpy.utils import register_module, unregister_module
-from bpy.props import FloatProperty
-from bpy.props import IntProperty
+from bpy.props import FloatProperty, IntProperty
 from mathutils import Vector  
+from mathutils import *
+import mathutils
 import math
 # ExportHelper is a helper class, defines filename and
 # invoke() function which calls the file selector.
@@ -64,24 +64,10 @@ from bpy_extras.io_utils import ExportHelper
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
-# ------------------------------------------------------------
-
 
 
 # todo: globale variablen definieren.....
  
-
-#### import modules
-#import bpy
-#from bpy.props import *
-from mathutils import *
-import mathutils
-#from math import *
-#import mathutils.noise as Noise
-
-#from bpy import context
-#from math import sin, cos, radians    
-   
 
 def BasePos2File(BASEPos_Koord, BASEPos_Angle, filepath):
     print('_____________________________________________________________________________')
@@ -305,23 +291,6 @@ def Curve2File(obj, filepath):
     print('Curve2File done')
     print('_____________________________________________________________________________')
  
-#import re
-
-
-
-def Vector2Angle(obj, filepath): 
-    print('Vector2Angle')
-    # ToDo: Unterfunktionen bilden,
-    # - Transformation Vector-> Winkel (review)
-    # - Transformation Winkel-> Vector
-    print('Vector2Angle done')
-    
-def Angle2Vector(obj, filepath): 
-    print('_____________________________________________________________________________')
-    print('Angle2Vector')
-    print('Angle2Vector done!')
-    print('_____________________________________________________________________________')
-    
     
 class createMatrix(object):
     print('_____________________________________________________________________________')
@@ -1241,82 +1210,10 @@ class KUKAPanel(bpy.types.Panel):
         row.operator("curve.curveexport")      
     print('KUKAPanel done')
     print('_____________________________________________________________________________')
-    
-    
-###------------------------------------------------------------
-#------------------------------------------------------------
-#------------------------------------------------------------
-# Axis: ( used in 3DCurve Turbulence )
-def AxisFlip(x,y,z, x_axis=1, y_axis=1, z_axis=1, flip=0 ):
-    print('_____________________________________________________________________________')
-    print('AxisFlip')
-    if flip != 0:
-        flip *= -1
-    else: flip = 1
-    x *= x_axis*flip
-    y *= y_axis*flip
-    z *= z_axis*flip
-    return x,y,z
-    print('AxisFlip done')
-    print('_____________________________________________________________________________')
-##------------------------------------------------------------
-# calculates the matrix for the new object
-# depending on user pref
-def align_matrix(context):
-    print('_____________________________________________________________________________')
-    print('align_matrix')
-    loc = Matrix.Translation(context.scene.cursor_location)
-    obj_align = context.user_preferences.edit.object_align
-    if (context.space_data.type == 'VIEW_3D'
-        and obj_align == 'VIEW'):
-        rot = context.space_data.region_3d.view_matrix.to_3x3().inverted().to_4x4()
-    else:
-        rot = Matrix()
-    align_matrix = loc * rot
-    return align_matrix
-    print('align_matrix done')
-    print('_____________________________________________________________________________')
-##------------------------------------------------------------
+
 #### Curve creation functions
-# sets bezierhandles to auto
-def setBezierHandles(obj, mode = 'AUTOMATIC'):
-    print('_____________________________________________________________________________')
-    print('setBezierHandles')
-    scene = bpy.context.scene
-    if obj.type != 'CURVE':
-        return
-    scene.objects.active = obj
-    bpy.ops.object.mode_set(mode='EDIT', toggle=True)
-    bpy.ops.curve.select_all(action='SELECT')
-    bpy.ops.curve.handle_type_set(type=mode)
-    bpy.ops.object.mode_set(mode='OBJECT', toggle=True)
-    print('setBezierHandles done')
-    print('_____________________________________________________________________________')
-
-
-# ----------------------------------------------------------------------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------
-
-#--- ### Register
-
-#ToDo: KUKA Operator nicht regestriert....
-
-
-def register():
-    bpy.utils.register_class(KUKAPanel)  
-    register_module(__name__)
-    
-def unregister():
-    bpy.utils.unregister_class(KUKAPanel)
-    unregister_module(__name__)
-
-#--- ### Main code    
-if __name__ == '__main__':
-    register()
-
 # ________________________________________________________________________________________________________________________
 # Bezier
-
 # ________________________________________________________________________________________________________________________
 
 def replace_CP(cu, dataPATHPTS_Loc, PATHPTSCountFile):
@@ -1502,75 +1399,16 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
     print('create_PATHPTSObj done')
     print('_____________________________________________________________________________')
 # ________________________________________________________________________________________________________________________
+#--- ### Register
+#ToDo: KUKA Operator nicht regestriert....
+def register():
+    bpy.utils.register_class(KUKAPanel)  
+    register_module(__name__)
+    
+def unregister():
+    bpy.utils.unregister_class(KUKAPanel)
+    unregister_module(__name__)
 
-#----------------------------------------------------------
-# File popup.py
-# from API documentation
-#----------------------------------------------------------
- 
-#import bpy
-from bpy.props import *
- 
-theFloat = 9.8765
-theBool = False
-theString = "Lorem ..."
-theEnum = 'one'
- 
-class DialogOperator(bpy.types.Operator):
-    print('DialogOperator')
-    bl_idname = "object.dialog_operator"
-    bl_label = "Simple Dialog Operator"
- 
-    my_float = FloatProperty(name="Some Floating Point", 
-        min=0.0, max=100.0)
-    my_bool = BoolProperty(name="Toggle Option")
-    my_string = StringProperty(name="String Value")
-    my_enum = EnumProperty(name="Enum value",
-        items = [('one', 'eins', 'un'), 
-                 ('two', 'zwei', 'deux'),
-                 ('three', 'drei', 'trois')])
- 
-    def execute(self, context):
-        message = "%.3f, %d, '%s' %s" % (self.my_float, 
-            self.my_bool, self.my_string, self.my_enum)
-        self.report({'INFO'}, message)
-        print(message)
-        return {'FINISHED'}
- 
-    def invoke(self, context, event):
-        global theFloat, theBool, theString, theEnum
-        self.my_float = theFloat
-        self.my_bool = theBool
-        self.my_string = theString
-        self.my_enum = theEnum
-        return context.window_manager.invoke_props_dialog(self)
- 
-    print('DialogOperator done')
-     
-bpy.utils.register_class(DialogOperator)
- 
-# Invoke the dialog when loading
-bpy.ops.object.dialog_operator('INVOKE_DEFAULT')
- 
-#
-#    Panel in tools region
-#
-class DialogPanel(bpy.types.Panel):
-    print('DialogPanel')
-    bl_label = "Dialog"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
- 
-    def draw(self, context):
-        global theFloat, theBool, theString, theEnum
-        theFloat = 12.345
-        theBool = True
-        theString = "Code snippets"
-        theEnum = 'two'
-        self.layout.operator("object.dialog_operator")
-    print('DialogPanel done')
- 
-#
-#    Registration
-bpy.utils.register_module(__name__)
-
+#--- ### Main code    
+if __name__ == '__main__':
+    register()
