@@ -1058,13 +1058,16 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfF_PATHPTS_LocRot(context.object, self.filepath) 
         bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
         replace_CP(bezierCurve, dataPATHPTS_Loc, PATHPTSCountFile) 
-        # todo: testen!!!!
-        create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile)
-        
+              
         print("Erstellen der BezierCurve: done")
         BASEPos_Koord, BASEPos_Angle = RfF_BasePos(self.filepath)
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'A {0:.3f}'.format(BASEPos_Angle[0])+' B {0:.3f}'.format(BASEPos_Angle[1])+' C {0:.3f}'.format(BASEPos_Angle[2]))
+        
+        
+        # todo: testen!!!!
+        create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
+        
         
         # Achtung: die Reihenfolge fon SetCurvePos und SetBasePos muss eingehalten werden! 
         # (da sonst die Curve nicht mit der Base mit verschoben wird!
@@ -1313,8 +1316,8 @@ def count_PATHPTSObj(PATHPTSObjName):
     return countPATHPTSObj, PATHPTSObjList,
     
     
-def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
-    
+def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle ):
+    # Aufruf von: CurveImport
     # TESTEN !!!!!!!!!!!!!!!!!! -> OK, transform loc, global fehlt noch....
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D" 
@@ -1365,22 +1368,24 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
             print('Waehle Objekt aus: ' + str(PATHPTSObjList[n]))
             
             if (PATHPTSCountFile-1) >= n: # Wenn ein Datenpunkt (PATHPTS) im File da ist, uebertrage loc und rot auf PATHPTSObj
+                dataPATHPTS_LocGL =[]
+                dataPATHPTS_RotGL=[]
                 print('PATHPTS Objekt ' + str(n) + ' vorhanen:' + str(bpy.data.objects[PATHPTSObjList[n]].name))
                 print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
                 
                 # Achtung - TODO: die loc rot angaben stehen in Bezug auf die BasePos im File. D.h. sie müssen hier noch transformiert werden.
+                # done: Erg. prüfen!!!
                 # Skalierung der loc rot noch nicht berücksichtigt... neue Funktion erstellen
                 # Aufgabe schon in import der SafePos gelöst!
                 
                 #SetPATHPTSPos(objPATHPTS, PATHPTS_Koord, PATHPTS_Angle, BASEPos_Koord, BASEPos_Angle)
                 #bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_Loc[n]     
                 #bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_Rot[n]
-                dataPATHPTS_LocGL[n], dataPATHPTS_RotGL[n] = SetPATHPTSPos(bpy.data.objects[PATHPTSObjList[n]], 
-                                                                       +dataPATHPTS_Loc[n], dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
-                bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_LocGL[n]     
-                bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_RotGL[n]
+                dataPATHPTS_LocGL, dataPATHPTS_RotGL = SetPATHPTSPos(bpy.data.objects[PATHPTSObjList[n]], dataPATHPTS_Loc[n], dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
+                bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_LocGL     
+                bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_RotGL # rad
                 
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
             print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
@@ -1395,11 +1400,10 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
             print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
-            
-            
-            #todo
-            bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_Loc[n]     
-            bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_Rot[n] 
+            # testen:
+            dataPATHPTS_LocGL, dataPATHPTS_RotGL = SetPATHPTSPos(bpy.data.objects[PATHPTSObjList[n]], dataPATHPTS_Loc[n], dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
+            bpy.data.objects[PATHPTSObjList[n]].location = dataPATHPTS_LocGL     
+            bpy.data.objects[PATHPTSObjList[n]].rotation_euler = dataPATHPTS_RotGL # rad
     
     bpy.context.area.type = original_type 
     
@@ -1408,7 +1412,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile):
 
 
 def SetPATHPTSPos(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
-    
+    # Aufruf von: create_PATHPTSObj
     #todo: under construction/ test .....
     
     # Diese Funktion wird nur bei Import aufgerufen.
@@ -1420,8 +1424,10 @@ def SetPATHPTSPos(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, B
     print('dataPATHPTS_Rot: ' +str(dataPATHPTS_Rot))  
     print('')
     matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
-    point_local  = dataPATHPTS_Loc
+    point_local  = Vector(dataPATHPTS_Loc)
+    
     point_world  = matrix_world * point_local
+    
     print(' PATHPTS local bezogen auf Base: point_local ' +str(point_local))
     print(' PATHPTS local bezogen auf World: point_world ' +str(point_world))
     print('')
@@ -1430,33 +1436,24 @@ def SetPATHPTSPos(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, B
     print('eul: ' +str(eul))
     mat_rot = eul.to_matrix()
     mat_loc = point_local 
-    mat = mat_rot * mat_loc 
+    mat = mat_rot * mat_loc
+    
     print('mat: ' +str(mat))
     
-    print('Rotation von PATHPTS Koord bezogen auf BaseKoordinaten...')
-    matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
-    print('matrix_world: ' +str(matrix_world))
-    point_local  = mat
-    point_world  = matrix_world * point_local
     print('point_world2: ' +str(point_world))
-    
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
     print('BASEPos_Angle: ' +str(BASEPos_Angle))
     print('dataPATHPTS_Loc: ' +str(dataPATHPTS_Loc))
     print('dataPATHPTS_Rot: ' +str(dataPATHPTS_Rot)) 
     
-    
-    #SetOrigin(objPATHPTS, objPATHPTS)
-    
-    #objPATHPTS.location = point_world
     PATHPTS_Koord = point_world
     print('PATHPTS-Origin  = PATHPTS auf point_world  gesetzt.')
 
     print('PATHPTS_Angle wieder dem Origin zuweisen unter Beruecksichtigung der BaseOrientierung:')
-    PATHPTS_Angle[0] = (dataPATHPTS_Rot[0]  -BASEPos_Angle[0]) *(2*math.pi)/360 # [rad]
-    PATHPTS_Angle[1] = (dataPATHPTS_Rot[1]  -BASEPos_Angle[1]) *(2*math.pi)/360 # [rad]
-    PATHPTS_Angle[2] = (dataPATHPTS_Rot[2]  -BASEPos_Angle[2]) *(2*math.pi)/360 # [rad]
-    
+    PATHPTS_Angle=[]
+    for i in range(0,3):
+        PATHPTS_Angle = PATHPTS_Angle + [(dataPATHPTS_Rot[i] -BASEPos_Angle[i])*(2*math.pi)/360 ] # [rad]
+        
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
     print('BASEPos_Angle: ' +str(BASEPos_Angle))
     print('PATHPTS_Koord: ' +str(PATHPTS_Koord))    
