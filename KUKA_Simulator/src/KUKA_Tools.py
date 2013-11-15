@@ -262,9 +262,9 @@ def WtF_CurveData(obj, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
         PathPointY = PathPointY +[dataPATHPTS_LocGL[1]]
         PathPointZ = PathPointZ +[dataPATHPTS_LocGL[2]]
         
-        PathPointA = PathPointA +[dataPATHPTS_RotGL[0]*360/(2* math.pi)] # Grad
-        PathPointB = PathPointB +[dataPATHPTS_RotGL[1]*360/(2* math.pi)]
-        PathPointC = PathPointC +[dataPATHPTS_RotGL[2]*360/(2* math.pi)]
+        PathPointA = PathPointA +[dataPATHPTS_RotGL[0]] # Grad
+        PathPointB = PathPointB +[dataPATHPTS_RotGL[1]]
+        PathPointC = PathPointC +[dataPATHPTS_RotGL[2]]
         
         
     fout.write(";FOLD PATH DATA" + "\n")
