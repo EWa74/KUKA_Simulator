@@ -567,7 +567,7 @@ def SetCurvePos(objCurve, objBase, BASEPos_Koord, BASEPos_Angle):
     SetOrigin(objCurve, objBase)
     # Kurve: Origin der Kurve auf BASEPosition verschieben
     objCurve.location = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
-    
+    objCurve.rotation_euler = BASEPos_Angle[0] *(2*math.pi)/360,  BASEPos_Angle[1] *(2*math.pi)/360,BASEPos_Angle[2] *(2*math.pi)/360
     print('SetCurvePos done')
     print('_____________________________________________________________________________')
 
@@ -732,16 +732,10 @@ def SetOrigin(sourceObj, targetObj):
     bpy.context.area.type = "VIEW_3D" 
     
     # Sicherstellen das wir uns im Object Mode befinden:
-    
     original_mode = bpy.context.mode
     if original_mode!= 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-        
-    
-    # tdo: deselect läuft mit curve nicht... prüfen ob notwendig...
-    # 
-    
-    
+      
     bpy.ops.object.select_all(action='DESELECT')  
     # 2. setzen des sourceObj Origin auf  vertex[0] von targetObj:
     targetObj.select = True 
@@ -1095,16 +1089,14 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         # todo: testen!!!!
         create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
         
-        bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
-        #replace_CP(bezierCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) 
         
-        # todo:
-        #- Winkel der PATHPTS werden falsch exportiert
-        #- Ungenaugkeiten/ rundungsfehler beim Import der Splinepoints NICHT ABER bei der PATHPTS Objekten???
+        #bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
+        SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+        replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) 
         
         # Achtung: die Reihenfolge fon SetCurvePos und SetBasePos muss eingehalten werden! 
         # (da sonst die Curve nicht mit der Base mit verschoben wird!
-        #SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+       
         
         
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
@@ -1250,11 +1242,26 @@ class KUKAPanel(bpy.types.Panel):
 # Bezier
 # ________________________________________________________________________________________________________________________
 
-def replace_CP(bezierCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle):
+def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle):
     print('_____________________________________________________________________________')
     print('replace_CP')
     #bpy.data.curves[bpy.context.active_object.data.name].user_clear()
     #bpy.data.curves.remove(bpy.data.curves[bpy.context.active_object.data.name])
+    bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
+    
+    original_type = bpy.context.area.type
+    bpy.context.area.type = "VIEW_3D" 
+    
+    # Sicherstellen das wir uns im Object Mode befinden:
+    original_mode = bpy.context.mode
+    if original_mode!= 'OBJECT':
+        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+      
+    bpy.ops.object.select_all(action='DESELECT')  
+    objCurve.select = True 
+    bpy.context.scene.objects.active = objCurve
+    
+    #bpy.data.objects['BezierCircle'].select=True
     
     countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj(PATHPTSObjName)
     
@@ -1321,8 +1328,9 @@ def replace_CP(bezierCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, B
                 bezierCurve.splines[0].bezier_points[n].select_control_point = False  
                 
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
-            bzs.add(1) #spline.bezier_points.add(1)
-            
+            #bzs.add(1) #spline.bezier_points.add(1)
+            #bpy.data.curves['BezierCircle'].splines[0].bezier_points.add(1)
+            bezierCurve.splines[0].bezier_points.add(1) #spline.bezier_points.add(1)
             #todo: Daten sollten eigentlich von dataPATHPTS_Loc verwendet werden:
             NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]], bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
             NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]], bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
@@ -1332,16 +1340,22 @@ def replace_CP(bezierCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, B
             bezierCurve.splines[0].bezier_points[n].co = NewLocRot[1][0]
             bezierCurve.splines[0].bezier_points[n].handle_right = NewLocRot[2][0]
             
-            bzs[n].handle_right_type='VECTOR'
-            bzs[n].handle_left_type='VECTOR'
-            print(bzs[n])
-            print(bzs[n].select_control_point)
-            print(bzs[n].handle_left_type)
-            print('handle_right' + str(bzs[n].handle_right_type))
-            print(bzs[n])
+            bezierCurve.splines[0].bezier_points[n].handle_right_type='VECTOR'
+            bezierCurve.splines[0].bezier_points[n].handle_left_type='VECTOR'
+            print(bezierCurve.splines[0].bezier_points[n])
+            print(bezierCurve.splines[0].bezier_points[n].select_control_point)
+            print(bezierCurve.splines[0].bezier_points[n].handle_left_type)
+            print('handle_right' + str(bezierCurve.splines[0].bezier_points[n].handle_right_type))
+            print(bezierCurve.splines[0].bezier_points[n])
             
     
+    
+    if original_mode!= 'OBJECT':
+        bpy.ops.object.mode_set(mode='EDIT', toggle=True)
     bpy.ops.object.mode_set(mode='OBJECT', toggle=False) # switch back to object mode
+    
+    bpy.context.area.type = original_type 
+        
     print('replace_CP done')
     print('_____________________________________________________________________________')
     
