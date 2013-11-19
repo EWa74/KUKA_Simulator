@@ -69,6 +69,12 @@ from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
+# Global Variables:
+PATHPTSObjName = 'PTPObj_'
+
+
+
+
 def WtF_BasePos(BASEPos_Koord, BASEPos_Angle, filepath):
     print('_____________________________________________________________________________')
     print('WtF_BasePos ')
@@ -1010,7 +1016,24 @@ class kuka(bpy.types.Operator):
         self.geschwindigkeit += wert
         
 '''
-               
+
+class ClassSetAnimation (bpy.types.Operator):
+    print('ClassSetAnimation- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+    ''' Import selected curve '''
+    bl_idname = "curve.setanimation"
+    bl_label = "setanimation (TB)" #Toolbar - Label
+    bl_description = "Set Animation Data" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+ 
+    def execute(self, context):  
+        print('- - -SetAnimation - - - - - - -')
+        SetAnimation()
+        return {'FINISHED'} 
+    print('- - -SetAnimation class done- - - - - - -')     
+              
 class KUKAPanel(bpy.types.Panel):
     print('_____________________________________________________________________________')
     print()
@@ -1101,7 +1124,8 @@ class KUKAPanel(bpy.types.Panel):
         sub = row.row()
         sub.scale_x = 1.0
         sub.operator("curve.curveimport")
-        row.operator("curve.curveexport")      
+        row.operator("curve.curveexport")   
+        row.operator("curve.setanimation")     
     print('KUKAPanel done')
     print('_____________________________________________________________________________')
 
@@ -1335,7 +1359,55 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     print('create_PATHPTSObj done')
     print('_____________________________________________________________________________')
 
+def SetAnimation():
+    # Status: ersten Objekt bekommt noch keinen i-key....
+    
+    
+    
+    objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']     
+    
+    bpy.ops.object.select_all(action='DESELECT')
+    
+    scene = bpy.context.scene
+    fps = scene.render.fps
+    fps_base = scene.render.fps_base
+    
+    countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj(PATHPTSObjName)
+    #countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj(PATHPTSObjName)
+    #countPATHPTSObj = 4
+    #PATHPTSObjList =('PTPObj_001','PTPObj_002','PTPObj_003','PTPObj_004')
+    
+    TIMEPTS=[]
+    raw_time=[]
+    frame_number=[]
+    #n=countPATHPTSObj # Schleife fehlt noch....
 
+    bpy.context.scene.objects.active = objEmpty_A6
+    
+    #bpy.data.objects[PATHPTSObjList[n]]
+    
+    ob = bpy.context.active_object
+    
+    def frame_to_time(frame_number):
+        raw_time = (frame_number - 1) / fps
+        return round(raw_time, 3)
+    
+    #for i in countPATHPTSObj:
+    TIMEPTS=['0','1', '2', '3','4'] # '0' gibts später nicht (aus Import)
+    
+    def time_to_frame(time_value):
+        frame_number = (time_value * fps) +1
+        return round(frame_number, 3)
+    
+    for n in range(countPATHPTSObj+1):
+        print(n)
+        bpy.context.scene.frame_set(time_to_frame(int(TIMEPTS[n+1]))) 
+        ob.location = bpy.data.objects[PATHPTSObjList[n]].location
+        ob.rotation_euler = bpy.data.objects[PATHPTSObjList[n]].rotation_euler
+        ob.keyframe_insert(data_path="location", index=-1)
+        # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
+        ob.keyframe_insert(data_path="rotation_euler", index=-1)
+      
 # ________________________________________________________________________________________________________________________
 
 
