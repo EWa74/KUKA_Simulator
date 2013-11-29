@@ -47,7 +47,7 @@
 # ToDo: ToolPosition auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
 # BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
 # todo: globale variablen definieren.....
-
+# Datenmodell und Funktionen beschreiben!!!
 '''
 
 ${workspace_loc:CurveExport/src/curve_export.py}
@@ -88,6 +88,7 @@ from bpy.types import Operator
 
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
+#objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
 CalledFrom =[] 
 filepath=[]
    
@@ -158,7 +159,9 @@ def WtF_SafePos(SAFEPos_Koord, SAFEPos_Angle, filepath):
     # todo: RfS_LocRot, , WtF_KUKAdat
     # --------------------------------------------------------------------------------------------------------------------------------
 
-def WtF_KUKAdat(obj, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
+def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
+    
+    # todo: weg von der Bezierkurve (obj (BezierCircle) wird dann durch objEmpty_A6 ersetzt) -> FCurve
     # dataPATHPTS_Loc, dataPATHPTS_Rot, todo: TIMEPTS_PATHPTS
     print('_____________________________________________________________________________')
     print('WtF_KUKAdat')  
@@ -204,6 +207,17 @@ def WtF_KUKAdat(obj, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
                    "} " + "\n")
         
     fout.write(";ENDFOLD" + "\n")
+    
+    # TIMEPTS[1]=1.7  
+    TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6, PATHPTSObjList) # todo: Obj Liste in RfS_TIMEPTS
+    
+    fout.write(";FOLD TIME DATA" + "\n")
+    for i in range(0,TIMEPTS_PATHPTSCount,1):    
+        fout.write("TIMEPTS[" + str(i+1) + "]=" + 
+                   "{0:.5f}".format(TIMEPTS_PATHPTS[i] ) +
+                   "\n")
+    fout.write(";ENDFOLD" + "\n")
+    
     # Close the file
     fout.close();
     print('WtF_KUKAdat done')
@@ -622,16 +636,100 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     return PATHPTS_Koord, PATHPTS_Angle 
 
 def RfS_TIMEPTS(objEmpty_A6, objSafe):
+    
+    # todo: under construction.... objSafe -> action_name ...
+    # import führt zu Fehler, wenn sich die Anzahl der der PATHPTS ändert. (weil auf das falsche/alte ACTION zugegriffen wird?!)
     print('_____________________________________________________________________________')
     print('RfF TIMEPTS')
     
+    #objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+    action_name = bpy.data.objects[objEmpty_A6.name].animation_data.action.name
+    action=bpy.data.actions[action_name] 
+    locID, rotID = FindFCurveID(objEmpty_A6, action)
     
     
+    TIMEPTSCount = len(action.fcurves) # Anzahl der keyframes
     
+    # zum schreiben der PATHPTS verwenden:
+    action.fcurves[locID[0]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, x Wert)
+    action.fcurves[locID[1]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, y Wert)
+    action.fcurves[locID[2]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, z Wert)
+    action.fcurves[rotID[0]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
+    action.fcurves[rotID[1]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
+    action.fcurves[rotID[2]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
+    
+    
+    action.fcurves[rotID[0]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
+    
+    frameNbr=[]
+    TIMEPTS=[]
+    for n in range(TIMEPTSCount):
+        #frameNbr = bpy.context.object.animation_data.action.fcurves[0].keyframe_points[0].co.x
+        frameNbr = int(action.fcurves[0].keyframe_points[n].co.x)
+        TIMEPTS = TIMEPTS + [frame_to_time(frameNbr)]
+        
+    # action.fcurves[0].data_path # Wert: location, rotation_euler, scale, delta_location
+    
+    #bpy.context.object.animation_data.action.fcurves[0].keyframe_points[0].co.x # Wert: Frame[0]
+    
+    '''
+    # clear key frames:
+    objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+    objEmpty_A6.select =True
+    bpy.ops.anim.keyframe_clear_v3d()
+    '''
+    print('TIMEPTS:' + str(TIMEPTS))
     print('RfF TIMEPTS done')
     print('_____________________________________________________________________________')
     return TIMEPTS, TIMEPTSCount
+
+
+def FindFCurveID(objEmpty_A6, action):
+    print('_____________________________________________________________________________')
+    print('FindFCurveID')
    
+    #ob_target = objEmpty_A6
+    
+    # todo: Unklar: mehrere Actions möglich?! -> führt ggf. zu einer Liste als Rückgabewert:
+    
+    print(action.name)
+    
+    locID=['xx',9999,9999]
+    rotID=[9999,9999,9999]
+    scaleID=[9999,9999,9999]
+    dlocID =[9999,9999,9999]
+         
+    action_data =action.fcurves
+    print(action_data)
+    
+    for v,action_data in enumerate(action_data):
+        if action_data.data_path == "location":
+            locID[action_data.array_index] = v
+            #ob_target.delta_location[action_data.array_index]=v
+            print("location[" + str(action_data.array_index) + "] to (" + str(v) + ").")
+        elif action_data.data_path == "rotation_euler":
+            rotID[action_data.array_index] = v
+            #ob_target.delta_rotation_euler[action_data.array_index]=v
+            print("rotation_euler[" + str(action_data.array_index) + "] to (" + str(v) + ").")
+        elif action_data.data_path == "scale":
+             scaleID[action_data.array_index] = v
+             #ob_target.delta_scale[action_data.array_index]=v
+             print("scale[" + str(action_data.array_index) + "] to (" + str(v) + ").")
+        elif action_data.data_path == "delta_location":
+             dlocID[action_data.array_index] = v
+             #ob_target.delta_scale[action_data.array_index]=v
+             print("delta_location[" + str(action_data.array_index) + "] to (" + str(v) + ").")
+        else:
+             print("Unsupported data_path [" + action_data.data_path + "].")
+    
+    print("fcurves ID from location [" + str(locID) + "].")
+    print("fcurves ID from rotation_euler [" + str(rotID) + "].")
+    print("fcurves ID from scale [" + str(scaleID) + "].")
+    print("fcurves ID from delta_location [" + str(dlocID) + "].")
+    print('FindFCurveID done')
+    print('_____________________________________________________________________________')
+    return locID, rotID
+  
 
 class createMatrix(object):
     print('_____________________________________________________________________________')
@@ -659,7 +757,7 @@ def ApplyScale(objCurve):
         bpy.ops.object.select_all(action='DESELECT')
         print('ApplyScale done')
         print('_____________________________________________________________________________')
-        
+           
 def ClearParenting():
     print('_____________________________________________________________________________')
     print('ClearParenting')
@@ -667,7 +765,7 @@ def ClearParenting():
     objBase = bpy.data.objects['Sphere_BASEPos']
     objCurve = bpy.data.objects['BezierCircle']
     objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
-    
+    # testen: objEmpty_A6 = bpy.context.scene.objects.get('Empty_Zentralhand_A6')
     # 1. Parenting zwischen BASEPosition und Kurve loesen:
     bpy.ops.object.select_all(action='DESELECT')
     objCurve.select = True   
@@ -977,7 +1075,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
         
         # todo: write TIMEPTS into .dat
-        WtF_KUKAdat(context.object, PATHPTSObjName, self.filepath, BASEPos_Koord, BASEPos_Angle)
+        WtF_KUKAdat(context.object, objEmpty_A6, PATHPTSObjName, self.filepath, BASEPos_Koord, BASEPos_Angle)
         
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'A {0:.3f}'.format(BASEPos_Angle[0])+' B {0:.3f}'.format(BASEPos_Angle[1])+' C {0:.3f}'.format(BASEPos_Angle[2]))
@@ -1076,8 +1174,9 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         
         # todo: GUI Liste aktualisieren (falls vorhanden), danach Aufruf von GetRoute
         
-        CalledFrom = 'Import'
-        GetRoute(objEmpty_A6, CalledFrom, self.filepath)
+        #CalledFrom = 'Import'
+        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, self.filepath)
         
         #--------------------------------------------------------------------------------
         
@@ -1109,38 +1208,38 @@ class ClassSetKeyFrames (bpy.types.Operator):
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6'] 
         
         print('- - -SetKeyFrames - - - - - - -')
-        CalledFrom = 'SetKeyFrames'
+        #CalledFrom = 'SetKeyFrames'
         filepath ='none'
-        GetRoute(objEmpty_A6, CalledFrom, filepath)
+        
+        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, filepath)
         
         return {'FINISHED'} 
     print('- - -SetKeyFrames class done- - - - - - -')     
 
-def GetRoute(objEmpty_A6, CalledFrom, filepath):
+def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
     # Diese Funktion wird erst interessant, wenn Routen über mehrere Objektgruppen erzeugt werden sollen.
     # in SetKeyFrames den Ablauf: [Ruhepos, n x (Safepos, PATHPTS, Safepos), Ruhepos] festlegen        
     
-    
     # 1. Schritt: Umsetzung nur für einfache Reihenfolge
-    
     
     # todo: GUI Liste abfragen (falls vorhanden) Reihenfolge der Objektgruppen/-Objekte zum erstellen der Route
     # n x [....] berücksichtigen...???
         
-    PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        
-    if CalledFrom == 'Import':
+    if filepath != 'none': # Aufruf von Button Import
         TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfF_TIMEPTS(filepath)
-        TIMEPTS_Safe = 0
-        TIMEPTS_SafeCount = 1
-    elif CalledFrom == 'SetKeyFrames':
-        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6, PATHPTSObjList)
-        TIMEPTS_Safe, TIMEPTS_SafeCount  = RfS_TIMEPTS(objEmpty_A6, objSafe.name)
+        # todo
+        #TIMEPTS_Safe = 0
+        #TIMEPTS_SafeCount = 1
+    elif ObjList != '': # Aufruf von Button SetKeyFrames
+        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6, ObjList)
+        #todo:
+        #TIMEPTS_Safe, TIMEPTS_SafeCount  = RfS_TIMEPTS(objEmpty_A6, objSafe.name)
         
     #TIMEPTS_Safe, TIMEPTS_SafeCount = RfS_TIMEPTS(objEmpty_A6, objSafe.name) 
     # todo: Klasse definieren: PATHPTS.loc/rot/TIMEPTS/LOADPTS/STOPPTS/ACTIONMSK
          
-    Route_ObjList = PATHPTSObjList             # später: [objSafe.name, PATHPTSObjList] .... syntax prüfen...
+    Route_ObjList = ObjList                    # später: [objSafe.name, PATHPTSObjList] .... syntax prüfen...
     Route_TIMEPTS = TIMEPTS_PATHPTS            # später: [TIMEPTS_Safe, TIMEPTS_PATHPTS]
     Route_TIMEPTSCount = TIMEPTS_PATHPTSCount  # später: [TIMEPTS_SafeCount, TIMEPTS_PATHPTSCount]
     
@@ -1574,7 +1673,15 @@ def setKeyFrames_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
     print('setKeyFrames_todo_PATHPTS done')
     print('_____________________________________________________________________________')    
     
+def frame_to_time(frame_number):
+        fps = bpy.context.scene.render.fps
+        raw_time = (frame_number - 1) / fps
+        return round(raw_time, 3)
     
+def time_to_frame(time_value):
+    fps = bpy.context.scene.render.fps
+    frame_number = (time_value * fps) +1
+    return int(round(frame_number, 0))    
     
 def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     # Status: ersten Objekt bekommt noch keinen i-key....
@@ -1584,9 +1691,9 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
      
     #TargetObjList = bpy.data.objects[PATHPTSObjList[n]] 
          
-    scene = bpy.context.scene
-    fps = scene.render.fps
-    fps_base = scene.render.fps_base
+    #scene = bpy.context.scene
+    #fps = scene.render.fps
+    #fps_base = scene.render.fps_base
     
     PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
         
@@ -1601,14 +1708,6 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     # --- Alternativ kann die TIMEPTS Reihe gemerged werden (Safepos + PathPTS); Vorteil: 
     
     ob = bpy.context.active_object
-    
-    def frame_to_time(frame_number):
-        raw_time = (frame_number - 1) / fps
-        return round(raw_time, 3)
-    
-    def time_to_frame(time_value):
-        frame_number = (time_value * fps) +1
-        return int(round(frame_number, 0))
     
     for n in range(countPATHPTSObj):
         print(n)
