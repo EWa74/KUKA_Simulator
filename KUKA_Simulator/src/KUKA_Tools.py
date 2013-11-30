@@ -180,7 +180,7 @@ def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEP
     PathPointC = []
     
     #koord = bpy.data.curves[obj.name].splines[0]
-    koord = bpy.data.curves[bpy.data.objects[obj.name].data.name].splines[0] # wichtig: name des Datenblocks verwenden
+    #koord = bpy.data.curves[bpy.data.objects[obj.name].data.name].splines[0] # wichtig: name des Datenblocks verwenden
     
     PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
     for i in range(countPATHPTSObj):    
@@ -209,7 +209,7 @@ def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEP
     fout.write(";ENDFOLD" + "\n")
     
     # TIMEPTS[1]=1.7  
-    TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6, PATHPTSObjList) # todo: Obj Liste in RfS_TIMEPTS
+    TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6) # todo: Obj Liste in RfS_TIMEPTS
     
     fout.write(";FOLD TIME DATA" + "\n")
     for i in range(0,TIMEPTS_PATHPTSCount,1):    
@@ -542,10 +542,10 @@ def RfF_TIMEPTS(filepath):
     return TIMEPTS, TIMEPTSCount   
 
  
-def RfS_BasePos(objCurve, filepath):    
+def RfS_BasePos(objBase):    
     print('_____________________________________________________________________________')
     print('Read from Scene - RfS_BasePos')
-    objBase = bpy.data.objects['Sphere_BASEPos']
+    #objBase = bpy.data.objects['Sphere_BASEPos']
     
     print('bringe Base Origin to Center...')
     original_type = bpy.context.area.type
@@ -636,10 +636,10 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     print('_____________________________________________________________________________')
     return PATHPTS_Koord, PATHPTS_Angle 
 
-def RfS_TIMEPTS(objEmpty_A6, objSafe):
+def RfS_TIMEPTS(objEmpty_A6):
     
     # todo: under construction.... objSafe -> action_name ...
-    # import führt zu Fehler, wenn sich die Anzahl der der PATHPTS ändert. (weil auf das falsche/alte ACTION zugegriffen wird?!)
+    
     print('_____________________________________________________________________________')
     print('RfF TIMEPTS')
     
@@ -1067,7 +1067,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         ApplyScale(context.object) 
         #--------------------------------------------------------------------------------
         
-        BASEPos_Koord, BASEPos_Angle = RfS_BasePos(context.object, self.filepath)
+        BASEPos_Koord, BASEPos_Angle = RfS_BasePos(objBase)
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'A {0:.3f}'.format(BASEPos_Angle[0])+' B {0:.3f}'.format(BASEPos_Angle[1])+' C {0:.3f}'.format(BASEPos_Angle[2]))
         
@@ -1209,15 +1209,30 @@ class ClassSetKeyFrames (bpy.types.Operator):
     #                                  (in the Tools pane) 
  
     def execute(self, context):  
-        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6'] 
-        
         print('- - -SetKeyFrames - - - - - - -')
-        #CalledFrom = 'SetKeyFrames'
-        filepath ='none'
+        #testen-...
+        objBase = bpy.data.objects['Sphere_BASEPos']
+        objSafe = bpy.data.objects['Sphere_SAFEPos']
+        objCurve = bpy.data.objects['BezierCircle']
+        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+        PATHPTSObjName = 'PTPObj_'
         
+        ApplyScale(context.object) 
+        #--------------------------------------------------------------------------------
+        
+        BASEPos_Koord, BASEPos_Angle = RfS_BasePos(objBase)
+        SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+        replace_CP(objCurve, PATHPTSObjName, '', countPATHPTSObj, BASEPos_Koord, BASEPos_Angle) 
+        
+        SetKukaToCurve(context.object)
+        
+        filepath ='none'
         GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, filepath)
         
+                
         return {'FINISHED'} 
     print('- - -SetKeyFrames class done- - - - - - -')     
 
@@ -1236,7 +1251,7 @@ def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
         #TIMEPTS_Safe = 0
         #TIMEPTS_SafeCount = 1
     elif ObjList != '': # Aufruf von Button SetKeyFrames
-        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6, ObjList)
+        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
         #todo:
         #TIMEPTS_Safe, TIMEPTS_SafeCount  = RfS_TIMEPTS(objEmpty_A6, objSafe.name)
         
@@ -1608,7 +1623,7 @@ def setKeyFrames_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
     PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
     print('Es sind ' + str(countPATHPTSObj) + 'PATHPTSObj in der Szene vorhanden.' )
     # todo
-    TIMEPTS, TIMEPTSCount = RfS_TIMEPTS(objEmpty_A6, objSafe)
+    TIMEPTS, TIMEPTSCount = RfS_TIMEPTS(objEmpty_A6)
     print('Es sind ' + str(TIMEPTSCount) + 'TIMEPTS in der Szene vorhanden.' )
     print('Folgende PATHPTSObj wurden in der Szene gefunden: ' + str(PATHPTSObjList))
     
@@ -1688,7 +1703,9 @@ def time_to_frame(time_value):
     return int(round(frame_number, 0))    
     
 def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
-    # Status: ersten Objekt bekommt noch keinen i-key....
+    # Diese Funktion soll später anhand einer chronologisch geordneten Objektgruppen 
+    # und Objekt/PATHPTS - Liste die KeyFrames eintragen
+    
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D"
     bpy.ops.object.select_all(action='DESELECT')
