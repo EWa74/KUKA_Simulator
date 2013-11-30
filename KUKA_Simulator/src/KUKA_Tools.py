@@ -536,6 +536,7 @@ def RfF_TIMEPTS(filepath):
         
     except: 
         print('TIMEPTS exception')
+    print('TIMEPTS:' + str(TIMEPTS))
     print('RfF TIMEPTS done')
     print('_____________________________________________________________________________')
     return TIMEPTS, TIMEPTSCount   
@@ -644,12 +645,14 @@ def RfS_TIMEPTS(objEmpty_A6, objSafe):
     
     #objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
     action_name = bpy.data.objects[objEmpty_A6.name].animation_data.action.name
+    print('RfF action_name' +str(action_name))
     action=bpy.data.actions[action_name] 
     locID, rotID = FindFCurveID(objEmpty_A6, action)
     
     
-    TIMEPTSCount = len(action.fcurves) # Anzahl der keyframes
-    
+    #TIMEPTSCount = len(action.fcurves) # Anzahl der actions (locx, locy, ...)
+    TIMEPTSCount = len(action.fcurves[0].keyframe_points) # Anzahl der KeyFrames
+    print('RfF TIMEPTSCount' +str(TIMEPTSCount))
     # zum schreiben der PATHPTS verwenden:
     action.fcurves[locID[0]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, x Wert)
     action.fcurves[locID[1]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, y Wert)
@@ -679,6 +682,7 @@ def RfS_TIMEPTS(objEmpty_A6, objSafe):
     bpy.ops.anim.keyframe_clear_v3d()
     '''
     print('TIMEPTS:' + str(TIMEPTS))
+    print('TIMEPTSCount:' + str(TIMEPTSCount))
     print('RfF TIMEPTS done')
     print('_____________________________________________________________________________')
     return TIMEPTS, TIMEPTSCount
