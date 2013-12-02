@@ -14,15 +14,21 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #  ***** END GPL LICENSE BLOCK *****
+# Version: 100R
+# Next steps:
+# Abgleich mit KUKA und Definition der daraus folgenden GUI Panels
+# code optimization: less parenting, more fcurve controlled objekts/bones
+# naming convention
+# gui panel (add/remove pathpoints, timepts
+#
+
 
 #git
 # V-REP -> Roboter Simulation
-# todo: RefreshFunktion (wenn Boje oder Kurve +/- Punkte bekommt. Button Boje +/-
+# todo: RefreshFunktion (wenn Boje oder Kurve +/- Punkte bekommt. Button Boje +/-; done, aber: inset keyframe fehlt noch
 # Listenfeld dazu verwenden um Obj +/-
-# TIMEPTS einlesen und I-Keys setzen -> Empty: follow path entfällt dann
-# Transform Modal Map:  Property Value  Translate:  KeyMapItem.propvalue 
+# TIMEPTS einlesen und I-Keys setzen -> Empty: follow path entfaellt dann: done
 # bpy.data.window_managers["WinMan"] ... propvalue
-# space_userpref_keymap.py
 # bpy.app.handlers.frame_change_pre.append(bpy.ops.curve.cureexport('BezierCurve'))
 # Window.GetScreenInfo(Window.Types.VIEW3D)
 #  
@@ -32,7 +38,7 @@
 # button um nach editieren der Kurve das Kuka_Empty auf den ersten Kurvenpunkt zu setzen
 
 # KUKA Modell richtig ausrichten (und spiegeln, da z.Zt. spiegelverkehrt)
-# ARMATURE: Position und Winkel auf Plausibilitaet abfragen: bone constraints eingestellt; werden diese überschritten "springt" der Arm
+# ARMATURE: Position und Winkel auf Plausibilitaet abfragen: bone constraints eingestellt; werden diese ueberschritten "springt" der Arm
 # Phyton code aufraeumen
 # Doku update
 # Info: 
@@ -46,7 +52,7 @@
  
 # ToDo: ToolPosition auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
 # BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
-# todo: globale variablen definieren.....
+# todo: globale variablen definieren??.....
 # Datenmodell und Funktionen beschreiben!!!
 '''
 
@@ -155,14 +161,9 @@ def WtF_SafePos(SAFEPos_Koord, SAFEPos_Angle, filepath):
     print('SAFEPosition geschrieben.')
     print('_____________________________________________________________________________')
     
-    # --------------------------------------------------------------------------------------------------------------------------------
-    # todo: RfS_LocRot, , WtF_KUKAdat
-    # --------------------------------------------------------------------------------------------------------------------------------
-
+    
 def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
     
-    # todo: weg von der Bezierkurve (obj (BezierCircle) wird dann durch objEmpty_A6 ersetzt) -> FCurve
-    # dataPATHPTS_Loc, dataPATHPTS_Rot, todo: TIMEPTS_PATHPTS
     print('_____________________________________________________________________________')
     print('WtF_KUKAdat')  
     # Create a file for output
@@ -491,7 +492,7 @@ def RfF_PATHPTS(objCurve, filepath):
 def RfF_TIMEPTS(filepath):
     print('_____________________________________________________________________________')
     print('Read from File - TIMEPTS')
-    # Besonderheit hier: dier erste ENDFOLD Marke muss übersprungen werden.
+    # Besonderheit hier: dier erste ENDFOLD Marke muss uebersprungen werden.
     # ==========================================    
     # Import der TIMEPTS 
     # ==========================================    
@@ -603,7 +604,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     
     print('Umrechnung auf globale Koordinaten....')
     print('Transformation von SafePos auf BasePos...')
-    vec = objPATHPTS.data.vertices[0].co # Achtung: Bei Aktuellem Objekt für PATHPTS liegt vertices[0] nicht im Ursprung des Objektes
+    vec = objPATHPTS.data.vertices[0].co # Achtung: Bei Aktuellem Objekt fuer PATHPTS liegt vertices[0] nicht im Ursprung des Objektes
     print('vec: ' +str(vec))
     eul = mathutils.Euler((objBase.rotation_euler.x, objBase.rotation_euler.y, objBase.rotation_euler.z), 'XYZ')
     print('eul: ' +str(eul))
@@ -638,7 +639,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
 
 def RfS_TIMEPTS(objEmpty_A6):
     
-    # todo: under construction.... objSafe -> action_name ...
+    # todo: objSafe -> action_name ...
     
     print('_____________________________________________________________________________')
     print('RfF TIMEPTS')
@@ -693,8 +694,7 @@ def FindFCurveID(objEmpty_A6, action):
     print('FindFCurveID')
    
     #ob_target = objEmpty_A6
-    
-    # todo: Unklar: mehrere Actions möglich?! -> führt ggf. zu einer Liste als Rückgabewert:
+    # todo: Unklar: mehrere Actions moeglich?! -> fuehrt ggf. zu einer Liste als Rueckgabewert:
     
     print(action.name)
     
@@ -899,7 +899,11 @@ def SetCurvePos(objCurve, objBase, BASEPos_Koord, BASEPos_Angle):
     
 
 def SetOrigin(sourceObj, targetObj):
-    
+    # todo: Sicherheitsabfrage/bug: 'EDIT' Mode line 919, in SetOrigin
+    # TypeError: Converting py args to operator properties:  enum "EDIT" not found in ('OBJECT')
+    # -> Verwendung minimieren durch ersetzen der Transformation durch Ueberlagerung der FCurve Werte!
+    # Fehler scheint aufzutreten, wenn z.B. Baseobjekt "ge-Hidded" (ausgeblendet) wird....pruefen
+    # oder der Layer auf dem BASEPos, SAFEPos liegen ausgeblendet ist
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D" 
     
@@ -914,10 +918,10 @@ def SetOrigin(sourceObj, targetObj):
     bpy.context.scene.objects.active = targetObj
     targetObj.data.vertices[0].select= True
     # Achtung: Blender"Bug": Wechsel in Edit mode nachdem Vertex ausgewaehlt wurde!
-    bpy.ops.object.mode_set(mode='EDIT', toggle=True)
+    bpy.ops.object.mode_set(mode='EDIT', toggle=True)# 
     bpy.ops.view3d.snap_cursor_to_selected() 
     targetObj.data.vertices[0].select= False
-    bpy.ops.object.mode_set(mode='EDIT', toggle=True)
+    bpy.ops.object.mode_set(mode='EDIT', toggle=True) #
     sourceObj.select = True 
     bpy.context.scene.objects.active = sourceObj
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
@@ -972,14 +976,14 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     Obj.location = point_world
     print('Safe-Origin  = Obj auf point_world  gesetzt.')
     #-----------------------------------
-    # todo: Info - aktuell treten im Debug Mode Fehler auf falsche/ ueberfluessige Funktionsaufrufe....
     
     print('Obj_Angle wieder dem Origin zuweisen unter Beruecksichtigung der BaseOrientierung:')
     
+    # todo - test : vertauschen der Winkel... unklar... Import=Export, aber nicht = KUKA Film... 
     Obj.rotation_euler.x = (BASEPos_Angle[0] +Obj_Angle[0]) *(2*math.pi)/360 # [rad]
     Obj.rotation_euler.y = (BASEPos_Angle[1] +Obj_Angle[1]) *(2*math.pi)/360 # [rad]
     Obj.rotation_euler.z = (BASEPos_Angle[2] +Obj_Angle[2]) *(2*math.pi)/360 # [rad]
-        
+         
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
     print('BASEPos_Angle: ' +str(BASEPos_Angle))
     print('Obj_Koord: ' +str(Obj_Koord))    
@@ -1078,7 +1082,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         print('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
         
-        # todo: write TIMEPTS into .dat
+        
         WtF_KUKAdat(context.object, objEmpty_A6, PATHPTSObjName, self.filepath, BASEPos_Koord, BASEPos_Angle)
         
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
@@ -1237,13 +1241,13 @@ class ClassSetKeyFrames (bpy.types.Operator):
     print('- - -SetKeyFrames class done- - - - - - -')     
 
 def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
-    # Diese Funktion wird erst interessant, wenn Routen über mehrere Objektgruppen erzeugt werden sollen.
+    # Diese Funktion wird erst interessant, wenn Routen ueber mehrere Objektgruppen erzeugt werden sollen.
     # in SetKeyFrames den Ablauf: [Ruhepos, n x (Safepos, PATHPTS, Safepos), Ruhepos] festlegen        
     
-    # 1. Schritt: Umsetzung nur für einfache Reihenfolge
+    # 1. Schritt: Umsetzung nur fuer einfache Reihenfolge
     
     # todo: GUI Liste abfragen (falls vorhanden) Reihenfolge der Objektgruppen/-Objekte zum erstellen der Route
-    # n x [....] berücksichtigen...???
+    # n x [....] beruecksichtigen...???
         
     if filepath != 'none': # Aufruf von Button Import
         TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfF_TIMEPTS(filepath)
@@ -1258,9 +1262,9 @@ def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
     #TIMEPTS_Safe, TIMEPTS_SafeCount = RfS_TIMEPTS(objEmpty_A6, objSafe.name) 
     # todo: Klasse definieren: PATHPTS.loc/rot/TIMEPTS/LOADPTS/STOPPTS/ACTIONMSK
          
-    Route_ObjList = ObjList                    # später: [objSafe.name, PATHPTSObjList] .... syntax prüfen...
-    Route_TIMEPTS = TIMEPTS_PATHPTS            # später: [TIMEPTS_Safe, TIMEPTS_PATHPTS]
-    Route_TIMEPTSCount = TIMEPTS_PATHPTSCount  # später: [TIMEPTS_SafeCount, TIMEPTS_PATHPTSCount]
+    Route_ObjList = ObjList                    # spaeter: [objSafe.name, PATHPTSObjList] .... syntax pruefen...
+    Route_TIMEPTS = TIMEPTS_PATHPTS            # spaeter: [TIMEPTS_Safe, TIMEPTS_PATHPTS]
+    Route_TIMEPTSCount = TIMEPTS_PATHPTSCount  # spaeter: [TIMEPTS_SafeCount, TIMEPTS_PATHPTSCount]
     
     SetKeyFrames(objEmpty_A6, Route_ObjList, Route_TIMEPTS, Route_TIMEPTSCount)
         
@@ -1378,7 +1382,7 @@ class KUKAPanel(bpy.types.Panel):
 
 def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle):
     
-    # todo: replace durch create Fkt ersetzten/ ergänzen und die alte Kurve löschen
+    # todo: replace durch create Fkt ersetzten/ ergaenzen und die alte Kurve loeschen
     
     print('_____________________________________________________________________________')
     print('replace_CP')
@@ -1457,7 +1461,7 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
                 NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]], bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
                 NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]], bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
                 NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]], bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].location, bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-                #bzs[n] führte zu Fehlermeldung ???:
+                #bzs[n] fuehrte zu Fehlermeldung ???:
                 bezierCurve.splines[0].bezier_points[n].handle_left = NewLocRot[0][0]
                 bezierCurve.splines[0].bezier_points[n].co = NewLocRot[1][0]
                 bezierCurve.splines[0].bezier_points[n].handle_right = NewLocRot[2][0]
@@ -1609,7 +1613,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
 def setKeyFrames_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
     
     # todo: under construction.....
-    # KeyFrames (in der Scene) setzen, unabhängig ob TIMPTS from Scene/ from File
+    # KeyFrames (in der Scene) setzen, unabhaengig ob TIMPTS from Scene/ from File
     # Aufruf von: CurveImport
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D" 
@@ -1617,7 +1621,7 @@ def setKeyFrames_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
     print('_____________________________________________________________________________')
     print('setKeyFrames_todo_PATHPTS')
     # erstellen von 'TIMEPTSCount' KeyFrames an den Positionen 'dataPATHPTS_Loc' mit der Ausrichtung 'dataPATHPTS_Rot'
-    # für das Objekt objEmpty_A6
+    # fuer das Objekt objEmpty_A6
     PATHPTSObjName = 'PTPObj_'
     # 1. Wieviele PTPObj Objekte sind in der Scene vorhanden? (Beachte: Viele Objekte koennen den selben Datencontainer verwenden)
     PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
@@ -1703,7 +1707,7 @@ def time_to_frame(time_value):
     return int(round(frame_number, 0))    
     
 def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
-    # Diese Funktion soll später anhand einer chronologisch geordneten Objektgruppen 
+    # Diese Funktion soll spaeter anhand einer chronologisch geordneten Objektgruppen 
     # und Objekt/PATHPTS - Liste die KeyFrames eintragen
     
     original_type = bpy.context.area.type
