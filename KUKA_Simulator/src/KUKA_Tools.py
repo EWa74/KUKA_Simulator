@@ -488,7 +488,7 @@ def RfF_PATHPTS(objCurve, filepath):
     dataPATHPTS_Rot =[]
     # TODO: test, Vorzeichen der Rotation an realen Kuka angepasst - Achtung: noch nicht bei Import geaendert!
     # Ueberlegen: wo muss Angle A und C ueberall getauscht werden (am besten durchgaengig ..)
-    # Transformation der HOMEPos einpflegen
+    # Transformation der HOMEPos einpflegen 
     for i in range(0,PATHPTSCount,1):
         mList[i][0:3] = [PathAngleC[i], PathAngleB[i], PathAngleA[i]]
         dataPATHPTS_Rot = dataPATHPTS_Rot + [mList[i]]
