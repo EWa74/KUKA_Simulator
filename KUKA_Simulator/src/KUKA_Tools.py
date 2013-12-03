@@ -50,7 +50,7 @@
 # 5. Keine Wiederholung: fahre zur HOMEPOSITION
 # 6. Wiederholung: Wiederhole Punkte 2, 3, 4
  
-# ToDo: ToolPosition auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
+# ToDo: ToolPosition (oder Baseposition) auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
 # BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
 # todo: globale variablen definieren??.....
 # Datenmodell und Funktionen beschreiben!!!
@@ -295,6 +295,7 @@ def RfF_BasePos(filepath):
             PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
             print('PTPAngleC' +str(PTPAngleC))
         SkalierungPTP = 1000
+        
         BASEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
         BASEPos_Angle  = float(str(PTPAngleA[0])), float(str(PTPAngleB[0])), float(str(PTPAngleC[0])) # in Grad
     except: 
@@ -374,8 +375,10 @@ def RfF_SafePos(filepath):
             PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
         
         SkalierungPTP  = 1000
+        
         SAFEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
         print('SAFEPos_Koord' + str(SAFEPos_Koord))
+        # TODO: test, Vorzeichen der PathPoint geaendert
         SAFEPos_Angle  = float(str(PTPAngleA[0])), float(str(PTPAngleB[0])), float(str(PTPAngleC[0])) # in Grad
         print('SAFEPos_Angle' + str(SAFEPos_Angle))
         print('RfF_SafePos - passed')
@@ -475,14 +478,19 @@ def RfF_PATHPTS(objCurve, filepath):
     
     mList= createMatrix(PATHPTSCount,1) # eigene Class "createMatrix" erstellt
     dataPATHPTS_Loc = []
+    # TODO: test, Vorzeichen an realen Kuka angepasst
+    # Z-hoch = -Wert, X = - Wert, Y= -Wert
     for i in range(0,PATHPTSCount,1):
         mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
         dataPATHPTS_Loc = dataPATHPTS_Loc + [mList[i]] 
      
     mList= createMatrix(PATHPTSCount,1)  
     dataPATHPTS_Rot =[]
+    # TODO: test, Vorzeichen der Rotation an realen Kuka angepasst - Achtung: noch nicht bei Import geaendert!
+    # Ueberlegen: wo muss Angle A und C ueberall getauscht werden (am besten durchgaengig ..)
+    # Transformation der HOMEPos einpflegen
     for i in range(0,PATHPTSCount,1):
-        mList[i][0:3] = [PathAngleA[i], PathAngleB[i], PathAngleC[i]]
+        mList[i][0:3] = [PathAngleC[i], PathAngleB[i], PathAngleA[i]]
         dataPATHPTS_Rot = dataPATHPTS_Rot + [mList[i]]
     
     print('RfF_PATHPTS - Curve data - splines ersetzt')
