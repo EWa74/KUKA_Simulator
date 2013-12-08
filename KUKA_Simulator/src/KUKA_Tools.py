@@ -484,7 +484,7 @@ def RfF_SafePos(filepath):
     print('Read from File - RfF_SafePos done')
     print('_____________________________________________________________________________')
     
-def RfF_PATHPTS(objCurve, filepath):     
+def RfF_PATHPTS(objCurve, filepath, BASEPos_Koord, BASEPos_Angle):     
     print('_____________________________________________________________________________')
     print('RfF_PATHPTS')
     #todo: Abfragen ob selektiertes Obj. auch wirklich curve ist (und nur ein Obj. selectiert ist)
@@ -567,6 +567,8 @@ def RfF_PATHPTS(objCurve, filepath):
     
     # Korrektur der Punkte um die Tooljustierung:
     ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(filepath) 
+    ADJUSTMENTPos_KoordB, ADJUSTMENTPos_AngleB = TransfRel(BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle)
+    #ADJUSTMENTPos_KoordBD, ADJUSTMENTPos_AngleBD = DeltaFrom(BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle)
     
     mList= createMatrix(PATHPTSCount,1) # eigene Class "createMatrix" erstellt
     TList= createMatrix(PATHPTSCount,1) # eigene Class "createMatrix" erstellt
@@ -577,23 +579,89 @@ def RfF_PATHPTS(objCurve, filepath):
     for i in range(0,PATHPTSCount,1):
         mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
         dataPATHPTS_Loc = dataPATHPTS_Loc + [mList[i]] 
-        TList[i][0:3] = [(PathPointX[i] + ADJUSTMENTPos_Koord[0]) , (PathPointY[i] + ADJUSTMENTPos_Koord[1]) , (PathPointZ[i] + ADJUSTMENTPos_Koord[2]) ]
+        TList[i][0:3] = [(PathPointX[i] + ADJUSTMENTPos_KoordB[0]) , (PathPointY[i] + ADJUSTMENTPos_KoordB[1]) , (PathPointZ[i] + ADJUSTMENTPos_KoordB[2]) ]
         dataPATHPTS_LocT  = dataPATHPTS_LocT + [TList[i]]
     # float(str(ADJUSTMENTPos_Koord[0])) 
-    mList= createMatrix(PATHPTSCount,1)  
-    TList= createMatrix(PATHPTSCount,1) 
+    nList= createMatrix(PATHPTSCount,1)  
+    UList= createMatrix(PATHPTSCount,1) 
     dataPATHPTS_Rot =[] 
     dataPATHPTS_RotT =[] 
     # XYZ = CBA
     # A = -Z
     for i in range(0,PATHPTSCount,1):
-        mList[i][0:3] = [PathAngleC[i], PathAngleB[i], PathAngleA[i]]
-        dataPATHPTS_Rot = dataPATHPTS_Rot + [mList[i]]
-        TList[i][0:3] = [(PathAngleC[i] + ADJUSTMENTPos_Angle[0]) , (PathAngleB[i] + ADJUSTMENTPos_Angle[1]) , (PathAngleA[i] + ADJUSTMENTPos_Angle[2]) ]
-        dataPATHPTS_RotT  = dataPATHPTS_RotT + [TList[i]]
+        nList[i][0:3] = [PathAngleC[i], PathAngleB[i], PathAngleA[i]]
+        dataPATHPTS_Rot = dataPATHPTS_Rot + [nList[i]]
+        UList[i][0:3] = [(PathAngleC[i] + ADJUSTMENTPos_AngleB[0]) , (PathAngleB[i] + ADJUSTMENTPos_AngleB[1]) , (PathAngleA[i] + ADJUSTMENTPos_AngleB[2]) ]
+        dataPATHPTS_RotT  = dataPATHPTS_RotT + [UList[i]]
     print('RfF_PATHPTS - Curve data - splines ersetzt')
     print('_____________________________________________________________________________')
     return dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCount, dataPATHPTS_LocT, dataPATHPTS_RotT
+
+    
+    
+    
+def TransfRel(BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle):
+    print('_____________________________________________________________________________')
+    print('TransfRel')
+    print('BASEPos_Koord: ' +str(BASEPos_Koord))
+    print('BASEPos_Angle: ' +str(BASEPos_Angle))
+    print('ADJUSTMENTPos_Koord: ' +str(ADJUSTMENTPos_Koord))
+    print('ADJUSTMENTPos_Angle: ' +str(ADJUSTMENTPos_Angle))  
+    print('')
+    matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
+    point_local  = ADJUSTMENTPos_Koord
+    point_world  = matrix_world * point_local
+    print(' ADJUSTMENTPos_Koord local bezogen auf Base: point_local ' +str(point_local))
+    print(' ADJUSTMENTPos_Koord local bezogen auf World: point_world ' +str(point_world))
+    print('')
+    print('Transformation von ADJUSTMENTPos auf GlobalKoordinaten...')
+    
+    
+    
+    #todo: evtl auf ZYX aendern???:
+    eul = mathutils.Euler((math.radians(BASEPos_Angle[0]), math.radians(BASEPos_Angle[1]), math.radians(BASEPos_Angle[2])), 'YXZ') # XYZ
+    print('eul: ' +str(eul))
+    mat_rot = eul.to_matrix()
+    mat_loc = point_local 
+    mat = mat_rot * mat_loc 
+    print('mat: ' +str(mat))
+    
+    #print('Rotation von ADJUSTMENTPos_Koord bezogen auf BaseKoordinaten...')
+    #matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
+    #print('matrix_world: ' +str(matrix_world))
+    #point_local  = mat
+    #point_world  = matrix_world * point_local
+    #print('point_world2: ' +str(point_world))
+    
+    #print('BASEPos_Koord: ' +str(BASEPos_Koord))
+    #print('BASEPos_Angle: ' +str(BASEPos_Angle))
+    #print('ADJUSTMENTPos_Koord: ' +str(ADJUSTMENTPos_Koord))
+    #print('ADJUSTMENTPos_Angle: ' +str(ADJUSTMENTPos_Angle)) 
+    
+    #SetOrigin(Obj, Obj)
+    
+    #ADJUSTMENTPos_KoordB = point_world
+    ADJUSTMENTPos_KoordB = mat
+    
+    #print('Safe-Origin  = Obj auf point_world  gesetzt.')
+    #-----------------------------------
+    
+    print('ADJUSTMENTPos_AngleB wieder dem Origin zuweisen unter Beruecksichtigung der BaseOrientierung:')
+    ADJUSTMENTPos_AngleB = []
+    # todo - test : vertauschen der Winkel... unklar... Import=Export, aber nicht = KUKA Film... 
+    #ADJUSTMENTPos_AngleB[0] = list(BASEPos_Angle[0] +ADJUSTMENTPos_Angle[0])
+    #ADJUSTMENTPos_AngleB[1] = list(BASEPos_Angle[1] +ADJUSTMENTPos_Angle[1])
+    #ADJUSTMENTPos_AngleB[2] = list(BASEPos_Angle[2] +ADJUSTMENTPos_Angle[2])
+    ADJUSTMENTPos_AngleB = [(BASEPos_Angle[0] + ADJUSTMENTPos_Angle[0]) , (BASEPos_Angle[1] + ADJUSTMENTPos_Angle[1]) , (BASEPos_Angle[2] + ADJUSTMENTPos_Angle[2]) ]     
+    print('BASEPos_Koord: ' +str(BASEPos_Koord))
+    print('BASEPos_Angle: ' +str(BASEPos_Angle))
+    print('ADJUSTMENTPos_AngleB: ' +str(ADJUSTMENTPos_AngleB))    
+    print('ADJUSTMENTPos_KoordB: ' +str(ADJUSTMENTPos_KoordB)) 
+    
+    print('TransfRel done')
+    print('_____________________________________________________________________________')
+    
+    return ADJUSTMENTPos_KoordB, ADJUSTMENTPos_AngleB
 
 def RfF_TIMEPTS(filepath):
     print('_____________________________________________________________________________')
@@ -1278,7 +1346,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         
         # create Container (Location, Rotation) for each path point (PTP): dataPATHPTS_Loc, dataPATHPTS_Rot
-        dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, dataPATHPTS_LocT, dataPATHPTS_RotT = RfF_PATHPTS(context.object, self.filepath) 
+        dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, dataPATHPTS_LocT, dataPATHPTS_RotT = RfF_PATHPTS(context.object, self.filepath, BASEPos_Koord, BASEPos_Angle) 
         
         
         
@@ -1322,7 +1390,8 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         #ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath) 
         
         # todo - test: uebergebe um adjustement korrigierte werte für die pathpts...
-        create_PATHPTSObj(dataPATHPTS_LocT, dataPATHPTS_RotT, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
+        create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
+        #create_PATHPTSObj(dataPATHPTS_LocT, dataPATHPTS_RotT, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
         
         #bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
         SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
@@ -1775,6 +1844,8 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     bpy.context.area.type = original_type 
     print('create_PATHPTSObj done')
     print('_____________________________________________________________________________')
+    
+    
     
     
     
