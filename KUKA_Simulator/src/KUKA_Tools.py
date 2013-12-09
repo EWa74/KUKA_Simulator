@@ -94,6 +94,27 @@ from bpy.types import Operator
 
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
+
+RotationModeBase = 'YXZ'
+RotationModePATHPTS = 'YXZ'
+RotationModeEmpty_Zentralhand_A6 = 'YXZ'
+
+RotationModeTransform = 'YXZ' # XYZ
+
+Vorz1 = +1 # +C = X
+Vorz2 = -1 # -B = Y
+Vorz3 = -1 # -A = Z
+
+# Erg.: Einstellung noch nicht verstanden....
+# + + + : Y nach rechts verdr. Z Tool = -X PATHPTS / 
+# + + - : +x-y-z, Bahn dreht rechts 
+# + - + : +x-y-z, Bahn dreht rechts 
+# + - - : +x-y-z, Bahn dreht rechts, OK, nur Schale müsste umgedreht werden 
+# - + + : +x-y-z, Bahn dreht rechts
+# - + - : +x-y-z, Bahn dreht links
+# - - + : +x-y-z, Bahn dreht links
+# - - - : +x-y-z, Bahn dreht links
+        
 #objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
 CalledFrom =[] 
 filepath=[]
@@ -115,15 +136,83 @@ def WtF_BasePos(BASEPos_Koord, BASEPos_Angle, filepath):
                    "X " + "{0:.5f}".format(BASEPos_Koord[0]*SkalierungPTP) + 
                    ", Y " + "{0:.5f}".format(BASEPos_Koord[1]*SkalierungPTP) +
                    ", Z " + "{0:.5f}".format(BASEPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(BASEPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(BASEPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(BASEPos_Angle[0]) +
+                   ", A " + "{0:.5f}".format(Vorz3 *BASEPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(Vorz2 *BASEPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(Vorz1 *BASEPos_Angle[0]) +
                    "} " + "\n")
     
     fout.close();
     print('WtF_BasePos geschrieben.')
     print('_____________________________________________________________________________')
 
+# TODO: Funktionen verallgemeinern: WtF HOMEPos, BasePos, SafePos, AdjPos arbeiten gleich... 
+
+def WtF_HomePos(HOMEPos_Koord, HOMEPos_Angle, filepath):
+    print('_____________________________________________________________________________')
+    print('WtF_BasePos ')
+    print('Remark: this file is not a part of the normal KUKA Ocutbot Software.')
+    print('HOMEPos_Angle A - Z [2]: ' +str(HOMEPos_Angle[2]))
+    print('HOMEPos_Angle B - Y [1]: ' +str(HOMEPos_Angle[1]))    #
+    print('HOMEPos_Angle C - X [0]: ' +str(HOMEPos_Angle[0])) 
+    FilenameSRC = filepath
+    FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
+    fout = open(FilenameSRC, 'a')
+     
+    SkalierungPTP = 1000
+    # ABC ->CBA
+    
+    #HOMEPos {X 418.8189, Y 644.8495, Z 1223.978, A -178.2708, B -0.4798438, C -128.1682} 
+    fout.write("HOMEPos {" + 
+                   "X " + "{0:.5f}".format(HOMEPos_Koord[0]*SkalierungPTP) + 
+                   ", Y " + "{0:.5f}".format(HOMEPos_Koord[1]*SkalierungPTP) +
+                   ", Z " + "{0:.5f}".format(HOMEPos_Koord[2]*SkalierungPTP) + 
+                   ", A " + "{0:.5f}".format(Vorz3 *HOMEPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(Vorz2 *HOMEPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(Vorz1 *HOMEPos_Angle[0]) +
+                   "} " + "\n")
+    
+    #ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0}
+    fout.write("ADJUSTMENTPos {" + 
+                   "X " + "{0:.5f}".format(HOMEPos_Koord[0]*SkalierungPTP) + 
+                   ", Y " + "{0:.5f}".format(HOMEPos_Koord[1]*SkalierungPTP) +
+                   ", Z " + "{0:.5f}".format(HOMEPos_Koord[2]*SkalierungPTP) + 
+                   ", A " + "{0:.5f}".format(Vorz3 *HOMEPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(Vorz2 *HOMEPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(Vorz1 *HOMEPos_Angle[0]) +
+                   "} " + "\n")
+     
+    fout.close();
+    print('WtF_HomePos geschrieben.')
+    print('_____________________________________________________________________________')
+    
+def WtF_AdjustmentPos(ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, filepath):
+    print('_____________________________________________________________________________')
+    print('WtF_AdjustmentPos ')
+    print('Remark: this file is not a part of the normal KUKA Ocutbot Software.')
+    print('ADJUSTMENTPos_Angle A - Z [2]: ' +str(ADJUSTMENTPos_Angle[2]))
+    print('ADJUSTMENTPos_Angle B - Y [1]: ' +str(ADJUSTMENTPos_Angle[1]))    #
+    print('ADJUSTMENTPos_Angle C - X [0]: ' +str(ADJUSTMENTPos_Angle[0])) 
+    FilenameSRC = filepath
+    FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
+    fout = open(FilenameSRC, 'a')
+     
+    SkalierungPTP = 1000
+    # ABC ->CBA
+    
+    #ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0}
+    fout.write("ADJUSTMENTPos {" + 
+                   "X " + "{0:.5f}".format(ADJUSTMENTPos_Koord[0]*SkalierungPTP) + 
+                   ", Y " + "{0:.5f}".format(ADJUSTMENTPos_Koord[1]*SkalierungPTP) +
+                   ", Z " + "{0:.5f}".format(ADJUSTMENTPos_Koord[2]*SkalierungPTP) + 
+                   ", A " + "{0:.5f}".format(Vorz3 *ADJUSTMENTPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(Vorz2 *ADJUSTMENTPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(Vorz1 *ADJUSTMENTPos_Angle[0]) +
+                   "} " + "\n")
+     
+    fout.close();
+    print('WtF_AdjustmentPos geschrieben.')
+    print('_____________________________________________________________________________')
+    
 def WtF_SafePos(SAFEPos_Koord, SAFEPos_Angle, filepath):
     print('_____________________________________________________________________________')
     print('WtF_SafePos ')
@@ -151,9 +240,9 @@ def WtF_SafePos(SAFEPos_Koord, SAFEPos_Angle, filepath):
                    "X " + "{0:.5f}".format(SAFEPos_Koord[0]*SkalierungPTP) + 
                    ", Y " + "{0:.5f}".format(SAFEPos_Koord[1]*SkalierungPTP) +
                    ", Z " + "{0:.5f}".format(SAFEPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(SAFEPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(SAFEPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(SAFEPos_Angle[0]) +
+                   ", A " + "{0:.5f}".format(Vorz3 *SAFEPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(Vorz2 *SAFEPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(Vorz1 *SAFEPos_Angle[0]) +
                    "} " + "\n")
     
     fout.close();
@@ -203,8 +292,8 @@ def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEP
     for i in range(0,count,1):    
         fout.write("PATHPTS[" + str(i+1) + "]={" + 
                    "X " + "{0:.5f}".format(PathPointX[i]*Skalierung) + ", Y " + "{0:.5f}".format(PathPointY[i]*Skalierung) +
-                   ", Z " + "{0:.5f}".format(PathPointZ[i]*Skalierung) + ", A " + "{0:.5f}".format(PathPointA[i] ) +
-                   ", B " + "{0:.5f}".format(PathPointB[i]) + ", C " + "{0:.5f}".format(PathPointC[i] ) +
+                   ", Z " + "{0:.5f}".format(PathPointZ[i]*Skalierung) + ", A " + "{0:.5f}".format(Vorz3 *PathPointA[i] ) +
+                   ", B " + "{0:.5f}".format(Vorz2 *PathPointB[i]) + ", C " + "{0:.5f}".format(Vorz1 *PathPointC[i] ) +
                    "} " + "\n")
         
     fout.write(";ENDFOLD" + "\n")
@@ -300,14 +389,97 @@ def RfF_AdjustmentPos(filepath):
         ADJUSTMENTPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
         # XYZ = CBA
         # A = -Z
-        ADJUSTMENTPos_Angle  = float(str(PTPAngleC[0])), float(str(PTPAngleB[0])), float(str(PTPAngleA[0])) # in Grad
+        # TESTEN!!!!
+        ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz2 *PTPAngleB[0])), float(str(Vorz3 *PTPAngleA[0])) # in Grad
     except: 
         print('RfF_AdjustmentPos exception')
     print('RfF_AdjustmentPos done')
     print('_____________________________________________________________________________')
     return ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle    
 
-
+def RfF_HomePos(filepath):
+    print('_____________________________________________________________________________')
+    print('Read from File - RfF_HomePos')
+    
+    # ==========================================    
+    # Import der RfF_HomePos = KUKA (*.cfg) Kreation von mir!
+    # Die RfF_HomePosition sol ...
+    # ==========================================    
+    try:
+        FilenameSRC = filepath
+        FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
+        d = open(FilenameSRC)
+        gesamtertext = d.read()
+        d.close
+        # Umwandeln in eine Liste
+        zeilenliste =[]
+        zeilenliste = gesamtertext.split(chr(10))
+    
+        # ==========================================
+        # Suche nach "PTP"
+        # ==========================================
+        suchAnf = "HOMEPos {X"
+        suchEnd = "HOMEPos {X"
+        PATHPTSCountPTP = len(zeilenliste)
+        PathIndexAnf = 0
+        PathIndexEnd = PATHPTSCountPTP
+        for i in range(PATHPTSCountPTP):
+            if zeilenliste[i].find(suchAnf)!=-1: 
+                PathIndexAnf = i
+            if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
+                PathIndexEnd = i
+                break
+        PATHPTSCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
+        
+        # ==========================================
+        # Einlesen der PTP Werte (X, Y, Z, A, B C) 
+        # HOMEPos {X 0.0, Y 0.0, Z 0.0, A -128.2708, B -0.4798438, C -178.1682} 
+        # ==========================================
+        PTPX = []
+        PTPY = []
+        PTPZ = []
+        PTPAngleA = []
+        PTPAngleB = []
+        PTPAngleC = []
+        beg=0
+        # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
+        for i in range(0,PATHPTSCountPTP,1):
+            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
+            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf]))
+            PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
+       
+            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf]))  
+            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf]))
+            PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
+       
+            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf])) 
+            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf]))
+            PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
+       
+            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf])) 
+            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf]))
+            PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])] # * (2*math.pi)/360 als rad einlesen!
+            print('PTPAngleA' +str(PTPAngleA))
+            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf]))  
+            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf]))
+            PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
+            print('PTPAngleB' +str(PTPAngleB))
+            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf]))  
+            IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
+            PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
+            print('PTPAngleC' +str(PTPAngleC))
+        SkalierungPTP = 1000
+        
+        ADJUSTMENTPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
+        # XYZ = CBA
+        # A = -Z
+        # TESTEN!!!!
+        ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz2 *PTPAngleB[0])), float(str(Vorz3 *PTPAngleA[0])) # in Grad
+    except: 
+        print('RfF_AdjustmentPos exception')
+    print('RfF_HomePos done')
+    print('_____________________________________________________________________________')
+    return HOMEPos_Koord, HOMEPos_Angle 
 
  
 def RfF_BasePos(filepath):
@@ -381,11 +553,16 @@ def RfF_BasePos(filepath):
             PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
             print('PTPAngleC' +str(PTPAngleC))
         SkalierungPTP = 1000
-        
+        # XYZ = CBA - TEST: ABC, BAC
         BASEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
-        # XYZ = CBA
+        #BASEPos_Koord  = Vector([float(PTPY[0])/SkalierungPTP, float(PTPX[0])/SkalierungPTP, float(-PTPZ[0])/SkalierungPTP])
+        # XYZ = CBA - TEST: ABC, BAC
         # A = -Z
-        BASEPos_Angle  = float(str(PTPAngleC[0])), float(str(PTPAngleB[0])), float(str(PTPAngleA[0])) # in Grad
+        #BASEPos_Angle  = float(str(PTPAngleA[0])), float(str(PTPAngleB[0])), float(str(PTPAngleC[0])) # in Grad
+        BASEPos_Angle  = Vorz1 *float(str(PTPAngleC[0])), Vorz2 *float(str(PTPAngleB[0])), Vorz3 *float(str(PTPAngleA[0])) # in Grad
+        
+     
+        
     except: 
         print('RfF_BasePos exception')
     print('RfF_BasePos done')
@@ -464,11 +641,13 @@ def RfF_SafePos(filepath):
         
         SkalierungPTP  = 1000
         
+        #SAFEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
         SAFEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
         print('SAFEPos_Koord' + str(SAFEPos_Koord))
         # XYZ = CBA
         # A = -Z
-        SAFEPos_Angle  = float(str(PTPAngleC[0])), float(str(PTPAngleB[0])), float(str(PTPAngleA[0])) # in Grad
+        #SAFEPos_Angle  = float(str(PTPAngleA[0])), float(str(PTPAngleB[0])), float(str(PTPAngleC[0])) # in Grad
+        SAFEPos_Angle  = Vorz1 *float(str(PTPAngleC[0])), Vorz2 *float(str(PTPAngleB[0])), Vorz3 *float(str(PTPAngleA[0])) # in Grad
         print('SAFEPos_Angle' + str(SAFEPos_Angle))
         print('RfF_SafePos - passed')
         return SAFEPos_Koord, SAFEPos_Angle
@@ -484,7 +663,7 @@ def RfF_SafePos(filepath):
     print('Read from File - RfF_SafePos done')
     print('_____________________________________________________________________________')
     
-def RfF_PATHPTS(objCurve, filepath, BASEPos_Koord, BASEPos_Angle):     
+def RfF_PATHPTS(filepath, BASEPos_Koord, BASEPos_Angle):     
     print('_____________________________________________________________________________')
     print('RfF_PATHPTS')
     #todo: Abfragen ob selektiertes Obj. auch wirklich curve ist (und nur ein Obj. selectiert ist)
@@ -575,8 +754,9 @@ def RfF_PATHPTS(objCurve, filepath, BASEPos_Koord, BASEPos_Angle):
     dataPATHPTS_Loc = []
     dataPATHPTS_LocT = []
     # TODO: test, Vorzeichen an realen Kuka angepasst
-    # Z-hoch = -Wert, X = - Wert, Y= -Wert
+    # Z-hoch = -Wert, X = - Wert, Y= -Wert  - TEST: ABC, BAC
     for i in range(0,PATHPTSCount,1):
+        #mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
         mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
         dataPATHPTS_Loc = dataPATHPTS_Loc + [mList[i]] 
         TList[i][0:3] = [(PathPointX[i] + ADJUSTMENTPos_KoordB[0]) , (PathPointY[i] + ADJUSTMENTPos_KoordB[1]) , (PathPointZ[i] + ADJUSTMENTPos_KoordB[2]) ]
@@ -589,10 +769,15 @@ def RfF_PATHPTS(objCurve, filepath, BASEPos_Koord, BASEPos_Angle):
     # XYZ = CBA
     # A = -Z
     for i in range(0,PATHPTSCount,1):
-        nList[i][0:3] = [PathAngleC[i], PathAngleB[i], PathAngleA[i]]
+        #nList[i][0:3] = [PathAngleA[i], PathAngleB[i], PathAngleC[i]]
+        nList[i][0:3] = [Vorz1 *PathAngleC[i], Vorz2 *PathAngleB[i], Vorz3 *PathAngleA[i]]
         dataPATHPTS_Rot = dataPATHPTS_Rot + [nList[i]]
+        
         UList[i][0:3] = [(PathAngleC[i] + ADJUSTMENTPos_AngleB[0]) , (PathAngleB[i] + ADJUSTMENTPos_AngleB[1]) , (PathAngleA[i] + ADJUSTMENTPos_AngleB[2]) ]
         dataPATHPTS_RotT  = dataPATHPTS_RotT + [UList[i]]
+        
+    #dataPATHPTS_Loc = dataPATHPTS_LocT
+    #dataPATHPTS_Rot = dataPATHPTS_RotT
     print('RfF_PATHPTS - Curve data - splines ersetzt')
     print('_____________________________________________________________________________')
     return dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCount, dataPATHPTS_LocT, dataPATHPTS_RotT
@@ -619,7 +804,7 @@ def TransfRel(BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_A
     
     
     #todo: evtl auf ZYX aendern???:
-    eul = mathutils.Euler((math.radians(BASEPos_Angle[0]), math.radians(BASEPos_Angle[1]), math.radians(BASEPos_Angle[2])), 'YXZ') # XYZ
+    eul = mathutils.Euler((math.radians(BASEPos_Angle[0]), math.radians(BASEPos_Angle[1]), math.radians(BASEPos_Angle[2])), RotationModeTransform) # XYZ
     print('eul: ' +str(eul))
     mat_rot = eul.to_matrix()
     mat_loc = point_local 
@@ -732,7 +917,7 @@ def RfS_BasePos(objBase):
     bpy.context.area.type = original_type
     
     BASEPos_Koord = bpy.data.objects[objBase.name].location
-
+    
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
     
     #--------------------------
@@ -754,7 +939,45 @@ def RfS_BasePos(objBase):
     print('Read from Scene - RfS_BasePos done')
     print('_____________________________________________________________________________')
     return BASEPos_Koord, BASEPos_Angle
+
+def RfS_HomePos(objHome):    
+    print('_____________________________________________________________________________')
+    print('Read from Scene - RfS_HomePos')
+    #objHome = bpy.data.objects['Sphere_HOMEPos']
     
+    print('bringe Base Origin to Center...')
+    original_type = bpy.context.area.type
+    bpy.context.area.type = "VIEW_3D" 
+    bpy.ops.view3d.snap_cursor_to_center()
+    objHome.select =True
+    bpy.context.scene.objects.active = objHome
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+    bpy.context.area.type = original_type
+    
+    HOMEPos_Koord = bpy.data.objects[objHome.name].location
+    
+    print('HOMEPos_Koord: ' +str(HOMEPos_Koord))
+    
+    #--------------------------
+    # origin auf vert[0] setzten um die richtige Rotation zu bekommen
+    # Origin der Base auf Vertex[0] setzen   (ohne die Base zu verschieben)
+    
+    SetOrigin(objHome, objHome)
+    
+    print('HOMEPos_Koord: ' +str(HOMEPos_Koord))
+    
+    # Achtung: Die Winkel HOMEPos_Angle werden in Grad benoetigt (wie auch im Import File angegeben):
+    HOMEPos_Angle = []
+    HOMEPos_Angle = HOMEPos_Angle + [bpy.data.objects[objHome.name].rotation_euler.x * 360 / (2*math.pi)]# C(X)
+    HOMEPos_Angle = HOMEPos_Angle + [bpy.data.objects[objHome.name].rotation_euler.y * 360 / (2*math.pi)]# B(Y)
+    HOMEPos_Angle = HOMEPos_Angle + [bpy.data.objects[objHome.name].rotation_euler.z * 360 / (2*math.pi)]# A(Z)
+    
+    print('HOMEPos_Koord: ' +str(HOMEPos_Koord))
+    print('HOMEPos_Angle: ' +str(HOMEPos_Angle))
+    print('Read from Scene - RfS_HomePos done')
+    print('_____________________________________________________________________________')
+    return HOMEPos_Koord, HOMEPos_Angle
+
 def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
     # Aufruf von: create_PATHPTSObj, SetSafePos
     # Diese Funktion wird nur bei Export aufgerufen.
@@ -781,7 +1004,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     print('Transformation von SafePos auf BasePos...')
     vec = objPATHPTS.data.vertices[0].co # Achtung: Bei Aktuellem Objekt fuer PATHPTS liegt vertices[0] nicht im Ursprung des Objektes
     print('vec: ' +str(vec))
-    eul = mathutils.Euler((objBase.rotation_euler.x, objBase.rotation_euler.y, objBase.rotation_euler.z), 'YXZ') # XYZ
+    eul = mathutils.Euler((objBase.rotation_euler.x, objBase.rotation_euler.y, objBase.rotation_euler.z), RotationModeTransform) # XYZ
     print('eul: ' +str(eul))
     vec3d = vec.to_3d()
     mat_rot = eul.to_matrix()
@@ -1004,6 +1227,7 @@ def SetKukaToCurve(objCurve):
     
     # Empty_Zentralhand_A6 auf Startpunkt der Kurve setzen
     # Achtung: Delta Location muss auf Nullgesetzt werden:
+    bpy.data.objects[objCurve.name].rotation_mode = RotationModeTransform #RotationModePATHPTS
     objCurve.delta_location = (0,0,0)
     
     object       = bpy.data.objects['BezierCircle']
@@ -1037,6 +1261,7 @@ def SetBasePos(objCurve, objBase, BASEPos_Koord, BASEPos_Angle):
       
     try:  
         # BasePosition initialisieren:
+        bpy.data.objects[objBase.name].rotation_mode = RotationModeBase #n YXZ, XYZ
         objBase.location = BASEPos_Koord.x, BASEPos_Koord.y, BASEPos_Koord.z
         print('BASEPos_Koord' + str(BASEPos_Koord)) 
         print('BASEPos_Angle' + str(BASEPos_Angle))
@@ -1070,6 +1295,7 @@ def SetCurvePos(objCurve, objBase, BASEPos_Koord, BASEPos_Angle):
     # Origin der Curve auf BASEPosition setzen   (ohne die Curve zu verschieben)
     SetOrigin(objCurve, objBase)
     # Kurve: Origin der Kurve auf BASEPosition verschieben
+    bpy.data.objects[objCurve.name].rotation_mode =RotationModePATHPTS #n YXZ, XYZ
     objCurve.location = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
     objCurve.rotation_euler = BASEPos_Angle[0] *(2*math.pi)/360,  BASEPos_Angle[1] *(2*math.pi)/360,BASEPos_Angle[2] *(2*math.pi)/360
     print('SetCurvePos done')
@@ -1093,6 +1319,7 @@ def SetOrigin(sourceObj, targetObj):
     bpy.ops.object.select_all(action='DESELECT')  
     # 2. setzen des sourceObj Origin auf  vertex[0] von targetObj:
     targetObj.select = True 
+    
     bpy.context.scene.objects.active = targetObj
     targetObj.data.vertices[0].select= True
     # Achtung: Blender"Bug": Wechsel in Edit mode nachdem Vertex ausgewaehlt wurde!
@@ -1101,6 +1328,7 @@ def SetOrigin(sourceObj, targetObj):
     targetObj.data.vertices[0].select= False
     bpy.ops.object.mode_set(mode='EDIT', toggle=True) #
     sourceObj.select = True 
+    
     bpy.context.scene.objects.active = sourceObj
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
     bpy.ops.object.select_all(action='DESELECT')
@@ -1118,7 +1346,7 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     print('Funktion: SetObjRelToBase - lokale Koordinaten bezogen auf Base!')
     objBase = bpy.data.objects['Sphere_BASEPos']
     
-    bpy.data.objects[Obj.name].rotation_mode ='YXZ'
+    bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform #n YXZ, XYZ
     
     #Obj = bpy.data.objects['Sphere_SAFEPos']
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
@@ -1129,6 +1357,7 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
     point_local  = Obj_Koord
     point_world  = matrix_world * point_local
+    #point_world  = point_local * matrix_world
     print(' Obj local bezogen auf Base: point_local ' +str(point_local))
     print(' Obj local bezogen auf World: point_world ' +str(point_world))
     print('')
@@ -1136,11 +1365,12 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     
     
     #todo: evtl auf ZYX aendern???:
-    eul = mathutils.Euler((math.radians(BASEPos_Angle[0]), math.radians(BASEPos_Angle[1]), math.radians(BASEPos_Angle[2])), 'YXZ') # XYZ
+    eul = mathutils.Euler((math.radians(BASEPos_Angle[0]), math.radians(BASEPos_Angle[1]), math.radians(BASEPos_Angle[2])), RotationModeTransform) # XYZ
     print('eul: ' +str(eul))
     mat_rot = eul.to_matrix()
     mat_loc = point_local 
     mat = mat_rot * mat_loc 
+    #mat = mat_loc * mat_rot 
     print('mat: ' +str(mat))
     
     print('Rotation von SafeKood bezogen auf BaseKoordinaten...')
@@ -1148,6 +1378,8 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     print('matrix_world: ' +str(matrix_world))
     point_local  = mat
     point_world  = matrix_world * point_local
+    #point_world  =  point_local *matrix_world
+    
     print('point_world2: ' +str(point_world))
     
     print('BASEPos_Koord: ' +str(BASEPos_Koord))
@@ -1234,11 +1466,16 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         objBase = bpy.data.objects['Sphere_BASEPos']
         objSafe = bpy.data.objects['Sphere_SAFEPos']
         objCurve = bpy.data.objects['BezierCircle']
+        objHome = bpy.data.objects['Sphere_HOMEPos']
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
         
         # Wichtig: Verdrehung des Koordinaten Systems (TODO: vgl. Euler Winkel)
-        bpy.data.objects[objEmpty_A6.name].rotation_mode ='YXZ'
-        bpy.data.objects[objCurve.name].rotation_mode ='YXZ'
+        bpy.data.objects[objBase.name].rotation_mode = RotationModeBase
+        bpy.data.objects[objSafe.name].rotation_mode = RotationModePATHPTS
+        bpy.data.objects[objCurve.name].rotation_mode = RotationModePATHPTS
+        bpy.data.objects[objEmpty_A6.name].rotation_mode =RotationModeEmpty_Zentralhand_A6
+        
+        
         PATHPTSObjName = 'PTPObj_'
         filename = os.path.basename(self.filepath)
         #realpath = os.path.realpath(os.path.expanduser(self.filepath))
@@ -1260,6 +1497,9 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         #--------------------------------------------------------------------------------
         
         BASEPos_Koord, BASEPos_Angle = RfS_BasePos(objBase)
+        ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = (0,0,0), (0,0,0) #RfS_AdjustmentPos(aus GUI)
+        HOMEPos_Koord, HOMEPos_Angle = RfS_HomePos(objHome)
+        
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' Y B {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
         
@@ -1278,6 +1518,8 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         print('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
         WtF_BasePos(BASEPos_Koord, BASEPos_Angle, self.filepath)
+        WtF_AdjustmentPos(ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, self.filepath)
+        WtF_HomePos(HOMEPos_Koord, HOMEPos_Angle, self.filepath)
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' X C {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
@@ -1322,14 +1564,17 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
         objBase = bpy.data.objects['Sphere_BASEPos']
         objSafe = bpy.data.objects['Sphere_SAFEPos']
+        objHome = bpy.data.objects['Sphere_HOMEPos']
         objCurve = bpy.data.objects['BezierCircle']
         #objCurve = bpy.data.curves[bpy.context.active_object.data.name]
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']      
         PATHPTSObjName = 'PTPObj_'
         
         # Wichtig: Verdrehung des Koordinaten Systems (TODO: vgl. Euler Winkel)
-        bpy.data.objects[objEmpty_A6.name].rotation_mode ='YXZ'
-        bpy.data.objects[objCurve.name].rotation_mode ='YXZ'
+        bpy.data.objects[objBase.name].rotation_mode = RotationModeBase
+        bpy.data.objects[objSafe.name].rotation_mode = RotationModePATHPTS
+        bpy.data.objects[objCurve.name].rotation_mode = RotationModePATHPTS
+        bpy.data.objects[objEmpty_A6.name].rotation_mode =RotationModeEmpty_Zentralhand_A6
         
         filename = os.path.basename(self.filepath)
         #realpath = os.path.realpath(os.path.expanduser(self.filepath))
@@ -1346,7 +1591,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         
         # create Container (Location, Rotation) for each path point (PTP): dataPATHPTS_Loc, dataPATHPTS_Rot
-        dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, dataPATHPTS_LocT, dataPATHPTS_RotT = RfF_PATHPTS(context.object, self.filepath, BASEPos_Koord, BASEPos_Angle) 
+        dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, dataPATHPTS_LocT, dataPATHPTS_RotT = RfF_PATHPTS(self.filepath, BASEPos_Koord, BASEPos_Angle) 
         
         
         
@@ -1435,19 +1680,19 @@ class CurveImport (bpy.types.Operator, ImportHelper):
     print('CurveImport done')
 
 
-class ClassSetKeyFrames (bpy.types.Operator):
-    print('ClassSetKeyFrames- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+class ClassRefreshButton (bpy.types.Operator):
+    print('ClassRefreshButton- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
     print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
     ''' Import selected curve '''
-    bl_idname = "curve.setkeyframes"
-    bl_label = "Set KeyFrames (TB)" #Toolbar - Label
+    bl_idname = "curve.refreshbutton"
+    bl_label = "Refresh (TB)" #Toolbar - Label
     bl_description = "Set Animation Data" # Kommentar im Specials Kontextmenue
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane) 
  
     def execute(self, context):  
-        print('- - -SetKeyFrames - - - - - - -')
+        print('- - -refreshbutton - - - - - - -')
         #testen-...
         objBase = bpy.data.objects['Sphere_BASEPos']
         objSafe = bpy.data.objects['Sphere_SAFEPos']
@@ -1472,11 +1717,11 @@ class ClassSetKeyFrames (bpy.types.Operator):
         
                 
         return {'FINISHED'} 
-    print('- - -SetKeyFrames class done- - - - - - -')     
+    print('- - -ClassRefreshButton done- - - - - - -')     
 
 def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
     # Diese Funktion wird erst interessant, wenn Routen ueber mehrere Objektgruppen erzeugt werden sollen.
-    # in SetKeyFrames den Ablauf: [Ruhepos, n x (Safepos, PATHPTS, Safepos), Ruhepos] festlegen        
+    # in RefreshButton den Ablauf: [Ruhepos, n x (Safepos, PATHPTS, Safepos), Ruhepos] festlegen        
     
     # 1. Schritt: Umsetzung nur fuer einfache Reihenfolge
     
@@ -1488,7 +1733,7 @@ def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
         # todo
         #TIMEPTS_Safe = 0
         #TIMEPTS_SafeCount = 1
-    elif ObjList != '': # Aufruf von Button SetKeyFrames
+    elif ObjList != '': # Aufruf von Button RefreshButton
         TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
         #todo:
         #TIMEPTS_Safe, TIMEPTS_SafeCount  = RfS_TIMEPTS(objEmpty_A6, objSafe.name)
@@ -1500,7 +1745,7 @@ def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
     Route_TIMEPTS = TIMEPTS_PATHPTS            # spaeter: [TIMEPTS_Safe, TIMEPTS_PATHPTS]
     Route_TIMEPTSCount = TIMEPTS_PATHPTSCount  # spaeter: [TIMEPTS_SafeCount, TIMEPTS_PATHPTSCount]
     
-    SetKeyFrames(objEmpty_A6, Route_ObjList, Route_TIMEPTS, Route_TIMEPTSCount)
+    RefreshButton(objEmpty_A6, Route_ObjList, Route_TIMEPTS, Route_TIMEPTSCount)
         
                     
 class KUKAPanel(bpy.types.Panel):
@@ -1596,16 +1841,16 @@ class KUKAPanel(bpy.types.Panel):
         row.operator("curve.curveexport")
         
         # Set KeyFrames Button:
-        layout.label(text="SetKeyFrames:")
+        layout.label(text="Refresh Button:")
         row = layout.row(align=True)
         
-        row.operator("curve.setkeyframes")  
+        row.operator("curve.refreshbutton")  
            
     print('KUKAPanel done')
     print('_____________________________________________________________________________')
 
 
-#class CURVE_OT_SetKeyFramesButton(bpy.types.Operator):
+#class CURVE_OT_RefreshButtonButton(bpy.types.Operator):
  
 
 
@@ -1623,7 +1868,7 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
     #bpy.data.curves[bpy.context.active_object.data.name].user_clear()
     #bpy.data.curves.remove(bpy.data.curves[bpy.context.active_object.data.name])
     bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
-    bpy.data.objects[objCurve.name].rotation_mode ='YXZ'
+    bpy.data.objects[objCurve.name].rotation_mode =RotationModePATHPTS
     
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D" 
@@ -1811,7 +2056,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     for n in range(CountCP):
         if (countPATHPTSObj-1) >= n: # Wenn ein PATHPTS Objekt vorhandenen ist,
             # Waehle eine PATHPTS Objekt aus:
-            bpy.data.objects[PATHPTSObjList[n]].rotation_mode ='YXZ'
+            bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
             bpy.data.objects[PATHPTSObjList[n]].select
             print('Waehle Objekt aus: ' + str(PATHPTSObjList[n]))
             
@@ -1821,7 +2066,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
                 
-                
+                bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
                 SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
                       
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
@@ -1838,7 +2083,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
             print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
-            bpy.data.objects[PATHPTSObjList[n]].rotation_mode ='YXZ'
+            bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
             SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
                 
     bpy.context.area.type = original_type 
@@ -1849,7 +2094,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     
     
     
-def setKeyFrames_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
+def RefreshButton_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
     
     # todo: under construction.....
     # KeyFrames (in der Scene) setzen, unabhaengig ob TIMPTS from Scene/ from File
@@ -1858,7 +2103,7 @@ def setKeyFrames_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
     bpy.context.area.type = "VIEW_3D" 
     bpy.ops.object.select_all(action='DESELECT')
     print('_____________________________________________________________________________')
-    print('setKeyFrames_todo_PATHPTS')
+    print('RefreshButton_todo_PATHPTS')
     # erstellen von 'TIMEPTSCount' KeyFrames an den Positionen 'dataPATHPTS_Loc' mit der Ausrichtung 'dataPATHPTS_Rot'
     # fuer das Objekt objEmpty_A6
     PATHPTSObjName = 'PTPObj_'
@@ -1932,7 +2177,7 @@ def setKeyFrames_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
             SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
                 
     bpy.context.area.type = original_type 
-    print('setKeyFrames_todo_PATHPTS done')
+    print('RefreshButton_todo_PATHPTS done')
     print('_____________________________________________________________________________')    
     
 def frame_to_time(frame_number):
@@ -1945,7 +2190,7 @@ def time_to_frame(time_value):
     frame_number = (time_value * fps) +1
     return int(round(frame_number, 0))    
     
-def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
+def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     # Diese Funktion soll spaeter anhand einer chronologisch geordneten Objektgruppen 
     # und Objekt/PATHPTS - Liste die KeyFrames eintragen
     
