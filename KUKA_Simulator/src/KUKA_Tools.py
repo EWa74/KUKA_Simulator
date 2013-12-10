@@ -21,6 +21,7 @@
 # naming convention
 # gui panel (add/remove pathpoints, timepts
 #
+from symbol import except_clause
 
 # todo: geladenes File anzeigen
 #git
@@ -53,6 +54,8 @@
 # ToDo: ToolPosition (oder Baseposition) auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
 # BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
 # todo: globale variablen definieren??.....
+# todo: Verschiedene Import/ Export Funktionen beruecksichtigen (XYZ/ KUKA YXZ)
+# todo: obj. rename um 001.001 etc. zu vermeiden!!!
 # Datenmodell und Funktionen beschreiben!!!
 '''
 
@@ -171,16 +174,6 @@ def WtF_HomePos(HOMEPos_Koord, HOMEPos_Angle, filepath):
                    ", C " + "{0:.5f}".format(Vorz1 *HOMEPos_Angle[0]) +
                    "} " + "\n")
     
-    #ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0}
-    fout.write("ADJUSTMENTPos {" + 
-                   "X " + "{0:.5f}".format(HOMEPos_Koord[0]*SkalierungPTP) + 
-                   ", Y " + "{0:.5f}".format(HOMEPos_Koord[1]*SkalierungPTP) +
-                   ", Z " + "{0:.5f}".format(HOMEPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(Vorz3 *HOMEPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(Vorz2 *HOMEPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(Vorz1 *HOMEPos_Angle[0]) +
-                   "} " + "\n")
-     
     fout.close();
     print('WtF_HomePos geschrieben.')
     print('_____________________________________________________________________________')
@@ -433,7 +426,7 @@ def RfF_HomePos(filepath):
         
         # ==========================================
         # Einlesen der PTP Werte (X, Y, Z, A, B C) 
-        # HOMEPos {X 0.0, Y 0.0, Z 0.0, A -128.2708, B -0.4798438, C -178.1682} 
+        # HOMEPos {X 653.4455, Y 922.3803, Z 842.2034, A -128.2708, B -0.4798438, C -178.1682} 
         # ==========================================
         PTPX = []
         PTPY = []
@@ -470,11 +463,11 @@ def RfF_HomePos(filepath):
             print('PTPAngleC' +str(PTPAngleC))
         SkalierungPTP = 1000
         
-        ADJUSTMENTPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
+        HOMEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
         # XYZ = CBA
         # A = -Z
         # TESTEN!!!!
-        ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz2 *PTPAngleB[0])), float(str(Vorz3 *PTPAngleA[0])) # in Grad
+        HOMEPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz2 *PTPAngleB[0])), float(str(Vorz3 *PTPAngleA[0])) # in Grad
     except: 
         print('RfF_AdjustmentPos exception')
     print('RfF_HomePos done')
@@ -1587,6 +1580,15 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         
         print("Erstellen der BezierCurve: done")
         BASEPos_Koord, BASEPos_Angle = RfF_BasePos(self.filepath)
+        try:
+            ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath)
+        except:
+            print('failed to load AdjustmentPos')
+        try:
+            HOMEPos_Koord, HOMEPos_Angle = RfF_HomePos(self.filepath)
+        except:
+            
+            print('failed to load HomePos')
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         
@@ -1629,6 +1631,12 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         #BASEPos_Angle = [liste1, liste2, liste3]
         
         SetBasePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
+        try:
+            SetAdjustmentPos(guifeld)
+        except:
+            print('failed to set Adjustement Position....')
+        SetBasePos(context.object, objHome, HOMEPos_Koord, HOMEPos_Angle)
+        
         #SetObjRelToBase(objBase, BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle )
         
         
