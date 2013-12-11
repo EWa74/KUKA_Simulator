@@ -57,6 +57,9 @@ from symbol import except_clause
 # todo: Verschiedene Import/ Export Funktionen beruecksichtigen (XYZ/ KUKA YXZ)
 # todo: obj. rename um 001.001 etc. zu vermeiden!!!
 # Datenmodell und Funktionen beschreiben!!!
+
+# TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen -> Funktion RefreshButton
+
 '''
 
 ${workspace_loc:CurveExport/src/curve_export.py}
@@ -343,6 +346,7 @@ def RfF_AdjustmentPos(filepath):
         # ==========================================
         # Einlesen der PTP Werte (X, Y, Z, A, B C) 
         # ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A -128.2708, B -0.4798438, C -178.1682} 
+        # MES = {X -237, Y 0, Z 342, A 0, B 0, C 0 }
         # ==========================================
         PTPX = []
         PTPY = []
@@ -2002,22 +2006,72 @@ def count_PATHPTSObj(PATHPTSObjName):
             if PATHPTSObjName in item.name:
                 countPATHPTSObj = countPATHPTSObj +1
                 PATHPTSObjList = PATHPTSObjList + [item.name]
-                
+          
     # Nullen voranstellen: http://blenderscripting.blogspot.de/2011/05/padding-number-with-zeroes.html
     # oder neu sortieren:       http://blenderscripting.blogspot.de/2011/05/python-32-semi-natural-sorting.html    
     pattern = '\d+'  # one or more numerical characters  
-    def MyFn(pose):  
+    def SortObjList(pose):  
         match = re.search(pattern, pose)  
         return int(match.group())  
-    PATHPTSObjList = sorted(PATHPTSObjList, key=MyFn)
-    print(PATHPTSObjList)
+    PATHPTSObjList = sorted(PATHPTSObjList, key=SortObjList)
+    print('PATHPTSObjList sorted: ' + str(PATHPTSObjList))
+    
+      
     
     print('Anzahl an Objekten in der Szene - countObj: ' +str(countObj))
     print('Anzahl an PathPoint Objekten in der Szene - countPATHPTSObj: ' +str(countPATHPTSObj))
     print('count_PATHPTSObj')
     print('_____________________________________________________________________________')
     return PATHPTSObjList, countPATHPTSObj
+
+def renamePATHObj(PATHPTSObjList):
+    print('_____________________________________________________________________________')
+    print('renamePATHObj')
+    for n in range(len(PATHPTSObjList)): 
+        bpy.data.objects[PATHPTSObjList[n]].name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
+        PATHPTSObjList[n] = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2  
+    print('renamePATHObj done')
+    print('_____________________________________________________________________________')
+    return PATHPTSObjList
+
+def ValidateTIMEPTS(countPATHPTSObj, PATHPTSObjList, TIMEPTS):
+    print('_____________________________________________________________________________')
+    print('ValidateTIMEPTS')
     
+    
+    # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS
+    while len(TIMEPTS)<countPATHPTSObj:
+        for i in range(countPATHPTSObj):
+            if PATHPTSObjList[i].find('.')!=-1: # wenn Objektname = "PTPObj_017.001", wichtig, um festzustellen wo das PTPObj eingefuegt wurde
+                # Geschw. des letzten Positionswechsels ermitteln:
+                if (i+1) < countPATHPTSObj:
+                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i-1]].location
+                    v = s.length/(TIMEPTS[i]-TIMEPTS[i-1]) # [i] weil i der alte i+1 Eintrag ist
+                    # Zeit für eingefügten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i]].location
+                elif (i+1) >= countPATHPTSObj:
+                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
+                    v = s.length/(TIMEPTS[i-1]-TIMEPTS[i-2])
+                    # Zeit für eingefügten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
+                
+                deltaT = abs(s.length /v)
+                NewTIMEPTS = deltaT + TIMEPTS[i-1] # v=s/t -> t = s/v
+                TIMEPTS.insert( i, NewTIMEPTS)
+                # alle anderen TIMEPTS zeitlich um NewTIMEPTS verschieben:
+                for n in range(i+1, len(TIMEPTS)):
+                    TIMEPTS[n] = TIMEPTS[n] +  deltaT
+             
+    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS    
+    # Achtung: wird noch nicht benötigt, da in der Funktion erst alle KeyFrames geloescht werden. D.h. TIMEPTS Werte 
+    # bleiben ggf. ungenutzt, ohne Fehler zu erzeugen.
+    # Achtung: wuerde Sinn machen eine Klasse PATHPTS erstellen um die Zuordnung von Zeit, Kraft, etc. zu bekommen.
+        
+    print('ValidateTIMEPTS done')    
+    print('_____________________________________________________________________________')
+    return TIMEPTS
+    
+    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS 
     
 def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle ):
     # Aufruf von: CurveImport
@@ -2088,6 +2142,10 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
             bpy.context.object.name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
             PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
             bpy.data.objects[PATHPTSObjList[n]].data = bpy.data.objects[PATHPTSObjList[1]].data
+            
+            # todo - test: .TIMEPTS einfügen - eigene Class für PATHPTS erstellen!!!
+            
+            
             print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
@@ -2202,6 +2260,9 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     # Diese Funktion soll spaeter anhand einer chronologisch geordneten Objektgruppen 
     # und Objekt/PATHPTS - Liste die KeyFrames eintragen
     
+    
+    # TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen
+    
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D"
     bpy.ops.object.select_all(action='DESELECT')
@@ -2213,7 +2274,14 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     #fps_base = scene.render.fps_base
     
     PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
-        
+    
+    TIMEPTS = ValidateTIMEPTS(countPATHPTSObj, PATHPTSObjList, TIMEPTS)
+    PATHPTSObjList =  renamePATHObj(PATHPTSObjList)
+    
+    
+    TargetObjList = PATHPTSObjList # todo: Bei Bearbeitung und Konkatonierung per GUI Ablauf 
+    # von GetRout u. RefreshButton ueberdenken
+    
     raw_time=[]
     frame_number=[]
     
@@ -2235,6 +2303,8 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
         ob.keyframe_insert(data_path="rotation_euler", index=-1)
     
+    if len(TIMEPTS)> countPATHPTSObj:
+        print('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
     
     bpy.context.scene.frame_end = time_to_frame(TIMEPTS[TIMEPTSCount-1])
     
