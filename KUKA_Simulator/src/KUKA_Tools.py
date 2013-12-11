@@ -2302,7 +2302,7 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
         ob.keyframe_insert(data_path="location", index=-1)
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
         ob.keyframe_insert(data_path="rotation_euler", index=-1)
-     
+    
     if len(TIMEPTS)> countPATHPTSObj:
         print('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
     
