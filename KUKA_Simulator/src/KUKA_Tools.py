@@ -2027,7 +2027,10 @@ def count_PATHPTSObj(PATHPTSObjName):
 def renamePATHObj(PATHPTSObjList):
     print('_____________________________________________________________________________')
     print('renamePATHObj')
-    for n in range(len(PATHPTSObjList)): 
+    #count =len(PATHPTSObjList)
+    #PATHPTSObjList = []
+     
+    for n in range(len(PATHPTSObjList)-1,0, -1): 
         bpy.data.objects[PATHPTSObjList[n]].name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
         PATHPTSObjList[n] = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2  
     print('renamePATHObj done')
@@ -2305,7 +2308,7 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     
     if len(TIMEPTS)> countPATHPTSObj:
         print('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
-    
+    # todo: end frame not correct if PATHPTS added....
     bpy.context.scene.frame_end = time_to_frame(TIMEPTS[TIMEPTSCount-1])
     
     bpy.data.scenes['Scene'].frame_current=1
