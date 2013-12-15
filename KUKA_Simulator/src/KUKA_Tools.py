@@ -100,14 +100,15 @@ from bpy.types import Operator
 
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
+Mode = 'XYZ' # YXZ
 
-RotationModeBase = 'YXZ'
-RotationModePATHPTS = 'YXZ'
-RotationModeEmpty_Zentralhand_A6 = 'YXZ'
+RotationModeBase = Mode
+RotationModePATHPTS = Mode
+RotationModeEmpty_Zentralhand_A6 = Mode
 
-RotationModeTransform = 'YXZ' # XYZ
+RotationModeTransform = Mode # XYZ YXZ
 
-Vorz1 = +1 # +C = X
+Vorz1 = -1 # +C = X
 Vorz2 = -1 # -B = Y
 Vorz3 = -1 # -A = Z
 
@@ -142,9 +143,9 @@ def WtF_BasePos(BASEPos_Koord, BASEPos_Angle, filepath):
                    "X " + "{0:.5f}".format(BASEPos_Koord[0]*SkalierungPTP) + 
                    ", Y " + "{0:.5f}".format(BASEPos_Koord[1]*SkalierungPTP) +
                    ", Z " + "{0:.5f}".format(BASEPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(Vorz3 *BASEPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(Vorz2 *BASEPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(Vorz1 *BASEPos_Angle[0]) +
+                   ", A " + "{0:.5f}".format(BASEPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(BASEPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(BASEPos_Angle[0]) +
                    "} " + "\n")
     
     fout.close();
@@ -357,27 +358,27 @@ def RfF_AdjustmentPos(filepath):
         beg=0
         # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
         for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf]))
+            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
+            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
        
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf]))
+            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
        
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf]))
+            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
        
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf]))
+            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])] # * (2*math.pi)/360 als rad einlesen!
             print('PTPAngleA' +str(PTPAngleA))
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf]))
+            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
             print('PTPAngleB' +str(PTPAngleB))
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf]))  
+            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
             IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
             PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
             print('PTPAngleC' +str(PTPAngleC))
@@ -387,7 +388,7 @@ def RfF_AdjustmentPos(filepath):
         # XYZ = CBA
         # A = -Z
         # TESTEN!!!!
-        ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz2 *PTPAngleB[0])), float(str(Vorz3 *PTPAngleA[0])) # in Grad
+        ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz1 *PTPAngleB[0])), float(str(Vorz1 *PTPAngleA[0])) # in Grad
     except: 
         print('RfF_AdjustmentPos exception')
     print('RfF_AdjustmentPos done')
@@ -441,27 +442,27 @@ def RfF_HomePos(filepath):
         beg=0
         # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
         for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf]))
+            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
+            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
        
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf]))
+            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
        
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf]))
+            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
        
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf]))
+            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])] # * (2*math.pi)/360 als rad einlesen!
             print('PTPAngleA' +str(PTPAngleA))
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf]))
+            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
             print('PTPAngleB' +str(PTPAngleB))
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf]))  
+            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
             IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
             PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
             print('PTPAngleC' +str(PTPAngleC))
@@ -525,27 +526,27 @@ def RfF_BasePos(filepath):
         beg=0
         # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
         for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf]))
+            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
+            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
        
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf]))
+            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
        
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf]))
+            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
        
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf]))
+            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])] # * (2*math.pi)/360 als rad einlesen!
             print('PTPAngleA' +str(PTPAngleA))
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf]))
+            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
             print('PTPAngleB' +str(PTPAngleB))
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf]))  
+            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
             IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
             PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
             print('PTPAngleC' +str(PTPAngleC))
@@ -556,7 +557,7 @@ def RfF_BasePos(filepath):
         # XYZ = CBA - TEST: ABC, BAC
         # A = -Z
         #BASEPos_Angle  = float(str(PTPAngleA[0])), float(str(PTPAngleB[0])), float(str(PTPAngleC[0])) # in Grad
-        BASEPos_Angle  = Vorz1 *float(str(PTPAngleC[0])), Vorz2 *float(str(PTPAngleB[0])), Vorz3 *float(str(PTPAngleA[0])) # in Grad
+        BASEPos_Angle  = float(str(PTPAngleC[0])), float(str(PTPAngleB[0])), float(str(PTPAngleA[0])) # in Grad
         
      
         
@@ -612,27 +613,27 @@ def RfF_SafePos(filepath):
         beg=0
         # die Schleife ist eigentlich unnoetig da es nur eine SAFEPosition gibt...
         for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf]))
+            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
+            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
        
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf]))
+            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
        
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf]))
+            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
        
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf]))
+            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
+            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])]
        
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf]))
+            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
+            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
             PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
        
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf]))  
+            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
             IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
             PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
         
@@ -712,27 +713,27 @@ def RfF_PATHPTS(filepath, BASEPos_Koord, BASEPos_Angle):
     beg=0
    
     for i in range(0,PATHPTSCount,1):
-        IndXA = zeilenliste[PathIndexAnf+1+i].index("X ", beg, len(zeilenliste[PathIndexAnf+1])) # Same as find(), but raises an exception if str not found 
-        IndXE = zeilenliste[PathIndexAnf+1+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+1]))
+        IndXA = zeilenliste[PathIndexAnf+1+i].index("X ", beg, len(zeilenliste[PathIndexAnf+1+i])) # Same as find(), but raises an exception if str not found 
+        IndXE = zeilenliste[PathIndexAnf+1+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+1+i]))
         PathPointX = PathPointX + [float(zeilenliste[PathIndexAnf+1+i][IndXA+2:IndXE])/SkalierungPTP]
    
-        IndYA = zeilenliste[PathIndexAnf+1+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+1]))  
-        IndYE = zeilenliste[PathIndexAnf+1+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+1]))
+        IndYA = zeilenliste[PathIndexAnf+1+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+1+i]))  
+        IndYE = zeilenliste[PathIndexAnf+1+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+1+i]))
         PathPointY = PathPointY + [float(zeilenliste[PathIndexAnf+1+i][IndYA+2:IndYE])/SkalierungPTP]
    
-        IndZA = zeilenliste[PathIndexAnf+1+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+1])) 
-        IndZE = zeilenliste[PathIndexAnf+1+i].index(", A", beg, len(zeilenliste[PathIndexAnf+1]))
+        IndZA = zeilenliste[PathIndexAnf+1+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+1+i])) 
+        IndZE = zeilenliste[PathIndexAnf+1+i].index(", A", beg, len(zeilenliste[PathIndexAnf+1+i]))
         PathPointZ = PathPointZ + [float(zeilenliste[PathIndexAnf+1+i][IndZA+2:IndZE])/SkalierungPTP]
    
-        IndAA = zeilenliste[PathIndexAnf+1+i].index("A ", beg, len(zeilenliste[PathIndexAnf+1])) 
-        IndAE = zeilenliste[PathIndexAnf+1+i].index(", B", beg, len(zeilenliste[PathIndexAnf+1]))
+        IndAA = zeilenliste[PathIndexAnf+1+i].index("A ", beg, len(zeilenliste[PathIndexAnf+1+i])) 
+        IndAE = zeilenliste[PathIndexAnf+1+i].index(", B", beg, len(zeilenliste[PathIndexAnf+1+i]))
         PathAngleA = PathAngleA + [float(zeilenliste[PathIndexAnf+1+i][IndAA+2:IndAE])]
    
-        IndBA = zeilenliste[PathIndexAnf+1+i].index("B ", beg, len(zeilenliste[PathIndexAnf+1]))  
-        IndBE = zeilenliste[PathIndexAnf+1+i].index(", C", beg, len(zeilenliste[PathIndexAnf+1]))
+        IndBA = zeilenliste[PathIndexAnf+1+i].index("B ", beg, len(zeilenliste[PathIndexAnf+1+i]))  
+        IndBE = zeilenliste[PathIndexAnf+1+i].index(", C", beg, len(zeilenliste[PathIndexAnf+1+i]))
         PathAngleB = PathAngleB + [float(zeilenliste[PathIndexAnf+1+i][IndBA+2:IndBE])]
    
-        IndCA = zeilenliste[PathIndexAnf+1+i].index("C ", beg, len(zeilenliste[PathIndexAnf+1]))  
+        IndCA = zeilenliste[PathIndexAnf+1+i].index("C ", beg, len(zeilenliste[PathIndexAnf+1+i]))  
         IndCE = len(zeilenliste[PathIndexAnf+1+i])-2 # }   " "+chr(125) funktioniert nicht?!
         PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+1+i][IndCA+2:IndCE]) ] # in Grad
 
@@ -767,7 +768,14 @@ def RfF_PATHPTS(filepath, BASEPos_Koord, BASEPos_Angle):
     # A = -Z
     for i in range(0,PATHPTSCount,1):
         #nList[i][0:3] = [PathAngleA[i], PathAngleB[i], PathAngleC[i]]
+        
         nList[i][0:3] = [Vorz1 *PathAngleC[i], Vorz2 *PathAngleB[i], Vorz3 *PathAngleA[i]]
+        # ... DAS SOLLTE JETZT SO OK SEIN: Die XYZ Verschiebung wird durch die Armature beruecksichtigt. D.h. Das Empty, bzw
+        # die PATHPTS geben die TCP Position des Werkzeugs an. Es wird dann nur noch 'Vorverdrehung' beim Anschrauben des Werkzeugs
+        # an das Flansch beruecksichtigt. (hier: -38°)
+        # Achtung: TODO: noch nicht bei EXPORT beruecksichtigt... [Pruefung: nicht 100% OK, verworfen!!!!...]
+        #nList[i][0:3] = [Vorz1 *(PathAngleC[i]-ADJUSTMENTPos_Angle[0]), Vorz2 *(PathAngleB[i]-ADJUSTMENTPos_Angle[1]), Vorz3 *(PathAngleA[i]-ADJUSTMENTPos_Angle[2])]
+        
         dataPATHPTS_Rot = dataPATHPTS_Rot + [nList[i]]
         
         UList[i][0:3] = [(PathAngleC[i] + ADJUSTMENTPos_AngleB[0]) , (PathAngleB[i] + ADJUSTMENTPos_AngleB[1]) , (PathAngleA[i] + ADJUSTMENTPos_AngleB[2]) ]
@@ -887,7 +895,7 @@ def RfF_TIMEPTS(filepath):
         beg=0
         i=[]
         for i in range(0,TIMEPTSCount,1):
-            IndXA = zeilenliste[PathIndexAnf+i+1].index("]=", beg, len(zeilenliste[PathIndexAnf])) # Same as find(), but raises an exception if str not found 
+            IndXA = zeilenliste[PathIndexAnf+i+1].index("]=", beg, len(zeilenliste[PathIndexAnf+i+1])) # Same as find(), but raises an exception if str not found 
             IndXE = len(zeilenliste[PathIndexAnf+i+1])
             TIMEPTS = TIMEPTS + [float(zeilenliste[PathIndexAnf+i+1][IndXA+2:IndXE])]
         
@@ -1690,7 +1698,6 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         
         return {'FINISHED'} 
     print('CurveImport done')
-
 
 class ClassRefreshButton (bpy.types.Operator):
     print('ClassRefreshButton- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
