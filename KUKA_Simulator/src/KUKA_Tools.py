@@ -59,7 +59,8 @@ from symbol import except_clause
 # Datenmodell und Funktionen beschreiben!!!
 
 # TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen -> Funktion RefreshButton
-
+# TODO: Beschriftung der PATHPTS im 3D view
+# TODO: GUI Feld um die Winkel bezogen auf Base oder Tool (bez. sich auf Base) editieren zu können
 '''
 
 ${workspace_loc:CurveExport/src/curve_export.py}
@@ -983,65 +984,73 @@ def RfS_HomePos(objHome):
     print('_____________________________________________________________________________')
     return HOMEPos_Koord, HOMEPos_Angle
 
+
 def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
     # Aufruf von: create_PATHPTSObj, SetSafePos
     # Diese Funktion wird nur bei Export aufgerufen.
+    # Wiedergabe von LOC/Rot bezogen auf Base
+    
+    # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
+    # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
     print('_____________________________________________________________________________')
-    print('Funktion: RfS_LocRot - lokale Koordinaten bezogen auf Base!')
+    print('Funktion: RfS_LocRotX - lokale Koordinaten bezogen auf Base!')
     
     objBase = bpy.data.objects['Sphere_BASEPos']
     PATHPTS_Angle = []
-    # PATHPTS_Angle Angle auch in Abhaengigkeit von BasePos Orientierung exportieren/ speichern!
-    PATHPTS_Angle = PATHPTS_Angle +[(dataPATHPTS_Rot[0] -objBase.rotation_euler.x) *360/(2*math.pi)]# C(X)
-    PATHPTS_Angle = PATHPTS_Angle +[(dataPATHPTS_Rot[1] -objBase.rotation_euler.y) *360/(2*math.pi)]# B(Y)
-    PATHPTS_Angle = PATHPTS_Angle +[(dataPATHPTS_Rot[2] -objBase.rotation_euler.z) *360/(2*math.pi)]# A(Z)
-    print('PATHPTS_Angle - ini: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
     
-    objPATHPTS.rotation_euler = (0,0,0) # um die richtigen Koordinaten zu bekommen 
-    print('PATHPTS: bevor Origin auf BasePos' +str(objPATHPTS.data.vertices[0].co))
+    matrix_world = mathutils.Matrix.Translation(objBase.location) #global
+    point_local  = dataPATHPTS_Loc #global
+    point_worldV = matrix_world.to_translation()
+    point_worldR  = matrix_world.to_3x3() 
     
-    # setzen des PATHPTS Origin auf  vertex[0] der BasePosition: 
-    SetOrigin(objPATHPTS, objBase)
+    print('point_local'+ str(point_local))  # neuer Bezugspunkt
     
-    print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
+    #--------------------------------------------------------------------------
     
-    print('Umrechnung auf globale Koordinaten....')
-    print('Transformation von SafePos auf BasePos...')
-    vec = objPATHPTS.data.vertices[0].co # Achtung: Bei Aktuellem Objekt fuer PATHPTS liegt vertices[0] nicht im Ursprung des Objektes
-    print('vec: ' +str(vec))
-    eul = mathutils.Euler((objBase.rotation_euler.x, objBase.rotation_euler.y, objBase.rotation_euler.z), RotationModeTransform) # XYZ
-    print('eul: ' +str(eul))
-    vec3d = vec.to_3d()
-    mat_rot = eul.to_matrix()
-    mat_loc = vec3d
-    mat = mat_loc * mat_rot.to_3x3()
-    print('mat: ' + str(mat))
+    mat_rotX2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X')
+    mat_rotY2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
+    mat_rotZ2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
+    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
+    print('Mrot2'+ str(Mrot2))
     
-    #Achtung: lokale Koordinaten (bezogen auf Base) wie in Datei gespeichert
-    PATHPTS_Koord = mat
+    point_world2 = Mrot2.inverted()  * (point_worldV -point_local) 
+    print('point_world2'+ str(point_world2))  # neuer Bezugspunkt
+    
+    #-----------------------------
+    
+    mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X')
+    mat_rotY = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[1]), 3, 'Y')
+    mat_rotZ = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[2]), 3, 'Z')
+    Mrot = mat_rotZ * mat_rotY * mat_rotX
+    print('Mrot :'+ str(Mrot))
+    
+    #point_world = matrix_world.inverted()  * (point_worldV -point_local) 
+    point_world = Mrot.inverted()  * (point_local -point_worldV) 
+    print('point_world (Base)'+ str(point_world))  # neuer Bezugspunkt
+    
+    PATHPTS_Koord = point_world
+    
+    #matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System 
+    matrix_1R0 = Mrot2.inverted() * Mrot # OK für KUKA
+    print('matrix_1R0'+ str(matrix_1R0))
+    
+    newR =matrix_1R0.to_euler('XYZ')
+    print('newR'+ str(newR))
+    print('newR[0] :'+ str(newR[0]*360/(2*3.14)))
+    print('newR[1] :'+ str(newR[1]*360/(2*3.14)))
+    print('newR[2] :'+ str(newR[2]*360/(2*3.14)))
+        
+    PATHPTS_Angle = (newR[0]*360/6.28, newR[1]*360/6.28, newR[2]*360/6.28)
+
     print('PATHPTS_Koord = point_local: ' + str(PATHPTS_Koord))
     print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
     
-    print('PATHPTS-Origin auf PATHPTS setzen ....')
-    # setzen des PATHPTS Origin auf  vertex[0] des PATHPTSObj:
-    SetOrigin(objPATHPTS, objPATHPTS)
-    
-    print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
-    
-    print('PATHPTS_Angle wieder dem Origin zuweisen')
-    objPATHPTS.rotation_euler.x = PATHPTS_Angle[0] *(2*math.pi)/360 +objBase.rotation_euler.x # C(X)[rad]
-    objPATHPTS.rotation_euler.y = PATHPTS_Angle[1] *(2*math.pi)/360 +objBase.rotation_euler.y # B(Y)[rad]
-    objPATHPTS.rotation_euler.z = PATHPTS_Angle[2] *(2*math.pi)/360 +objBase.rotation_euler.z # A(Z)[rad]
-    
-    print('PATHPTS_Koord: ' + str(PATHPTS_Koord))
-    print('PATHPTS_Angle: '+'A {0:.3f}'.format(PATHPTS_Angle[0])+' B {0:.3f}'.format(PATHPTS_Angle[1])+' C {0:.3f}'.format(PATHPTS_Angle[2]))
-    
-    
-    # todo: hier muss dann adjustment wieder abgezogen werden....
-    
-    print('RfS_LocRot done')
+    print('RfS_LocRotX done')
     print('_____________________________________________________________________________')
     return PATHPTS_Koord, PATHPTS_Angle 
+
+
+
 
 def RfS_TIMEPTS(objEmpty_A6):
     
@@ -1343,9 +1352,59 @@ def SetOrigin(sourceObj, targetObj):
     
     if original_mode!= 'OBJECT':
         bpy.ops.object.mode_set(mode='EDIT', toggle=True)
-     
-        
+
+
+
+
 def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+    
+    objBase = bpy.data.objects['Sphere_BASEPos']
+    bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform #n YXZ, XYZ
+    # bpy.context.object.matrix_world
+    matrix_world = mathutils.Matrix.Translation(objBase.location) #global 
+    point_local  = Obj_Koord    
+    print('point_local'+ str(point_local))  # neuer Bezugspunkt
+    
+    mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X')
+    mat_rotY2 = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y')
+    mat_rotZ2 = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
+    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
+    print('Mrot2'+ str(Mrot2))
+    mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X')
+    mat_rotY = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[1]), 3, 'Y')
+    mat_rotZ = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[2]), 3, 'Z')
+    Mrot = mat_rotZ * mat_rotY * mat_rotX
+    print('Mrot'+ str(Mrot))
+    
+    matrix_1R0 =   Mrot *Mrot2.inverted()# gibt die Worldrotation an.
+    #matrix_1R0 = bpy.context.object.matrix_world.to_3x3() *Mrot2.inverted()
+    #matrix_1R0 =   Mrot2 *Mrot.inverted() # loc +/- falsch, rotation falsch
+    #matrix_1R0 =   Mrot *Mrot2 # loc +/- falsch, rotation falsch
+    #matrix_1R0 =   Mrot.inverted() *Mrot2# loc +/- falsch, rotation falsch
+    #matrix_1R0 =   Mrot.inverted() *Mrot2.inverted()# loc +/- falsch, rotation falsch
+    
+    
+    Vector_1R1 = matrix_world * point_local # gibt die Worldkoordinate an. (+/- vertauscht)
+    #Vector_1R1 = bpy.context.object.matrix_world.to_3x3().inverted()* point_local
+    #Vector_1R1 = matrix_world.inverted() * point_local # NOK
+    #Vector_1R1 = point_local * matrix_world  #NOK, NOK
+    #Vector_1R1 = matrix_world * point_local.inverted() # Vector has no attribute 'inverted'
+    
+    Obj.location = Vector_1R1
+    print('Vector_1R1 :'+ str(Vector_1R1))
+    
+    newR =matrix_1R0.to_euler('XYZ')
+    Obj.rotation_euler = newR
+
+    print('newR'+ str(newR))
+    print('newR[0] :'+ str(newR[0]*360/(2*3.14)))
+    print('newR[1] :'+ str(newR[1]*360/(2*3.14)))
+    print('newR[2] :'+ str(newR[2]*360/(2*3.14)))
+        
+    return
+
+    
+def SetObjRelToBaseX(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     # Diese Funktion wird nur bei Import aufgerufen.
     print('_____________________________________________________________________________')
     print('Funktion: SetObjRelToBase - lokale Koordinaten bezogen auf Base!')
@@ -1400,7 +1459,8 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     
     print('Obj_Angle wieder dem Origin zuweisen unter Beruecksichtigung der BaseOrientierung:')
     
-    # todo - test : vertauschen der Winkel... unklar... Import=Export, aber nicht = KUKA Film... 
+    # todo - test : Fehler, Transformationsmatrix muss aufgeloest werden damit die Winkel auf die Achsen
+    # der Base zerlegt werden.... Import=Export, aber nicht = KUKA Film... 
     Obj.rotation_euler.x = (BASEPos_Angle[0] +Obj_Angle[0]) *(2*math.pi)/360 # [rad]
     Obj.rotation_euler.y = (BASEPos_Angle[1] +Obj_Angle[1]) *(2*math.pi)/360 # [rad]
     Obj.rotation_euler.z = (BASEPos_Angle[2] +Obj_Angle[2]) *(2*math.pi)/360 # [rad]
