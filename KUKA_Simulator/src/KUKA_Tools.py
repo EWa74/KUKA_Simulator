@@ -1027,7 +1027,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     #point_world = matrix_world.inverted()  * (point_worldV -point_local) 
     point_world = Mrot.inverted()  * (point_local -point_worldV) 
     print('point_world (Base)'+ str(point_world))  # neuer Bezugspunkt
-    
+     
     PATHPTS_Koord = point_world
     
     # matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System  
