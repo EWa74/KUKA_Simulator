@@ -1030,8 +1030,9 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     
     PATHPTS_Koord = point_world
     
-    #matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System 
-    matrix_1R0 = Mrot2.inverted() * Mrot # OK für KUKA
+    # matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System 
+    matrix_1R0   = Mrot2 * Mrot.inverted() # OK für KUKA
+    
     print('matrix_1R0'+ str(matrix_1R0))
     
     newR =matrix_1R0.to_euler('XYZ')
@@ -1356,39 +1357,33 @@ def SetOrigin(sourceObj, targetObj):
 
 
 
-def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+def SetObjRelToBaseX(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     
     objBase = bpy.data.objects['Sphere_BASEPos']
-    bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform #n YXZ, XYZ
+    bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
     # bpy.context.object.matrix_world
     matrix_world = mathutils.Matrix.Translation(objBase.location) #global 
     point_local  = Obj_Koord    
+    point_worldV = matrix_world.to_translation()
     print('point_local'+ str(point_local))  # neuer Bezugspunkt
     
-    mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X')
+    mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # 0,20,35 = X = -C, Y = -B, Z = -A
     mat_rotY2 = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y')
     mat_rotZ2 = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
     Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
     print('Mrot2'+ str(Mrot2))
-    mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X')
-    mat_rotY = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[1]), 3, 'Y')
-    mat_rotZ = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[2]), 3, 'Z')
-    Mrot = mat_rotZ * mat_rotY * mat_rotX
+    mat_rotX = mathutils.Matrix.Rotation(math.radians(-BASEPos_Angle[0]), 3, 'X')
+    mat_rotY = mathutils.Matrix.Rotation(math.radians(-BASEPos_Angle[1]), 3, 'Y')
+    mat_rotZ = mathutils.Matrix.Rotation(math.radians(-BASEPos_Angle[2]), 3, 'Z')
+    Mrot = mat_rotX * mat_rotY * mat_rotZ
+    
     print('Mrot'+ str(Mrot))
     
-    matrix_1R0 =   Mrot *Mrot2.inverted()# gibt die Worldrotation an.
-    #matrix_1R0 = bpy.context.object.matrix_world.to_3x3() *Mrot2.inverted()
-    #matrix_1R0 =   Mrot2 *Mrot.inverted() # loc +/- falsch, rotation falsch
-    #matrix_1R0 =   Mrot *Mrot2 # loc +/- falsch, rotation falsch
-    #matrix_1R0 =   Mrot.inverted() *Mrot2# loc +/- falsch, rotation falsch
-    #matrix_1R0 =   Mrot.inverted() *Mrot2.inverted()# loc +/- falsch, rotation falsch
-    
-    
-    Vector_1R1 = matrix_world * point_local # gibt die Worldkoordinate an. (+/- vertauscht)
-    #Vector_1R1 = bpy.context.object.matrix_world.to_3x3().inverted()* point_local
-    #Vector_1R1 = matrix_world.inverted() * point_local # NOK
-    #Vector_1R1 = point_local * matrix_world  #NOK, NOK
-    #Vector_1R1 = matrix_world * point_local.inverted() # Vector has no attribute 'inverted'
+    matrix_1R0 = Mrot2.inverted() * Mrot.inverted()
+    #matrix_2R =  matrix_1R * 
+    #matrix_1R0 = matrix_2R * Mrot
+        
+    Vector_1R1 = point_worldV - point_local # OK
     
     Obj.location = Vector_1R1
     print('Vector_1R1 :'+ str(Vector_1R1))
@@ -1404,7 +1399,7 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     return
 
     
-def SetObjRelToBaseX(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     # Diese Funktion wird nur bei Import aufgerufen.
     print('_____________________________________________________________________________')
     print('Funktion: SetObjRelToBase - lokale Koordinaten bezogen auf Base!')
