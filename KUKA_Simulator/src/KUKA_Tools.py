@@ -109,9 +109,9 @@ RotationModeEmpty_Zentralhand_A6 = Mode
 
 RotationModeTransform = Mode # XYZ YXZ
 
-Vorz1 = -1 # +C = X
-Vorz2 = -1 # -B = Y
-Vorz3 = -1 # -A = Z
+Vorz1 = +1#-1 # +C = X
+Vorz2 = +1#-1 # -B = Y
+Vorz3 = +1#-1 # -A = Z
 
 # Erg.: Einstellung noch nicht verstanden....
 # + + + : Y nach rechts verdr. Z Tool = -X PATHPTS / 
@@ -771,6 +771,7 @@ def RfF_PATHPTS(filepath, BASEPos_Koord, BASEPos_Angle):
         #nList[i][0:3] = [PathAngleA[i], PathAngleB[i], PathAngleC[i]]
         
         nList[i][0:3] = [Vorz1 *PathAngleC[i], Vorz2 *PathAngleB[i], Vorz3 *PathAngleA[i]]
+        
         # ... DAS SOLLTE JETZT SO OK SEIN: Die XYZ Verschiebung wird durch die Armature beruecksichtigt. D.h. Das Empty, bzw
         # die PATHPTS geben die TCP Position des Werkzeugs an. Es wird dann nur noch 'Vorverdrehung' beim Anschrauben des Werkzeugs
         # an das Flansch beruecksichtigt. (hier: -38°)
@@ -1007,7 +1008,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     
     #--------------------------------------------------------------------------
     
-    mat_rotX2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X')
+    mat_rotX2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
     mat_rotY2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
     mat_rotZ2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
     Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
@@ -1018,7 +1019,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     
     #-----------------------------
     
-    mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X')
+    mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X') # Global
     mat_rotY = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[1]), 3, 'Y')
     mat_rotZ = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[2]), 3, 'Z')
     Mrot = mat_rotZ * mat_rotY * mat_rotX
@@ -1030,9 +1031,8 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
      
     PATHPTS_Koord = point_world
     
-    # matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System  
-    matrix_1R0   = Mrot2 * Mrot.inverted() # OK für KUKA
-    
+    matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System  
+    #matrix_1R0   =matrix_1R.inverted() 
     print('matrix_1R0'+ str(matrix_1R0))
     
     newR =matrix_1R0.to_euler('XYZ')
@@ -1041,8 +1041,9 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     print('newR[1] :'+ str(newR[1]*360/(2*3.14)))
     print('newR[2] :'+ str(newR[2]*360/(2*3.14)))
         
-    PATHPTS_Angle = (newR[0]*360/6.28, newR[1]*360/6.28, newR[2]*360/6.28)
-
+    # todo - test - 23.12.13  PATHPTS_Angle = (-newR[0]*360/6.28, -newR[1]*360/6.28, -newR[2]*360/6.28)
+    PATHPTS_Angle = (Vorz1* newR[0]*360/6.28, Vorz2*newR[1]*360/6.28, Vorz3*newR[2]*360/6.28)
+    
     print('PATHPTS_Koord = point_local: ' + str(PATHPTS_Koord))
     print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
     
@@ -1357,49 +1358,47 @@ def SetOrigin(sourceObj, targetObj):
 
 
 
-def SetObjRelToBaseX(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     
     objBase = bpy.data.objects['Sphere_BASEPos']
     bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
-    # bpy.context.object.matrix_world
-    matrix_world = mathutils.Matrix.Translation(objBase.location) #global 
+    # bpy.context.object.matrix_world 
+    matrix_world = mathutils.Matrix.Translation(objBase.location)
     point_local  = Obj_Koord    
     point_worldV = matrix_world.to_translation()
     print('point_local'+ str(point_local))  # neuer Bezugspunkt
-    
-    mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # 0,20,35 = X = -C, Y = -B, Z = -A
-    mat_rotY2 = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y')
-    mat_rotZ2 = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
-    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
-    print('Mrot2'+ str(Mrot2))
-    mat_rotX = mathutils.Matrix.Rotation(math.radians(-BASEPos_Angle[0]), 3, 'X')
-    mat_rotY = mathutils.Matrix.Rotation(math.radians(-BASEPos_Angle[1]), 3, 'Y')
-    mat_rotZ = mathutils.Matrix.Rotation(math.radians(-BASEPos_Angle[2]), 3, 'Z')
-    Mrot = mat_rotX * mat_rotY * mat_rotZ
-    
+    mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X') # C = -179 Global
+    mat_rotY = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[1]), 3, 'Y') # B = -20
+    mat_rotZ = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[2]), 3, 'Z') # A = -35
+    Mrot = mat_rotZ * mat_rotY * mat_rotX
     print('Mrot'+ str(Mrot))
+    mat_rotX2 = mathutils.Matrix.Rotation(math.radians(Obj_Angle[0]), 3, 'X') # Local (bez. auf Base)
+    mat_rotY2 = mathutils.Matrix.Rotation(math.radians(Obj_Angle[1]), 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
+    mat_rotZ2 = mathutils.Matrix.Rotation(math.radians(Obj_Angle[2]), 3, 'Z')
+    #Mrot2 = mat_rotX2 * mat_rotY2 * mat_rotZ2 # eigentliches Erg.
+    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2 # KUKA Erg.
     
-    matrix_1R0 = Mrot2.inverted() * Mrot.inverted()
-    #matrix_2R =  matrix_1R * 
-    #matrix_1R0 = matrix_2R * Mrot
-        
-    Vector_1R1 = point_worldV - point_local # OK
+    print('Mrot2'+ str(Mrot2))
     
-    Obj.location = Vector_1R1
-    print('Vector_1R1 :'+ str(Vector_1R1))
     
-    newR =matrix_1R0.to_euler('XYZ')
-    Obj.rotation_euler = newR
+    rot_matrix_world = Mrot2.transposed() * Mrot.transposed()       
+    rot_matrix_world = rot_matrix_world.transposed()
+    rotEuler =rot_matrix_world.to_euler('XYZ')
+    Obj.rotation_euler = rotEuler
 
-    print('newR'+ str(newR))
-    print('newR[0] :'+ str(newR[0]*360/(2*3.14)))
-    print('newR[1] :'+ str(newR[1]*360/(2*3.14)))
-    print('newR[2] :'+ str(newR[2]*360/(2*3.14)))
-        
+    print('rotEuler'+ str(rotEuler))
+    print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*3.14)))
+    print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*3.14)))
+    print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*3.14)))
+    
+    Vector_World = point_worldV - point_local # OK
+    Obj.location = Vector_World
+    print('Vector_World :'+ str(Vector_World))
+       
     return
 
     
-def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+def SetObjRelToBaseX(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     # Diese Funktion wird nur bei Import aufgerufen.
     print('_____________________________________________________________________________')
     print('Funktion: SetObjRelToBase - lokale Koordinaten bezogen auf Base!')
