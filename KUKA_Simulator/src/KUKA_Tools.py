@@ -991,7 +991,8 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     # Diese Funktion wird nur bei Export aufgerufen.
     # Wiedergabe von LOC/Rot bezogen auf Base
     
-    # World2Local
+    # World2Local - OK
+    
     # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
     # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
     print('_____________________________________________________________________________')
@@ -1028,16 +1029,16 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     
     #point_world = matrix_world.inverted()  * (point_worldV -point_local) 
     point_world = Mrot.inverted()  * (point_local -point_worldV) 
-    print('point_world (Base)'+ str(point_world))  # neuer Bezugspunkt
+    print('point_world lala (Base)'+ str(point_world))  # neuer Bezugspunkt
      
     PATHPTS_Koord = point_world
     
     matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System  
-    matrix_1R0   =matrix_1R0.inverted() 
+    matrix_1R   =matrix_1R0.inverted() 
     print('matrix_1R0'+ str(matrix_1R0))
     
     newR =matrix_1R0.to_euler('XYZ')
-    print('newR'+ str(newR))
+    print('newR'+ str(newR))    
     print('newR[0] :'+ str(newR[0]*360/(2*3.14)))
     print('newR[1] :'+ str(newR[1]*360/(2*3.14)))
     print('newR[2] :'+ str(newR[2]*360/(2*3.14)))
@@ -1361,13 +1362,15 @@ def SetOrigin(sourceObj, targetObj):
 
 def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
+    # Aufruf bei Import
     
     # Transformation Local2World
     
     objBase = bpy.data.objects['Sphere_BASEPos']
     bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
     # bpy.context.object.matrix_world 
-    matrix_world = mathutils.Matrix.Translation(objBase.location)
+    #matrix_world = mathutils.Matrix.Translation(objBase.location)
+    matrix_world =bpy.data.objects['Sphere_BASEPos'].matrix_world
     point_local  = Obj_Koord    
     point_worldV = matrix_world.to_translation()
     print('point_local'+ str(point_local))  # neuer Bezugspunkt
@@ -1395,11 +1398,14 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*3.14)))
     print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*3.14)))
     
-    Vector_World = point_worldV - point_local # OK, ungenau!!!!?????
-    point_world = (point_worldV -point_local) *matrix_world # OK, ungenau!!!!?????
-        
+    #Vector_World = point_worldV - point_local # OK, ungenau!!!!?????
+    #point_world = (point_worldV -point_local) *matrix_world # OK, ungenau!!!!?????
+    #point_world = Mrot.inverted()  * (point_local -point_worldV)
+    
+    #point_world = Mrot  * (point_local -point_worldV) # bpy.data.objects['Sphere_BASEPos'].matrix_world*point_local
+    point_world = matrix_world *point_local
     Obj.location = point_world #Vector_World
-    print('Vector_World :'+ str(Vector_World))
+    print('point_world :'+ str(point_world))
        
     return
 
