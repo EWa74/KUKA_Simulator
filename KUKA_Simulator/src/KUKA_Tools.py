@@ -991,6 +991,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     # Diese Funktion wird nur bei Export aufgerufen.
     # Wiedergabe von LOC/Rot bezogen auf Base
     
+    # World2Local
     # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
     # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
     print('_____________________________________________________________________________')
@@ -1359,6 +1360,9 @@ def SetOrigin(sourceObj, targetObj):
 
 
 def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+    # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
+    
+    # Transformation Local2World
     
     objBase = bpy.data.objects['Sphere_BASEPos']
     bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
@@ -1391,8 +1395,10 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*3.14)))
     print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*3.14)))
     
-    Vector_World = point_worldV - point_local # OK
-    Obj.location = Vector_World
+    Vector_World = point_worldV - point_local # OK, ungenau!!!!?????
+    point_world = (point_worldV -point_local) *matrix_world # OK, ungenau!!!!?????
+        
+    Obj.location = point_world #Vector_World
     print('Vector_World :'+ str(Vector_World))
        
     return
