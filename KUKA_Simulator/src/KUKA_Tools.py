@@ -988,7 +988,7 @@ def RfS_HomePos(objHome):
 
 def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
     # Aufruf von: create_PATHPTSObj, SetSafePos
-    # Diese Funktion wird nur bei Export aufgerufen.
+    # Diese Funktion wird nur bei Export, Refresh und Import (ueber replaceCP) aufgerufen.
     # Wiedergabe von LOC/Rot bezogen auf Base
     
     # World2Local - OK
@@ -1001,7 +1001,20 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     objBase = bpy.data.objects['Sphere_BASEPos']
     PATHPTS_Angle = []
     
-    matrix_world = mathutils.Matrix.Translation(objBase.location) #global
+    # Winkelkorrektur:
+    '''
+    if dataPATHPTS_Rot[0] < 0:
+        dataPATHPTS_Rot[0] = dataPATHPTS_Rot[0] + 2*math.pi
+    if dataPATHPTS_Rot[1] < 0:
+        dataPATHPTS_Rot[1] = dataPATHPTS_Rot[1] + 2*math.pi
+    if dataPATHPTS_Rot[2] < 0:
+        dataPATHPTS_Rot[2] = dataPATHPTS_Rot[2] + 2*math.pi
+    
+    objPATHPTS.rotation_euler = dataPATHPTS_Rot
+    '''
+    
+    
+    matrix_world = bpy.data.objects[objBase.name].matrix_world #global
     point_local  = dataPATHPTS_Loc #global
     point_worldV = matrix_world.to_translation()
     point_worldR  = matrix_world.to_3x3() 
@@ -1009,28 +1022,22 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     print('point_local'+ str(point_local))  # neuer Bezugspunkt
     
     #--------------------------------------------------------------------------
-    
-    mat_rotX2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
-    mat_rotY2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
-    mat_rotZ2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
-    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
-    print('Mrot2'+ str(Mrot2))
-    
-    point_world2 = Mrot2.inverted()  * (point_worldV -point_local) 
-    print('point_world2'+ str(point_world2))  # neuer Bezugspunkt
-    
-    #-----------------------------
-    
     mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X') # Global
     mat_rotY = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[1]), 3, 'Y')
     mat_rotZ = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[2]), 3, 'Z')
     Mrot = mat_rotZ * mat_rotY * mat_rotX
     print('Mrot :'+ str(Mrot))
+    mat_rotX2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
+    mat_rotY2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
+    mat_rotZ2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
+    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
+    print('Mrot2'+ str(Mrot2))
+    #-----------------------------
     
     #point_world = matrix_world.inverted()  * (point_worldV -point_local) 
-    point_world = Mrot.inverted()  * (point_local -point_worldV) 
+    #point_world = Mrot.inverted()  * (point_local -point_worldV) 
+    point_world = matrix_world.inverted() *point_local  # transpose fuehrt zu einem andren Ergebnis!
     print('point_world lala (Base)'+ str(point_world))  # neuer Bezugspunkt
-     
     PATHPTS_Koord = point_world
     
     matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System  
@@ -1038,13 +1045,14 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     print('matrix_1R0'+ str(matrix_1R0))
     
     newR =matrix_1R0.to_euler('XYZ')
+    
     print('newR'+ str(newR))    
-    print('newR[0] :'+ str(newR[0]*360/(2*3.14)))
-    print('newR[1] :'+ str(newR[1]*360/(2*3.14)))
-    print('newR[2] :'+ str(newR[2]*360/(2*3.14)))
+    print('newR[0] :'+ str(newR[0]*360/(2*math.pi)))
+    print('newR[1] :'+ str(newR[1]*360/(2*math.pi)))
+    print('newR[2] :'+ str(newR[2]*360/(2*math.pi)))
         
     # todo - test - 23.12.13  PATHPTS_Angle = (-newR[0]*360/6.28, -newR[1]*360/6.28, -newR[2]*360/6.28)
-    PATHPTS_Angle = (Vorz1* newR[0]*360/6.28, Vorz2*newR[1]*360/6.28, Vorz3*newR[2]*360/6.28)
+    PATHPTS_Angle = (Vorz1* newR[0]*360/math.pi, Vorz2*newR[1]*360/math.pi, Vorz3*newR[2]*360/math.pi)
     
     print('PATHPTS_Koord = point_local: ' + str(PATHPTS_Koord))
     print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
@@ -1370,7 +1378,7 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
     # bpy.context.object.matrix_world 
     #matrix_world = mathutils.Matrix.Translation(objBase.location)
-    matrix_world =bpy.data.objects['Sphere_BASEPos'].matrix_world
+    matrix_world =bpy.data.objects[objBase.name].matrix_world
     point_local  = Obj_Koord    
     point_worldV = matrix_world.to_translation()
     print('point_local'+ str(point_local))  # neuer Bezugspunkt
@@ -1394,9 +1402,9 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     Obj.rotation_euler = rotEuler
 
     print('rotEuler'+ str(rotEuler))
-    print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*3.14)))
-    print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*3.14)))
-    print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*3.14)))
+    print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
+    print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*math.pi)))
+    print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*math.pi)))
     
     #Vector_World = point_worldV - point_local # OK, ungenau!!!!?????
     #point_world = (point_worldV -point_local) *matrix_world # OK, ungenau!!!!?????
@@ -1791,6 +1799,7 @@ class ClassRefreshButton (bpy.types.Operator):
         BASEPos_Koord, BASEPos_Angle = RfS_BasePos(objBase)
         SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        OptimizeRotation(PATHPTSObjList, countPATHPTSObj) # todo: testen und auch bei export einfuehren
         #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
         replace_CP(objCurve, PATHPTSObjName, '', countPATHPTSObj, BASEPos_Koord, BASEPos_Angle) 
@@ -1803,6 +1812,59 @@ class ClassRefreshButton (bpy.types.Operator):
                 
         return {'FINISHED'} 
     print('- - -ClassRefreshButton done- - - - - - -')     
+
+def OptimizeRotation(ObjList, countObj):
+    # todo: testen, Achtung unterscheide zwischen + und - Faellen
+    
+    # Teil 2:
+    # Mehrheitsentscheid für die Drehrichtung (z.B. +170 oder - 190)
+    # wenn y und z negativ, dann x auch negativ
+    # wenn x und z negativ, dann y auch negativ
+    # wenn x und y negativ, dann z auch negativ
+    for i in range(countObj-1):
+        Rot = bpy.data.objects[ObjList[i]].rotation_euler
+        if Rot.y >0 and Rot.z >0 and Rot.x<0:
+            Rot.x = 2*math.pi + Rot.x
+        if Rot.y <0 and Rot.z <0 and Rot.x>0:
+            Rot.x = -2*math.pi + Rot.x
+        
+        if Rot.x >0 and Rot.z >0 and Rot.y<0:
+            Rot.y = 2*math.pi + Rot.y
+        if Rot.x <0 and Rot.z <0 and Rot.y>0:
+            Rot.y = -2*math.pi + Rot.y
+        
+        if Rot.x >0 and Rot.y >0 and Rot.z<0:
+            Rot.z = 2*math.pi + Rot.z
+        if Rot.x <0 and Rot.y <0 and Rot.z>0:
+            Rot.z = -2*math.pi + Rot.z
+    
+    # Teil 1:
+    # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurückzulegen ist, 
+    # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
+    for i in range(countObj-1):
+        Rot1 = bpy.data.objects[ObjList[i]].rotation_euler
+        Rot2 = bpy.data.objects[ObjList[i+1]].rotation_euler
+        
+        DeltaRot = [math.fabs(Rot2.x - Rot1.x),math.fabs(Rot2.y - Rot1.y),math.fabs(Rot2.z - Rot1.z)]
+                
+        if  DeltaRot[0] > math.pi and Rot2.x < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.x =  2*math.pi + Rot2.x
+        elif DeltaRot[0] > math.pi and Rot2.x >=0:
+            Rot2.x = 2*math.pi + Rot2.x #-
+            
+        if  DeltaRot[1] > math.pi and Rot2.y < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.y =  2*math.pi + Rot2.y
+        elif DeltaRot[1] > math.pi and Rot2.y >=0:
+            Rot2.y = 2*math.pi + Rot2.y #-
+        
+        if  DeltaRot[2] > math.pi and Rot2.z < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.z =  2*math.pi + Rot2.z
+        elif DeltaRot[2] > math.pi and Rot2.z >=0:
+            Rot2.z = 2*math.pi + Rot2.z #-
+    
+                
+        
+        
 
 def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
     # Diese Funktion wird erst interessant, wenn Routen ueber mehrere Objektgruppen erzeugt werden sollen.
