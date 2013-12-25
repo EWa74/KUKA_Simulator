@@ -988,7 +988,7 @@ def RfS_HomePos(objHome):
 
 def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
     # Aufruf von: create_PATHPTSObj, SetSafePos
-    # Diese Funktion wird nur bei Export, Refresh und Import (ueber replaceCP) aufgerufen.
+    # Diese Funktion wird nur bei Export, Refresh (unnoetiger Weise) und Import (ueber replaceCP) aufgerufen.
     # Wiedergabe von LOC/Rot bezogen auf Base
     
     # World2Local - OK
@@ -1052,7 +1052,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     print('newR[2] :'+ str(newR[2]*360/(2*math.pi)))
         
     # todo - test - 23.12.13  PATHPTS_Angle = (-newR[0]*360/6.28, -newR[1]*360/6.28, -newR[2]*360/6.28)
-    PATHPTS_Angle = (Vorz1* newR[0]*360/math.pi, Vorz2*newR[1]*360/math.pi, Vorz3*newR[2]*360/math.pi)
+    PATHPTS_Angle = (Vorz1* newR[0]*360/(2*math.pi), Vorz2*newR[1]*360/(2*math.pi), Vorz3*newR[2]*360/(2*math.pi))
     
     print('PATHPTS_Koord = point_local: ' + str(PATHPTS_Koord))
     print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
@@ -1400,7 +1400,7 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     rot_matrix_world = rot_matrix_world.transposed()
     rotEuler =rot_matrix_world.to_euler('XYZ')
     Obj.rotation_euler = rotEuler
-
+    
     print('rotEuler'+ str(rotEuler))
     print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
     print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*math.pi)))
@@ -1799,7 +1799,7 @@ class ClassRefreshButton (bpy.types.Operator):
         BASEPos_Koord, BASEPos_Angle = RfS_BasePos(objBase)
         SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        OptimizeRotation(PATHPTSObjList, countPATHPTSObj) # todo: testen und auch bei export einfuehren
+        #OptimizeRotation(PATHPTSObjList, countPATHPTSObj) # todo: testen und auch bei export einfuehren
         #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
         replace_CP(objCurve, PATHPTSObjName, '', countPATHPTSObj, BASEPos_Koord, BASEPos_Angle) 
@@ -1821,6 +1821,7 @@ def OptimizeRotation(ObjList, countObj):
     # wenn y und z negativ, dann x auch negativ
     # wenn x und z negativ, dann y auch negativ
     # wenn x und y negativ, dann z auch negativ
+    '''
     for i in range(countObj-1):
         Rot = bpy.data.objects[ObjList[i]].rotation_euler
         if Rot.y >0 and Rot.z >0 and Rot.x<0:
@@ -1837,10 +1838,12 @@ def OptimizeRotation(ObjList, countObj):
             Rot.z = 2*math.pi + Rot.z
         if Rot.x <0 and Rot.y <0 and Rot.z>0:
             Rot.z = -2*math.pi + Rot.z
-    
+    '''
     # Teil 1:
     # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurückzulegen ist, 
     # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
+    
+    '''
     for i in range(countObj-1):
         Rot1 = bpy.data.objects[ObjList[i]].rotation_euler
         Rot2 = bpy.data.objects[ObjList[i+1]].rotation_euler
@@ -1861,9 +1864,9 @@ def OptimizeRotation(ObjList, countObj):
             Rot2.z =  2*math.pi + Rot2.z
         elif DeltaRot[2] > math.pi and Rot2.z >=0:
             Rot2.z = 2*math.pi + Rot2.z #-
-    
+    '''
                 
-        
+            
         
 
 def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
@@ -2436,9 +2439,12 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
         print(n)
         bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n])) 
         ob.location = bpy.data.objects[TargetObjList[n]].location
+        # todo - test: keyframes auf quaternion um gimbal lock zu vermeiden
         ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_euler
+        #ob.rotation_quaternion = ob.rotation_euler.to_quaternion()
         ob.keyframe_insert(data_path="location", index=-1)
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
+        #ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
         ob.keyframe_insert(data_path="rotation_euler", index=-1)
     
     if len(TIMEPTS)> countPATHPTSObj:
