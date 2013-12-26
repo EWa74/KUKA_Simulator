@@ -1799,7 +1799,7 @@ class ClassRefreshButton (bpy.types.Operator):
         BASEPos_Koord, BASEPos_Angle = RfS_BasePos(objBase)
         SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        #OptimizeRotation(PATHPTSObjList, countPATHPTSObj) # todo: testen und auch bei export einfuehren
+        OptimizeRotation(PATHPTSObjList, countPATHPTSObj) # todo: testen und auch bei export einfuehren
         #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
         replace_CP(objCurve, PATHPTSObjName, '', countPATHPTSObj, BASEPos_Koord, BASEPos_Angle) 
@@ -1843,7 +1843,7 @@ def OptimizeRotation(ObjList, countObj):
     # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurückzulegen ist, 
     # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
     
-    '''
+    
     for i in range(countObj-1):
         Rot1 = bpy.data.objects[ObjList[i]].rotation_euler
         Rot2 = bpy.data.objects[ObjList[i+1]].rotation_euler
@@ -1864,7 +1864,7 @@ def OptimizeRotation(ObjList, countObj):
             Rot2.z =  2*math.pi + Rot2.z
         elif DeltaRot[2] > math.pi and Rot2.z >=0:
             Rot2.z = 2*math.pi + Rot2.z #-
-    '''
+    
                 
             
         
@@ -2434,18 +2434,28 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     # --- Alternativ kann die TIMEPTS Reihe gemerged werden (Safepos + PathPTS); Vorteil: 
     
     ob = bpy.context.active_object
+    #bpy.data.objects[objCurve.name].rotation_mode = 'QUATERNION'
+    ob.rotation_mode = 'QUATERNION'
     
     for n in range(countPATHPTSObj):
         print(n)
         bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n])) 
         ob.location = bpy.data.objects[TargetObjList[n]].location
         # todo - test: keyframes auf quaternion um gimbal lock zu vermeiden
-        ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_euler
-        #ob.rotation_quaternion = ob.rotation_euler.to_quaternion()
+        
+        #ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_euler
+        ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        
+        
         ob.keyframe_insert(data_path="location", index=-1)
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
-        #ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
-        ob.keyframe_insert(data_path="rotation_euler", index=-1)
+        
+        
+        
+        ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
+        #ob.keyframe_insert(data_path="rotation_euler", index=-1)
+    
+    
     
     if len(TIMEPTS)> countPATHPTSObj:
         print('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
