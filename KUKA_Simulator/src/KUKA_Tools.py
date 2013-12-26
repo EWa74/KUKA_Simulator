@@ -1085,12 +1085,12 @@ def RfS_TIMEPTS(objEmpty_A6):
     action.fcurves[locID[0]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, x Wert)
     action.fcurves[locID[1]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, y Wert)
     action.fcurves[locID[2]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, z Wert)
-    action.fcurves[rotID[0]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
-    action.fcurves[rotID[1]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
-    action.fcurves[rotID[2]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
+    action.fcurves[rotID[0]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, quaternion w Wert)
+    action.fcurves[rotID[1]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, quaternion x Wert)
+    action.fcurves[rotID[2]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, quaternion y Wert)
+    action.fcurves[rotID[3]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, quaternion z Wert)
     
-    
-    action.fcurves[rotID[0]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
+    #action.fcurves[rotID[0]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, x Wert)
     
     frameNbr=[]
     TIMEPTS=[]
@@ -1126,7 +1126,7 @@ def FindFCurveID(objEmpty_A6, action):
     print(action.name)
     
     locID=['xx',9999,9999]
-    rotID=[9999,9999,9999]
+    rotID=[9999,9999,9999, 9999]
     scaleID=[9999,9999,9999]
     dlocID =[9999,9999,9999]
          
@@ -1138,10 +1138,10 @@ def FindFCurveID(objEmpty_A6, action):
             locID[action_data.array_index] = v
             #ob_target.delta_location[action_data.array_index]=v
             print("location[" + str(action_data.array_index) + "] to (" + str(v) + ").")
-        elif action_data.data_path == "rotation_euler":
+        elif action_data.data_path == "rotation_quaternion":
             rotID[action_data.array_index] = v
             #ob_target.delta_rotation_euler[action_data.array_index]=v
-            print("rotation_euler[" + str(action_data.array_index) + "] to (" + str(v) + ").")
+            print("rotation_quaternion[" + str(action_data.array_index) + "] to (" + str(v) + ").")
         elif action_data.data_path == "scale":
              scaleID[action_data.array_index] = v
              #ob_target.delta_scale[action_data.array_index]=v
@@ -1814,31 +1814,7 @@ class ClassRefreshButton (bpy.types.Operator):
     print('- - -ClassRefreshButton done- - - - - - -')     
 
 def OptimizeRotation(ObjList, countObj):
-    # todo: testen, Achtung unterscheide zwischen + und - Faellen
     
-    # Teil 2:
-    # Mehrheitsentscheid für die Drehrichtung (z.B. +170 oder - 190)
-    # wenn y und z negativ, dann x auch negativ
-    # wenn x und z negativ, dann y auch negativ
-    # wenn x und y negativ, dann z auch negativ
-    '''
-    for i in range(countObj-1):
-        Rot = bpy.data.objects[ObjList[i]].rotation_euler
-        if Rot.y >0 and Rot.z >0 and Rot.x<0:
-            Rot.x = 2*math.pi + Rot.x
-        if Rot.y <0 and Rot.z <0 and Rot.x>0:
-            Rot.x = -2*math.pi + Rot.x
-        
-        if Rot.x >0 and Rot.z >0 and Rot.y<0:
-            Rot.y = 2*math.pi + Rot.y
-        if Rot.x <0 and Rot.z <0 and Rot.y>0:
-            Rot.y = -2*math.pi + Rot.y
-        
-        if Rot.x >0 and Rot.y >0 and Rot.z<0:
-            Rot.z = 2*math.pi + Rot.z
-        if Rot.x <0 and Rot.y <0 and Rot.z>0:
-            Rot.z = -2*math.pi + Rot.z
-    '''
     # Teil 1:
     # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurückzulegen ist, 
     # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
