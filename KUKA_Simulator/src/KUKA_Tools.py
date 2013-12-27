@@ -1417,81 +1417,6 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
        
     return
 
-    
-def SetObjRelToBaseX(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
-    # Diese Funktion wird nur bei Import aufgerufen.
-    print('_____________________________________________________________________________')
-    print('Funktion: SetObjRelToBase - lokale Koordinaten bezogen auf Base!')
-    objBase = bpy.data.objects['Sphere_BASEPos']
-    
-    bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform #n YXZ, XYZ
-    
-    #Obj = bpy.data.objects['Sphere_SAFEPos']
-    print('BASEPos_Koord: ' +str(BASEPos_Koord))
-    print('BASEPos_Angle: ' +str(BASEPos_Angle))
-    print('Obj_Koord: ' +str(Obj_Koord))
-    print('Obj_Angle: ' +str(Obj_Angle))  
-    print('')
-    matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
-    point_local  = Obj_Koord
-    point_world  = matrix_world * point_local
-    #point_world  = point_local * matrix_world
-    print(' Obj local bezogen auf Base: point_local ' +str(point_local))
-    print(' Obj local bezogen auf World: point_world ' +str(point_world))
-    print('')
-    print('Transformation von Obj auf GlobalKoordinaten...')
-    
-    
-    #todo: evtl auf ZYX aendern???:
-    eul = mathutils.Euler((math.radians(BASEPos_Angle[0]), math.radians(BASEPos_Angle[1]), math.radians(BASEPos_Angle[2])), RotationModeTransform) # XYZ
-    print('eul: ' +str(eul))
-    mat_rot = eul.to_matrix()
-    mat_loc = point_local 
-    mat = mat_rot * mat_loc 
-    #mat = mat_loc * mat_rot 
-    print('mat: ' +str(mat))
-    
-    print('Rotation von SafeKood bezogen auf BaseKoordinaten...')
-    matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
-    print('matrix_world: ' +str(matrix_world))
-    point_local  = mat
-    point_world  = matrix_world * point_local
-    #point_world  =  point_local *matrix_world
-    
-    print('point_world2: ' +str(point_world))
-    
-    print('BASEPos_Koord: ' +str(BASEPos_Koord))
-    print('BASEPos_Angle: ' +str(BASEPos_Angle))
-    print('Obj_Koord: ' +str(Obj_Koord))
-    print('Obj_Angle: ' +str(Obj_Angle)) 
-    
-    SetOrigin(Obj, Obj)
-    
-    Obj.location = point_world
-    print('Safe-Origin  = Obj auf point_world  gesetzt.')
-    #-----------------------------------
-    
-    print('Obj_Angle wieder dem Origin zuweisen unter Beruecksichtigung der BaseOrientierung:')
-    
-    # todo - test : Fehler, Transformationsmatrix muss aufgeloest werden damit die Winkel auf die Achsen
-    # der Base zerlegt werden.... Import=Export, aber nicht = KUKA Film... 
-    Obj.rotation_euler.x = (BASEPos_Angle[0] +Obj_Angle[0]) *(2*math.pi)/360 # [rad]
-    Obj.rotation_euler.y = (BASEPos_Angle[1] +Obj_Angle[1]) *(2*math.pi)/360 # [rad]
-    Obj.rotation_euler.z = (BASEPos_Angle[2] +Obj_Angle[2]) *(2*math.pi)/360 # [rad]
-         
-    print('BASEPos_Koord: ' +str(BASEPos_Koord))
-    print('BASEPos_Angle: ' +str(BASEPos_Angle))
-    print('Obj_Koord: ' +str(Obj_Koord))    
-    print('Obj_Angle: ' +str(Obj_Angle)) 
-    
-    print('SetObjRelToBase done')
-    print('_____________________________________________________________________________')
-    return 
-    
-
-
-
-
    
     # ==========================================    
     # Suche nach "FOLD LOAD DATA" und "ENDFOLD"
@@ -1815,6 +1740,16 @@ class ClassRefreshButton (bpy.types.Operator):
 
 def OptimizeRotation(ObjList, countObj):
     
+    # Begrenze Rotation auf 360°
+    for i in range(countObj-1):
+        Rot = bpy.data.objects[ObjList[i]].rotation_euler
+        modRot= math.modf(Rot.x/ (2*math.pi)) # Ergebnis: (Rest, n)
+        Rot.x = modRot[0] * (2*math.pi) 
+        modRot= math.modf(Rot.y/ (2*math.pi)) # Ergebnis: (Rest, n)
+        Rot.y = modRot[0] * (2*math.pi) 
+        modRot= math.modf(Rot.z/ (2*math.pi)) # Ergebnis: (Rest, n)
+        Rot.z = modRot[0] * (2*math.pi) 
+    
     # Teil 1:
     # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurückzulegen ist, 
     # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
@@ -1829,20 +1764,57 @@ def OptimizeRotation(ObjList, countObj):
         if  DeltaRot[0] > math.pi and Rot2.x < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
             Rot2.x =  2*math.pi + Rot2.x
         elif DeltaRot[0] > math.pi and Rot2.x >=0:
-            Rot2.x = 2*math.pi + Rot2.x #-
+            Rot2.x = -2*math.pi + Rot2.x #-
             
         if  DeltaRot[1] > math.pi and Rot2.y < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
             Rot2.y =  2*math.pi + Rot2.y
         elif DeltaRot[1] > math.pi and Rot2.y >=0:
-            Rot2.y = 2*math.pi + Rot2.y #-
+            Rot2.y = -2*math.pi + Rot2.y #-
         
         if  DeltaRot[2] > math.pi and Rot2.z < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
             Rot2.z =  2*math.pi + Rot2.z
         elif DeltaRot[2] > math.pi and Rot2.z >=0:
-            Rot2.z = 2*math.pi + Rot2.z #-
-    
+            Rot2.z = -2*math.pi + Rot2.z #-
+       
+    '''   
+    for i in range(countObj-1):
+        Rot1 = bpy.data.objects[ObjList[i]].rotation_euler
+        Rot2 = bpy.data.objects[ObjList[i+1]].rotation_euler
+        
+        DeltaRot = [math.fabs(Rot2.x - Rot1.x),math.fabs(Rot2.y - Rot1.y),math.fabs(Rot2.z - Rot1.z)]
                 
+        if  DeltaRot[0] > math.pi and Rot2.x < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.x =  2*math.pi + Rot2.x
+        elif DeltaRot[0] > math.pi and Rot2.x >=0:
+            Rot2.x = -2*math.pi + Rot2.x #-
             
+        if  DeltaRot[1] > math.pi and Rot2.y < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.y =  2*math.pi + Rot2.y
+        elif DeltaRot[1] > math.pi and Rot2.y >=0:
+            Rot2.y = -2*math.pi + Rot2.y #-
+        
+        if  DeltaRot[2] > math.pi and Rot2.z < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.z =  2*math.pi + Rot2.z
+        elif DeltaRot[2] > math.pi and Rot2.z >=0:
+            Rot2.z = -2*math.pi + Rot2.z #-   
+    '''     
+                    
+def OptimizeRotationQuaternion(ObjList, countObj):
+    
+    QuaternionList= [bpy.data.objects[ObjList[0]].rotation_euler.to_quaternion()]
+    # Teil 1:
+    # wenn zum erreichen des folgenden Winkels alle drei Achsen ueber Null gehen müssen, 
+    # dann invertiere den folgenden Quaternion
+    # besser: wenn die Eulerwinkel vorher ungleich nachher sind, dann Quaternation*-1
+    
+    ob.rotation_mode = 'QUATERNION'
+    for n in range(countObj-1):
+        RotEuler = bpy.data.objects[ObjList[n]].rotation_euler
+        RotQuaternion = bpy.data.objects[ObjList[n]].rotation_quaternion
+        
+        QuaternionList = QuaternionList + [bpy.data.objects[ObjList[n+1]].rotation_euler.to_quaternion()]
+        
+    return QuaternionList    
         
 
 def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
@@ -1897,9 +1869,9 @@ class KUKAPanel(bpy.types.Panel):
         bpy.ops.object.mode_set(mode='EDIT')
     '''
     
-    @classmethod
-    def poll(cls, context):
-        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+    #@classmethod
+    #def poll(cls, context):
+    #    return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
 
     
     def draw(self, context):
@@ -2413,6 +2385,9 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     #bpy.data.objects[objCurve.name].rotation_mode = 'QUATERNION'
     ob.rotation_mode = 'QUATERNION'
     
+    #QuaternionList = OptimizeRotationQuaternion(TargetObjList, TIMEPTSCount)
+    
+    
     for n in range(countPATHPTSObj):
         print(n)
         bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n])) 
@@ -2420,8 +2395,20 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
         # todo - test: keyframes auf quaternion um gimbal lock zu vermeiden
         
         #ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_euler
+        
+        RotEuler = bpy.data.objects[TargetObjList[n]].rotation_euler
+        RotQuaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        
         ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
         
+        #if ob.rotation_quaternion != RotQuaternion:
+            
+            #ob.rotation_quaternion = - ob.rotation_quaternion
+            #ob.rotation_quaternion.w = - ob.rotation_quaternion.w
+            #ob.rotation_quaternion.x = - ob.rotation_quaternion.x
+            #ob.rotation_quaternion.y = - ob.rotation_quaternion.y
+            #ob.rotation_quaternion.z = - ob.rotation_quaternion.z
+            
         
         ob.keyframe_insert(data_path="location", index=-1)
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
@@ -2430,6 +2417,8 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
         
         ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
         #ob.keyframe_insert(data_path="rotation_euler", index=-1)
+        
+        
     
     
     
