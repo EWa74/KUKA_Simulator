@@ -34,16 +34,17 @@ from symbol import except_clause
 # Window.GetScreenInfo(Window.Types.VIEW3D)
 #  
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
+
+# ARMATURE: Position und Winkel auf Plausibilitaet abfragen: bone constraints eingestellt; werden diese ueberschritten "springt" der Arm
 # bpy.data.objects['OBJ_KUKA_Armature'].pose.bones['Bone_KUKA_Zentralhand_A4'].rotation_euler 
+
 # handling vom POP UP window: alternativ *.src laden ODER default TP auswaehlen --> Panel(bpy_struct)
 # button um nach editieren der Kurve das Kuka_Empty auf den ersten Kurvenpunkt zu setzen
 
-# KUKA Modell richtig ausrichten (und spiegeln, da z.Zt. spiegelverkehrt)
-# ARMATURE: Position und Winkel auf Plausibilitaet abfragen: bone constraints eingestellt; werden diese ueberschritten "springt" der Arm
 # Phyton code aufraeumen
 # Doku update
 # Info: 
-# 0. SAFE POSITION: muss immer von Hand im Menue angegeben werden. auch BASEPosition????
+# 0. SAFE POSITION: muss immer von Hand im Menue angegeben werden. auch BASEPosition!
 # 1. Kuka startet von HOMEPOSITION und faehrt zur BASEPosition
 # 2. Kuka faehrt von der BASEPosition zum ersten Kurvenpunkt
 # 3. Die Kurvenpunkte werden abgearbeitet 
@@ -55,12 +56,12 @@ from symbol import except_clause
 # BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
 # todo: globale variablen definieren??.....
 # todo: Verschiedene Import/ Export Funktionen beruecksichtigen (XYZ/ KUKA YXZ)
-# todo: obj. rename um 001.001 etc. zu vermeiden!!!
+# todo: [done] obj. rename um 001.001 etc. zu vermeiden!!!
 # Datenmodell und Funktionen beschreiben!!!
 
 # TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen -> Funktion RefreshButton
 # TODO: Beschriftung der PATHPTS im 3D view
-# TODO: GUI Feld um die Winkel bezogen auf Base oder Tool (bez. sich auf Base) editieren zu können
+# TODO: GUI Feld um die Winkel bezogen auf Base oder Tool (bez. sich auf Base) editieren zu koennen
 '''
 
 ${workspace_loc:CurveExport/src/curve_export.py}
@@ -112,142 +113,44 @@ RotationModeTransform = Mode # XYZ YXZ
 Vorz1 = +1#-1 # +C = X
 Vorz2 = +1#-1 # -B = Y
 Vorz3 = +1#-1 # -A = Z
-
-# Erg.: Einstellung noch nicht verstanden....
-# + + + : Y nach rechts verdr. Z Tool = -X PATHPTS / 
-# + + - : +x-y-z, Bahn dreht rechts 
-# + - + : +x-y-z, Bahn dreht rechts 
-# + - - : +x-y-z, Bahn dreht rechts, OK, nur Schale müsste umgedreht werden 
-# - + + : +x-y-z, Bahn dreht rechts
-# - + - : +x-y-z, Bahn dreht links
-# - - + : +x-y-z, Bahn dreht links
-# - - - : +x-y-z, Bahn dreht links
         
 #objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
 CalledFrom =[] 
 filepath=[]
-   
-def WtF_BasePos(BASEPos_Koord, BASEPos_Angle, filepath):
-    print('_____________________________________________________________________________')
-    print('WtF_BasePos ')
-    print('Remark: this file is not a part of the normal KUKA Ocutbot Software.')
-    print('BASEPos_Angle A - Z [2]: ' +str(BASEPos_Angle[2]))
-    print('BASEPos_Angle B - Y [1]: ' +str(BASEPos_Angle[1]))    #
-    print('BASEPos_Angle C - X [0]: ' +str(BASEPos_Angle[0])) 
-    FilenameSRC = filepath
-    FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
-    fout = open(FilenameSRC, 'w')
-     
-    SkalierungPTP = 1000
-    # ABC ->CBA
-    fout.write("BASEPos {" + 
-                   "X " + "{0:.5f}".format(BASEPos_Koord[0]*SkalierungPTP) + 
-                   ", Y " + "{0:.5f}".format(BASEPos_Koord[1]*SkalierungPTP) +
-                   ", Z " + "{0:.5f}".format(BASEPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(BASEPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(BASEPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(BASEPos_Angle[0]) +
-                   "} " + "\n")
-    
-    fout.close();
-    print('WtF_BasePos geschrieben.')
-    print('_____________________________________________________________________________')
 
-# TODO: Funktionen verallgemeinern: WtF HOMEPos, BasePos, SafePos, AdjPos arbeiten gleich... 
-
-def WtF_HomePos(HOMEPos_Koord, HOMEPos_Angle, filepath):
+def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):
+    # Input: Keyword ( BASEPos, HOMEPos, SAFEPos, ADJPos, ..) Koordinaten und Winkel; Zielverzeichnis
+    # Process: 
+    # - schreiben der Koordinaten in eine Datei mit Endung *.cfg
+    # - Der Dateiname wird von *.dat uebernommen
+    # - Die Winkel werden wie folgt zugeordnet: C(X), B(Y), A(Z)
+    # Output: BASEPos {X 1023.24963, Y 1794.66641, Z 483.22785, A -35.00001, B -20.00001, C -179.00008} 
+        
     print('_____________________________________________________________________________')
-    print('WtF_BasePos ')
+    print('WtF_KeyPos :' + Keyword)
     print('Remark: this file is not a part of the normal KUKA Ocutbot Software.')
-    print('HOMEPos_Angle A - Z [2]: ' +str(HOMEPos_Angle[2]))
-    print('HOMEPos_Angle B - Y [1]: ' +str(HOMEPos_Angle[1]))    #
-    print('HOMEPos_Angle C - X [0]: ' +str(HOMEPos_Angle[0])) 
+    print(Keyword + '_Angle A - Z [2]: ' +str(KeyPos_Angle[2]))
+    print(Keyword + '_Angle B - Y [1]: ' +str(KeyPos_Angle[1]))    #
+    print(Keyword + '_Angle C - X [0]: ' +str(KeyPos_Angle[0])) 
     FilenameSRC = filepath
-    FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
-    fout = open(FilenameSRC, 'a')
+    FilenameSRC = FilenameSRC.replace(".dat", FileExt) 
+    fout = open(FilenameSRC, FileMode) # FileMode: 'a' fuer Append oder 'w' zum ueberschreiben
      
     SkalierungPTP = 1000
-    # ABC ->CBA
-    
-    #HOMEPos {X 418.8189, Y 644.8495, Z 1223.978, A -178.2708, B -0.4798438, C -128.1682} 
-    fout.write("HOMEPos {" + 
-                   "X " + "{0:.5f}".format(HOMEPos_Koord[0]*SkalierungPTP) + 
-                   ", Y " + "{0:.5f}".format(HOMEPos_Koord[1]*SkalierungPTP) +
-                   ", Z " + "{0:.5f}".format(HOMEPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(Vorz3 *HOMEPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(Vorz2 *HOMEPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(Vorz1 *HOMEPos_Angle[0]) +
+    # Winkel von XYZ -> CBA
+    fout.write( Keyword + " {" + 
+                   "X " + "{0:.5f}".format(KeyPos_Koord[0]*SkalierungPTP) + 
+                   ", Y " + "{0:.5f}".format(KeyPos_Koord[1]*SkalierungPTP) +
+                   ", Z " + "{0:.5f}".format(KeyPos_Koord[2]*SkalierungPTP) + 
+                   ", A " + "{0:.5f}".format(KeyPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(KeyPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(KeyPos_Angle[0]) +
                    "} " + "\n")
     
     fout.close();
-    print('WtF_HomePos geschrieben.')
-    print('_____________________________________________________________________________')
-    
-def WtF_AdjustmentPos(ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, filepath):
-    print('_____________________________________________________________________________')
-    print('WtF_AdjustmentPos ')
-    print('Remark: this file is not a part of the normal KUKA Ocutbot Software.')
-    print('ADJUSTMENTPos_Angle A - Z [2]: ' +str(ADJUSTMENTPos_Angle[2]))
-    print('ADJUSTMENTPos_Angle B - Y [1]: ' +str(ADJUSTMENTPos_Angle[1]))    #
-    print('ADJUSTMENTPos_Angle C - X [0]: ' +str(ADJUSTMENTPos_Angle[0])) 
-    FilenameSRC = filepath
-    FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
-    fout = open(FilenameSRC, 'a')
-     
-    SkalierungPTP = 1000
-    # ABC ->CBA
-    
-    #ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0}
-    fout.write("ADJUSTMENTPos {" + 
-                   "X " + "{0:.5f}".format(ADJUSTMENTPos_Koord[0]*SkalierungPTP) + 
-                   ", Y " + "{0:.5f}".format(ADJUSTMENTPos_Koord[1]*SkalierungPTP) +
-                   ", Z " + "{0:.5f}".format(ADJUSTMENTPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(Vorz3 *ADJUSTMENTPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(Vorz2 *ADJUSTMENTPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(Vorz1 *ADJUSTMENTPos_Angle[0]) +
-                   "} " + "\n")
-     
-    fout.close();
-    print('WtF_AdjustmentPos geschrieben.')
-    print('_____________________________________________________________________________')
-    
-def WtF_SafePos(SAFEPos_Koord, SAFEPos_Angle, filepath):
-    print('_____________________________________________________________________________')
-    print('WtF_SafePos ')
-    print('Exporting ' + filepath)
-    print('SAFEPos_Koord: ' + str(SAFEPos_Koord))
-    print('SAFEPos_Angle C - X [0],B - Y [1], A - Z [2]: ' + str(SAFEPos_Angle)) 
-    # -------------------------------------------------------------------------------------------
-    # SAFEPosition in *.src schreiben
-    '''
-    ;FOLD _________ SAFE POSITION _______________
-    BAS (#VEL_PTP,20)
-    ;ENDFOLD
-    PTP {X 82.815240, Y 100.194500, Z -11.291560, A 69.842480, B -2.680786, C -3.097058}
-    '''
-    
-    FilenameSRC = filepath
-    FilenameSRC = FilenameSRC.replace(".dat", ".src") 
-    fout = open(FilenameSRC, 'w')
-    print(FilenameSRC)
-     
-    SkalierungPTP = 1000
-    # Achtung: vertices[0].co ist lokale Angabe (d.h. bzgl. Position seines Origin)!
-    # ABC ->CBA
-    fout.write("PTP {" + 
-                   "X " + "{0:.5f}".format(SAFEPos_Koord[0]*SkalierungPTP) + 
-                   ", Y " + "{0:.5f}".format(SAFEPos_Koord[1]*SkalierungPTP) +
-                   ", Z " + "{0:.5f}".format(SAFEPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(Vorz3 *SAFEPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(Vorz2 *SAFEPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(Vorz1 *SAFEPos_Angle[0]) +
-                   "} " + "\n")
-    
-    fout.close();
-    
-    print('SAFEPosition geschrieben.')
-    print('_____________________________________________________________________________')
-    
+    print('WtF_KeyPos :' + Keyword + ' geschrieben.')
+    print('_____________________________________________________________________________')  
+  
     
 def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
     
@@ -317,7 +220,7 @@ def RfF_AdjustmentPos(filepath):
     
     # ==========================================    
     # Import der RfF_AdjustmentPos = KUKA (*.cfg) Kreation von mir!
-    # Die Adjustmentposition soll die Verschiebung des realen Roboters zur virtuellen CAD-Welt berücksichtigen [TEST]
+    # Die Adjustmentposition soll die Verschiebung des realen Roboters zur virtuellen CAD-Welt beruecksichtigen [TEST]
     # ==========================================    
     try:
         FilenameSRC = filepath
@@ -1040,7 +943,7 @@ def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASE
     print('point_world lala (Base)'+ str(point_world))  # neuer Bezugspunkt
     PATHPTS_Koord = point_world
     
-    matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen für KUKA System  
+    matrix_1R0 = Mrot.inverted()  * Mrot2 # Falsche Vorzeichen fuer KUKA System  
     matrix_1R   =matrix_1R0.inverted() 
     print('matrix_1R0'+ str(matrix_1R0))
     
@@ -1521,14 +1424,18 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         print('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
-        WtF_BasePos(BASEPos_Koord, BASEPos_Angle, self.filepath)
-        WtF_AdjustmentPos(ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, self.filepath)
-        WtF_HomePos(HOMEPos_Koord, HOMEPos_Angle, self.filepath)
+        
+        WtF_KeyPos('BASEPos', BASEPos_Koord, BASEPos_Angle, self.filepath, '.cfg', 'w')
+        
+        WtF_KeyPos('ADJUSTMENTPos', ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, self.filepath, '.cfg', 'a')
+         
+        WtF_KeyPos('HOMEPos', HOMEPos_Koord, HOMEPos_Angle, self.filepath, '.cfg', 'a')
+         
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' X C {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         print('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
-        WtF_SafePos(SAFEPos_Koord, SAFEPos_Angle, self.filepath)
+        WtF_KeyPos('PTP', SAFEPos_Koord, SAFEPos_Angle, self.filepath, '.src', 'w')
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' X C {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
@@ -1612,18 +1519,18 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         # verdreht montiert wird. dazu Kommt die HOMEPos von -128 -> -128 + 90 = -38 Grad Korrektur auf der Z Achse
         
         #todo: test ueber RfF_AdjustmentPos
-        # wenn so richtig, dann muss für den Export alles ueber Adjustment Ruecktransformiert werden!
+        # wenn so richtig, dann muss fuer den Export alles ueber Adjustment Ruecktransformiert werden!
         # -> Diese Verdrehung +90 Grad bezieht sich nur auf die Montage des EndEffektors (SAE) Schale.
         # -> Die -128 Grad sind dem Roboter bekannt (da in der HOMEPos gespeichert.
         # -> Daraus folgt aber, das die Justageposition mit den CAD-World Winkeln Deckungsgleich ist!
-        # --> Um die -178 aus HomePos zu berücksichtigen, muss ich die SAE Schale nochmal drehen!
+        # --> Um die -178 aus HomePos zu beruecksichtigen, muss ich die SAE Schale nochmal drehen!
         # --> Damit die PATHPTS die Ausrichtung der SAE Schale wiedergeben muss die Verdrehte Montage Verdrehung HOMEPos + Verdr. Tool (A -128.2708, B -0.4798438, C -178.1682)
         # bzgl. der Winkel und MES = {X -237, Y 0, Z 342, A (90), B 0, C 0 } bzgl der Verschiebung beruecksichtigt werden
-        # Zusätzlich: die PATHPTS haben ein rechtsdrehndes (linke HandRegel) System (YXZ) (Vg. Euler Winkel)
+        # Zusaetzlich: die PATHPTS haben ein rechtsdrehndes (linke HandRegel) System (YXZ) (Vg. Euler Winkel)
         
         
         # --> Die Verdrehungen werden ueber DeltaRotation angewandt, da diese nicht Teil des KUKA selbst sind.
-        # D.h. nicht in den PATHPTS berücksichtigt werden.
+        # D.h. nicht in den PATHPTS beruecksichtigt werden.
         #SetBasePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
         
         # TEST: warum verschieben sich die PATHPTS nicht mit der BASEPos?
@@ -1653,7 +1560,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         
         #ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath) 
         
-        # todo - test: uebergebe um adjustement korrigierte werte für die pathpts...
+        # todo - test: uebergebe um adjustement korrigierte werte fuer die pathpts...
         create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
         #create_PATHPTSObj(dataPATHPTS_LocT, dataPATHPTS_RotT, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
         
@@ -1751,7 +1658,7 @@ def OptimizeRotation(ObjList, countObj):
         Rot.z = modRot[0] * (2*math.pi) 
     
     # Teil 1:
-    # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurückzulegen ist, 
+    # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurueckzulegen ist, 
     # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
     
     
@@ -1803,7 +1710,7 @@ def OptimizeRotationQuaternion(ObjList, countObj):
     
     QuaternionList= [bpy.data.objects[ObjList[0]].rotation_euler.to_quaternion()]
     # Teil 1:
-    # wenn zum erreichen des folgenden Winkels alle drei Achsen ueber Null gehen müssen, 
+    # wenn zum erreichen des folgenden Winkels alle drei Achsen ueber Null gehen muessen, 
     # dann invertiere den folgenden Quaternion
     # besser: wenn die Eulerwinkel vorher ungleich nachher sind, dann Quaternation*-1
     
@@ -2136,12 +2043,12 @@ def ValidateTIMEPTS(countPATHPTSObj, PATHPTSObjList, TIMEPTS):
                 if (i+1) < countPATHPTSObj:
                     s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i-1]].location
                     v = s.length/(TIMEPTS[i]-TIMEPTS[i-1]) # [i] weil i der alte i+1 Eintrag ist
-                    # Zeit für eingefügten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
                     s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i]].location
                 elif (i+1) >= countPATHPTSObj:
                     s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
                     v = s.length/(TIMEPTS[i-1]-TIMEPTS[i-2])
-                    # Zeit für eingefügten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
                     s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
                 
                 deltaT = abs(s.length /v)
@@ -2152,7 +2059,7 @@ def ValidateTIMEPTS(countPATHPTSObj, PATHPTSObjList, TIMEPTS):
                     TIMEPTS[n] = TIMEPTS[n] +  deltaT
              
     # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS    
-    # Achtung: wird noch nicht benötigt, da in der Funktion erst alle KeyFrames geloescht werden. D.h. TIMEPTS Werte 
+    # Achtung: wird noch nicht benoetigt, da in der Funktion erst alle KeyFrames geloescht werden. D.h. TIMEPTS Werte 
     # bleiben ggf. ungenutzt, ohne Fehler zu erzeugen.
     # Achtung: wuerde Sinn machen eine Klasse PATHPTS erstellen um die Zuordnung von Zeit, Kraft, etc. zu bekommen.
         
@@ -2232,7 +2139,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
             PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
             bpy.data.objects[PATHPTSObjList[n]].data = bpy.data.objects[PATHPTSObjList[1]].data
             
-            # todo - test: .TIMEPTS einfügen - eigene Class für PATHPTS erstellen!!!
+            # todo - test: .TIMEPTS einfuegen - eigene Class fuer PATHPTS erstellen!!!
             
             
             print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
@@ -2387,41 +2294,20 @@ def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
     
     #QuaternionList = OptimizeRotationQuaternion(TargetObjList, TIMEPTSCount)
     
-    
     for n in range(countPATHPTSObj):
         print(n)
         bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n])) 
         ob.location = bpy.data.objects[TargetObjList[n]].location
-        # todo - test: keyframes auf quaternion um gimbal lock zu vermeiden
-        
-        #ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_euler
-        
-        RotEuler = bpy.data.objects[TargetObjList[n]].rotation_euler
-        RotQuaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
-        
+        # todo - done: keyframes auf quaternion um gimbal lock zu vermeiden
+                
         ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
-        
-        #if ob.rotation_quaternion != RotQuaternion:
-            
-            #ob.rotation_quaternion = - ob.rotation_quaternion
-            #ob.rotation_quaternion.w = - ob.rotation_quaternion.w
-            #ob.rotation_quaternion.x = - ob.rotation_quaternion.x
-            #ob.rotation_quaternion.y = - ob.rotation_quaternion.y
-            #ob.rotation_quaternion.z = - ob.rotation_quaternion.z
-            
-        
+           
         ob.keyframe_insert(data_path="location", index=-1)
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
         
-        
-        
         ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
         #ob.keyframe_insert(data_path="rotation_euler", index=-1)
-        
-        
-    
-    
-    
+            
     if len(TIMEPTS)> countPATHPTSObj:
         print('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
     # todo: end frame not correct if PATHPTS added....
