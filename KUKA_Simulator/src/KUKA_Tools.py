@@ -34,7 +34,8 @@ from symbol import except_clause
 # Window.GetScreenInfo(Window.Types.VIEW3D)
 #  
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
-
+# bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co.angle(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[1].co)
+    
 # ARMATURE: Position und Winkel auf Plausibilitaet abfragen: bone constraints eingestellt; werden diese ueberschritten "springt" der Arm
 # bpy.data.objects['OBJ_KUKA_Armature'].pose.bones['Bone_KUKA_Zentralhand_A4'].rotation_euler 
 
@@ -106,7 +107,7 @@ Mode = 'XYZ' # YXZ
 
 RotationModeBase = Mode
 RotationModePATHPTS = Mode
-RotationModeEmpty_Zentralhand_A6 = Mode
+RotationModeEmpty_Zentralhand_A6 = 'QUATERNION'
 
 RotationModeTransform = Mode # XYZ YXZ
 
@@ -119,100 +120,88 @@ CalledFrom =[]
 filepath=[]
 
 def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):
-    # Input: Keyword ( BASEPos, HOMEPos, SAFEPos, ADJPos, ..) Koordinaten und Winkel; Zielverzeichnis
-    # Process: 
-    # - schreiben der Koordinaten in eine Datei mit Endung *.cfg
-    # - Der Dateiname wird von *.dat uebernommen
-    # - Die Winkel werden wie folgt zugeordnet: C(X), B(Y), A(Z)
-    # Output: BASEPos {X 1023.24963, Y 1794.66641, Z 483.22785, A -35.00001, B -20.00001, C -179.00008} 
-        
+    
     print('_____________________________________________________________________________')
-    print('WtF_KeyPos :' + Keyword)
-    print('Remark: this file is not a part of the normal KUKA Ocutbot Software.')
-    print(Keyword + '_Angle A - Z [2]: ' +str(KeyPos_Angle[2]))
-    print(Keyword + '_Angle B - Y [1]: ' +str(KeyPos_Angle[1]))    #
-    print(Keyword + '_Angle C - X [0]: ' +str(KeyPos_Angle[0])) 
+    print('WtF_KeyPos :' + Keyword)  
+    # Create a file for output
+    
     FilenameSRC = filepath
     FilenameSRC = FilenameSRC.replace(".dat", FileExt) 
     fout = open(FilenameSRC, FileMode) # FileMode: 'a' fuer Append oder 'w' zum ueberschreiben
-     
-    SkalierungPTP = 1000
-    # Winkel von XYZ -> CBA
-    fout.write( Keyword + " {" + 
-                   "X " + "{0:.5f}".format(KeyPos_Koord[0]*SkalierungPTP) + 
-                   ", Y " + "{0:.5f}".format(KeyPos_Koord[1]*SkalierungPTP) +
-                   ", Z " + "{0:.5f}".format(KeyPos_Koord[2]*SkalierungPTP) + 
-                   ", A " + "{0:.5f}".format(KeyPos_Angle[2]) +
-                   ", B " + "{0:.5f}".format(KeyPos_Angle[1]) + 
-                   ", C " + "{0:.5f}".format(KeyPos_Angle[0]) +
-                   "} " + "\n")
+    print('FileMode :' + FileMode)
     
-    fout.close();
-    print('WtF_KeyPos :' + Keyword + ' geschrieben.')
-    print('_____________________________________________________________________________')  
-  
+    # BASEPos, PTP (=SAFEPos), HOMEPos, ADJUSTMENTPos (X, Y, Z, A, B, C) 
+    if (Keyword == 'BASEPos' or Keyword =='PTP' or Keyword =='HOMEPos' or Keyword =='ADJUSTMENTPos'):
+        print('Keyword :' + Keyword + ' erkannt.')
+        Skalierung = 1000
+        fout.write( Keyword + " {" + 
+                       "X " + "{0:.5f}".format(KeyPos_Koord[0]*Skalierung) + 
+                       ", Y " + "{0:.5f}".format(KeyPos_Koord[1]*Skalierung) +
+                       ", Z " + "{0:.5f}".format(KeyPos_Koord[2]*Skalierung) + 
+                       ", A " + "{0:.5f}".format(KeyPos_Angle[2]) +
+                       ", B " + "{0:.5f}".format(KeyPos_Angle[1]) + 
+                       ", C " + "{0:.5f}".format(KeyPos_Angle[0]) +
+                       "} " + "\n")
     
-def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
-    
-    print('_____________________________________________________________________________')
-    print('WtF_KUKAdat')  
-    # Create a file for output
-    print('Exporting ' + filepath)
-    fout = open(filepath, 'w')
-
-    # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
-    # bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co.angle(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[1].co)
-    
-    PathPointX = []
-    PathPointY = []
-    PathPointZ = []
-    PathPointA = []
-    PathPointB = []
-    PathPointC = []
-    
-    #koord = bpy.data.curves[obj.name].splines[0]
-    #koord = bpy.data.curves[bpy.data.objects[obj.name].data.name].splines[0] # wichtig: name des Datenblocks verwenden
-    
-    PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
-    for i in range(countPATHPTSObj):    
-        dataPATHPTS_LocGL, dataPATHPTS_RotGL = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]], bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)
+    # PATHPTS[n]  (X, Y, Z, A, B, C) / LOADPTS[n] (FX, FY, FZ/ TX, TY, TZ)/ 
+    if (Keyword == 'PATHPTS' or Keyword == 'LOADPTS'):
         
-        PathPointX = PathPointX +[dataPATHPTS_LocGL[0]]
-        PathPointY = PathPointY +[dataPATHPTS_LocGL[1]]
-        PathPointZ = PathPointZ +[dataPATHPTS_LocGL[2]]
-        # ABC ->CBA
-        PathPointA = PathPointA +[dataPATHPTS_RotGL[2]] # Z - A Grad
-        PathPointB = PathPointB +[dataPATHPTS_RotGL[1]] # Y - B
-        PathPointC = PathPointC +[dataPATHPTS_RotGL[0]] # X - C 
+        # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
+        if Keyword == 'PATHPTS': 
+            print('Keyword :' + Keyword + ' erkannt.')
+            fout.write(";FOLD PATH DATA" + "\n")
+            Skalierung = 1000
+            ID1X = 'X'; ID1Y = 'Y'
+            ID1Z = 'Z'
+            ID2X = 'C'
+            ID2Y = 'B'
+            ID2Z = 'A' 
         
-    fout.write(";FOLD PATH DATA" + "\n")
-    count= len(PathPointX) 
-    # Skalierung: 1:100 (vgl. Import)
-    Skalierung = 1000
+        # LOADPTS[2]={FX NAN, FY NAN, FZ -120, TX NAN, TY NAN, TZ NAN }
+        elif Keyword == 'LOADPTS': 
+            print('Keyword :' + Keyword + ' erkannt.')
+            fout.write(";FOLD LOAD DATA" + "\n")
+            Skalierung = 1
+            ID1X = 'FX'
+            ID1Y = 'FY'
+            ID1Z = 'FZ'
+            ID2X = 'TZ'
+            ID2Y = 'TY'
+            ID2Z = 'TX'
+            
+        count= len(KeyPos_Koord[:][:])    
+        for i in range(0,count,1):    
+            fout.write(Keyword + "[" + str(i+1) + "]={" + 
+                       ID1X + " " + "{0:.5f}".format(KeyPos_Koord[i][0]*Skalierung) + ", " + ID1Y + " " + "{0:.5f}".format(KeyPos_Koord[i][1]*Skalierung) +
+                       ", " + ID1Z + " " +"{0:.5f}".format(KeyPos_Koord[i][2]*Skalierung) + ", "+ ID2Z + " " +"{0:.5f}".format(Vorz3 *KeyPos_Angle[i][2] ) +
+                       ", " + ID2Y + " " +"{0:.5f}".format(Vorz2 *KeyPos_Angle[i][1]) + ", "+ ID2X + " " +"{0:.5f}".format(Vorz1 *KeyPos_Angle[i][0] ) +
+                       "} " + "\n") 
+        fout.write(";ENDFOLD" + "\n")
     
-    for i in range(0,count,1):    
-        fout.write("PATHPTS[" + str(i+1) + "]={" + 
-                   "X " + "{0:.5f}".format(PathPointX[i]*Skalierung) + ", Y " + "{0:.5f}".format(PathPointY[i]*Skalierung) +
-                   ", Z " + "{0:.5f}".format(PathPointZ[i]*Skalierung) + ", A " + "{0:.5f}".format(Vorz3 *PathPointA[i] ) +
-                   ", B " + "{0:.5f}".format(Vorz2 *PathPointB[i]) + ", C " + "{0:.5f}".format(Vorz1 *PathPointC[i] ) +
-                   "} " + "\n")
+    
+    
+    # TIMEPTS / STOPPTS / ACTIONMSK
+    if (Keyword == 'TIMEPTS' or Keyword =='STOPPTS' or Keyword =='ACTIONMSK'):
+        # TIMEPTS[1]=1.7
+        if Keyword == 'TIMEPTS': 
+            print('Keyword :' + Keyword + ' erkannt.')
+            fout.write(";FOLD TIME DATA" + "\n")
+            Count = len(KeyPos_Koord)
+    
         
-    fout.write(";ENDFOLD" + "\n")
-    
-    # TIMEPTS[1]=1.7  
-    TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6) # todo: Obj Liste in RfS_TIMEPTS
-    
-    fout.write(";FOLD TIME DATA" + "\n")
-    for i in range(0,TIMEPTS_PATHPTSCount,1):    
-        fout.write("TIMEPTS[" + str(i+1) + "]=" + 
-                   "{0:.5f}".format(TIMEPTS_PATHPTS[i] ) +
-                   "\n")
-    fout.write(";ENDFOLD" + "\n")
-    
+        for i in range(0,Count,1):    
+            fout.write(Keyword +"[" + str(i+1) + "]=" + 
+                       "{0:.5f}".format(KeyPos_Koord[i] ) +
+                       "\n")
+        fout.write(";ENDFOLD" + "\n")
+        
     # Close the file
+    print('close file.')
     fout.close();
-    print('WtF_KUKAdat done')
+        
+    print('WtF_KeyPos :' + Keyword + ' geschrieben.')
     print('_____________________________________________________________________________')
+
 
 def RfF_AdjustmentPos(filepath):
     print('_____________________________________________________________________________')
@@ -972,18 +961,18 @@ def RfS_TIMEPTS(objEmpty_A6):
     # todo: objSafe -> action_name ...
     
     print('_____________________________________________________________________________')
-    print('RfF TIMEPTS')
+    print('RfS TIMEPTS')
     
     #objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
     action_name = bpy.data.objects[objEmpty_A6.name].animation_data.action.name
-    print('RfF action_name' +str(action_name))
+    print('RfF action_name: ' +str(action_name))
     action=bpy.data.actions[action_name] 
     locID, rotID = FindFCurveID(objEmpty_A6, action)
     
     
     #TIMEPTSCount = len(action.fcurves) # Anzahl der actions (locx, locy, ...)
     TIMEPTSCount = len(action.fcurves[0].keyframe_points) # Anzahl der KeyFrames
-    print('RfF TIMEPTSCount' +str(TIMEPTSCount))
+    print('RfS TIMEPTSCount: ' +str(TIMEPTSCount))
     # zum schreiben der PATHPTS verwenden:
     action.fcurves[locID[0]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, x Wert)
     action.fcurves[locID[1]].keyframe_points[0].co # Ergebnis: Vector(Frame[0] Wert, y Wert)
@@ -1014,7 +1003,7 @@ def RfS_TIMEPTS(objEmpty_A6):
     '''
     print('TIMEPTS:' + str(TIMEPTS))
     print('TIMEPTSCount:' + str(TIMEPTSCount))
-    print('RfF TIMEPTS done')
+    print('RfS TIMEPTS done')
     print('_____________________________________________________________________________')
     return TIMEPTS, TIMEPTSCount
 
@@ -1418,7 +1407,19 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
         
         
-        WtF_KUKAdat(context.object, objEmpty_A6, PATHPTSObjName, self.filepath, BASEPos_Koord, BASEPos_Angle)
+        PathPoint = []
+        PathAngle = []  
+        PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
+        PathPoint = createMatrix(countPATHPTSObj,3)
+        PathAngle = createMatrix(countPATHPTSObj,3)
+        for i in range(countPATHPTSObj):    
+            PathPoint[i][0:2], PathAngle[i][0:2] = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]], bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+        WtF_KeyPos('PATHPTS',PathPoint, PathAngle, self.filepath, '.dat', 'w')
+        
+        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
+        WtF_KeyPos('TIMEPTS',TIMEPTS_PATHPTS, '', self.filepath, '.dat', 'a')
+        
+        #WtF_KUKAdat(context.object, objEmpty_A6, PATHPTSObjName, self.filepath, BASEPos_Koord, BASEPos_Angle)
         
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
@@ -1426,9 +1427,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
         
         WtF_KeyPos('BASEPos', BASEPos_Koord, BASEPos_Angle, self.filepath, '.cfg', 'w')
-        
         WtF_KeyPos('ADJUSTMENTPos', ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, self.filepath, '.cfg', 'a')
-         
         WtF_KeyPos('HOMEPos', HOMEPos_Koord, HOMEPos_Angle, self.filepath, '.cfg', 'a')
          
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
