@@ -213,6 +213,10 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
     gesamtertext = fin.read()
     fin.close
     
+    
+    KeyPos_Koord = []
+    KeyPos_Angle =[]
+    Merker=[]
     # Umwandeln in eine Liste
     zeilenliste =[]
     zeilenliste = gesamtertext.split(chr(10))
@@ -223,13 +227,30 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
         suchAnf = Keyword + " {X"
         suchEnd = Keyword + " {X"
         CountI = 0
-    # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
-    # LOADPTS[2]={FX NAN, FY NAN, FZ -120, TX NAN, TY NAN, TZ NAN }    
+    
+       
     if (Keyword == 'PATHPTS' or Keyword == 'LOADPTS'):
-        n=1 # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
-        suchAnf = "FOLD PATH DATA"
-        suchEnd = "ENDFOLD"
-        CountI = -2
+        if Keyword == 'PATHPTS': 
+            # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
+            print('Keyword :' + Keyword + ' erkannt.')
+            n=1 # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
+            suchAnf = "FOLD PATH DATA"
+            suchEnd = "ENDFOLD"
+            CountI = -2
+            
+        # LOADPTS[2]={FX NAN, FY NAN, FZ -120, TX NAN, TY NAN, TZ NAN }
+        elif Keyword == 'LOADPTS': 
+            # LOADPTS[2]={FX NAN, FY NAN, FZ -120, TX NAN, TY NAN, TZ NAN }
+            print('Keyword :' + Keyword + ' erkannt.')
+            
+    if (Keyword == 'TIMEPTS' or Keyword =='STOPPTS' or Keyword =='ACTIONMSK'):
+        if Keyword == 'TIMEPTS': 
+            # TIMEPTS[1]=1.7
+            print('Keyword :' + Keyword + ' erkannt.')
+            n=1 # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
+            suchAnf = "FOLD TIME DATA"
+            suchEnd = "ENDFOLD"
+            CountI = -2
         
     Count = len(zeilenliste)
     PathIndexAnf = 0
@@ -237,132 +258,97 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
     for i in range(Count):
         if zeilenliste[i].find(suchAnf)!=-1: 
             PathIndexAnf = i
-        if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
+            Merker=1
+        if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd and Merker==1): 
             PathIndexEnd = i
             break
+            
     Count = CountI + PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
     
+    if (Keyword == 'BASEPos' or Keyword =='PTP' or Keyword =='HOMEPos' or Keyword =='ADJUSTMENTPos'
+        or Keyword == 'PATHPTS' or Keyword == 'LOADPTS'):
     
-    
-    # ==========================================
-    # Einlesen der PTP Werte (X, Y, Z, A, B C) 
-    # ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A -128.2708, B -0.4798438, C -178.1682} 
-    # MES = {X -237, Y 0, Z 342, A 0, B 0, C 0 }
-    # ==========================================
-    PathPointX = []
-    PathPointY = []
-    PathPointZ = []
-    PathAngleA = []
-    PathAngleB = []
-    PathAngleC = []
-    beg=0
-    # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
-    for i in range(0,Count,1):
-        IndXA = zeilenliste[PathIndexAnf+n+i].index("X ", beg, len(zeilenliste[PathIndexAnf+n+i])) # Same as find(), but raises an exception if str not found 
-        IndXE = zeilenliste[PathIndexAnf+n+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+n+i]))
-        PathPointX = PathPointX + [float(zeilenliste[PathIndexAnf+n+i][IndXA+2:IndXE])/Skalierung]
-   
-        IndYA = zeilenliste[PathIndexAnf+n+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
-        IndYE = zeilenliste[PathIndexAnf+n+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+n+i]))
-        PathPointY = PathPointY + [float(zeilenliste[PathIndexAnf+n+i][IndYA+2:IndYE])/Skalierung]
-   
-        IndZA = zeilenliste[PathIndexAnf+n+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+n+i])) 
-        IndZE = zeilenliste[PathIndexAnf+n+i].index(", A", beg, len(zeilenliste[PathIndexAnf+n+i]))
-        PathPointZ = PathPointZ + [float(zeilenliste[PathIndexAnf+n+i][IndZA+2:IndZE])/Skalierung]
-   
-        IndAA = zeilenliste[PathIndexAnf+n+i].index("A ", beg, len(zeilenliste[PathIndexAnf+n+i])) 
-        IndAE = zeilenliste[PathIndexAnf+n+i].index(", B", beg, len(zeilenliste[PathIndexAnf+n+i]))
-        PathAngleA = PathAngleA + [float(zeilenliste[PathIndexAnf+n+i][IndAA+2:IndAE])]
-   
-        IndBA = zeilenliste[PathIndexAnf+n+i].index("B ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
-        IndBE = zeilenliste[PathIndexAnf+n+i].index(", C", beg, len(zeilenliste[PathIndexAnf+n+i]))
-        PathAngleB = PathAngleB + [float(zeilenliste[PathIndexAnf+n+i][IndBA+2:IndBE])]
-   
-        IndCA = zeilenliste[PathIndexAnf+n+i].index("C ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
-        IndCE = len(zeilenliste[PathIndexAnf+n+i])-2 # }   " "+chr(125) funktioniert nicht?!
-        PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+n+i][IndCA+2:IndCE]) ] # in Grad
-        
-    #ADJUSTMENTPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
-    #ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz1 *PTPAngleB[0])), float(str(Vorz1 *PTPAngleA[0])) # in Grad
-
-    # ==========================================    
-    # Erstellen der Datenkontainer fuer location und rotation
-    # ==========================================    
-    
-    if Count ==1:
-        KeyPos_Koord  = Vector([float(PathPointX[0]), float(PathPointY[0]), float(PathPointZ[0])])
-        KeyPos_Angle  = float(str(Vorz1 *PathAngleC[0])), float(str(Vorz1 *PathAngleB[0])), float(str(Vorz1 *PathAngleA[0])) # in Grad
-    else:   
-        mList= createMatrix(Count,1) # eigene Class "createMatrix" erstellt
-        KeyPos_Koord = []
+        # ==========================================
+        # Einlesen der PTP Werte (X, Y, Z, A, B C) 
+        # ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A -128.2708, B -0.4798438, C -178.1682} 
+        # MES = {X -237, Y 0, Z 342, A 0, B 0, C 0 }
+        # ==========================================
+        PathPointX = []
+        PathPointY = []
+        PathPointZ = []
+        PathAngleA = []
+        PathAngleB = []
+        PathAngleC = []
+        beg=0
+        # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
         for i in range(0,Count,1):
-            mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-            KeyPos_Koord = KeyPos_Koord + [mList[i]] 
+            IndXA = zeilenliste[PathIndexAnf+n+i].index("X ", beg, len(zeilenliste[PathIndexAnf+n+i])) # Same as find(), but raises an exception if str not found 
+            IndXE = zeilenliste[PathIndexAnf+n+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+n+i]))
+            PathPointX = PathPointX + [float(zeilenliste[PathIndexAnf+n+i][IndXA+2:IndXE])/Skalierung]
        
-        nList= createMatrix(Count,1)   
-        KeyPos_Angle =[]  
+            IndYA = zeilenliste[PathIndexAnf+n+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
+            IndYE = zeilenliste[PathIndexAnf+n+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+n+i]))
+            PathPointY = PathPointY + [float(zeilenliste[PathIndexAnf+n+i][IndYA+2:IndYE])/Skalierung]
+       
+            IndZA = zeilenliste[PathIndexAnf+n+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+n+i])) 
+            IndZE = zeilenliste[PathIndexAnf+n+i].index(", A", beg, len(zeilenliste[PathIndexAnf+n+i]))
+            PathPointZ = PathPointZ + [float(zeilenliste[PathIndexAnf+n+i][IndZA+2:IndZE])/Skalierung]
+       
+            IndAA = zeilenliste[PathIndexAnf+n+i].index("A ", beg, len(zeilenliste[PathIndexAnf+n+i])) 
+            IndAE = zeilenliste[PathIndexAnf+n+i].index(", B", beg, len(zeilenliste[PathIndexAnf+n+i]))
+            PathAngleA = PathAngleA + [float(zeilenliste[PathIndexAnf+n+i][IndAA+2:IndAE])]
+       
+            IndBA = zeilenliste[PathIndexAnf+n+i].index("B ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
+            IndBE = zeilenliste[PathIndexAnf+n+i].index(", C", beg, len(zeilenliste[PathIndexAnf+n+i]))
+            PathAngleB = PathAngleB + [float(zeilenliste[PathIndexAnf+n+i][IndBA+2:IndBE])]
+       
+            IndCA = zeilenliste[PathIndexAnf+n+i].index("C ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
+            IndCE = len(zeilenliste[PathIndexAnf+n+i])-2 # }   " "+chr(125) funktioniert nicht?!
+            PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+n+i][IndCA+2:IndCE]) ] # in Grad
+            
+        #ADJUSTMENTPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
+        #ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz1 *PTPAngleB[0])), float(str(Vorz1 *PTPAngleA[0])) # in Grad
+    
+        # ==========================================    
+        # Erstellen der Datenkontainer fuer location und rotation
+        # ==========================================    
+        
+        if Count ==1:
+            KeyPos_Koord  = Vector([float(PathPointX[0]), float(PathPointY[0]), float(PathPointZ[0])])
+            KeyPos_Angle  = float(str(Vorz1 *PathAngleC[0])), float(str(Vorz1 *PathAngleB[0])), float(str(Vorz1 *PathAngleA[0])) # in Grad
+        else:   
+            mList= createMatrix(Count,1) # eigene Class "createMatrix" erstellt
+            
+            for i in range(0,Count,1):
+                mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
+                KeyPos_Koord = KeyPos_Koord + [mList[i]] 
+           
+            nList= createMatrix(Count,1)   
+              
+            for i in range(0,Count,1):
+                nList[i][0:3] = [Vorz1 *PathAngleC[i], Vorz2 *PathAngleB[i], Vorz3 *PathAngleA[i]]      
+                KeyPos_Angle = KeyPos_Angle + [nList[i]]
+                
+    if (Keyword == 'TIMEPTS' or Keyword =='STOPPTS' or Keyword =='ACTIONMSK'):
+        
+        
+        if Keyword == 'TIMEPTS': 
+            # TIMEPTS[1]=1.7
+            print('Keyword :' + Keyword + ' erkannt.')
+            
+        beg=0
+        i=[]
         for i in range(0,Count,1):
-            nList[i][0:3] = [Vorz1 *PathAngleC[i], Vorz2 *PathAngleB[i], Vorz3 *PathAngleA[i]]      
-            KeyPos_Angle = KeyPos_Angle + [nList[i]]
-
+            IndXA = zeilenliste[PathIndexAnf+n+i].index("]=", beg, len(zeilenliste[PathIndexAnf+n+i])) # Same as find(), but raises an exception if str not found 
+            IndXE = len(zeilenliste[PathIndexAnf+n+i])
+            KeyPos_Koord = KeyPos_Koord + [float(zeilenliste[PathIndexAnf+n+i][IndXA+2:IndXE])]
+        
+        
+            
     print('RfF_KeyPos :' + Keyword + ' gelesen.')
     print('_____________________________________________________________________________')
     return KeyPos_Koord, KeyPos_Angle 
     
-
-def RfF_TIMEPTS(filepath):
-    print('_____________________________________________________________________________')
-    print('Read from File - TIMEPTS')
-    # Besonderheit hier: dier erste ENDFOLD Marke muss uebersprungen werden.
-    # ==========================================    
-    # Import der TIMEPTS 
-    # ==========================================    
-    try:
-        d = open(filepath)
-        gesamtertext = d.read()
-        d.close
-        # Umwandeln in eine Liste
-        zeilenliste =[]
-        zeilenliste = gesamtertext.split(chr(10))
-    
-        # ==========================================
-        # Suche nach "FOLD TIME DATA" 
-        # ==========================================
-        suchAnf = "FOLD TIME DATA"
-        suchEnd = "ENDFOLD"
-        Merker=[]
-        TIMEPTSCount = len(zeilenliste)
-        PathIndexAnf = 0
-        PathIndexEnd = TIMEPTSCount
-        for i in range(TIMEPTSCount):
-            if zeilenliste[i].find(suchAnf)!=-1: 
-                PathIndexAnf = i
-                Merker=1
-            if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=TIMEPTSCount and Merker==1): 
-                PathIndexEnd = i
-                break
-        print("...")
-        TIMEPTSCount = PathIndexEnd - (PathIndexAnf+1) # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
-        # ==========================================
-        # Einlesen der TIMEPTS Werte 
-        # TIMEPTS[1]=0.2
-        # TIMEPTS[1]=0.6
-        # ==========================================
-        TIMEPTS = []
-        beg=0
-        i=[]
-        for i in range(0,TIMEPTSCount,1):
-            IndXA = zeilenliste[PathIndexAnf+i+1].index("]=", beg, len(zeilenliste[PathIndexAnf+i+1])) # Same as find(), but raises an exception if str not found 
-            IndXE = len(zeilenliste[PathIndexAnf+i+1])
-            TIMEPTS = TIMEPTS + [float(zeilenliste[PathIndexAnf+i+1][IndXA+2:IndXE])]
-        
-    except: 
-        print('TIMEPTS exception')
-    print('TIMEPTS:' + str(TIMEPTS))
-    print('RfF TIMEPTS done')
-    print('_____________________________________________________________________________')
-    return TIMEPTS, TIMEPTSCount   
-
  
 def RfS_BasePos(objBase):    
     print('_____________________________________________________________________________')
@@ -1057,18 +1043,14 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         #--------------------------------------------------------------------------------
         
         print("Erstellen der BezierCurve: done")
-        #BASEPos_Koord, BASEPos_Angle = RfF_BasePos(self.filepath)
         BASEPos_Koord, BASEPos_Angle = RfF_KeyPos('BASEPos', self.filepath, '.cfg')
         try:
-            #ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath)
             ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_KeyPos('ADJUSTMENTPos', self.filepath, '.cfg')
         except:
             print('failed to load AdjustmentPos')
         try:
-            #HOMEPos_Koord, HOMEPos_Angle = RfF_HomePos(self.filepath)
             HOMEPos_Koord, HOMEPos_Angle = RfF_KeyPos('HOMEPos', self.filepath, '.cfg')
         except:
-            
             print('failed to load HomePos')
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
@@ -1089,7 +1071,6 @@ class CurveImport (bpy.types.Operator, ImportHelper):
        
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' + str(BASEPos_Angle))
-        #SAFEPos_Koord, SAFEPos_Angle = RfF_SafePos(self.filepath)
         SAFEPos_Koord, SAFEPos_Angle = RfF_KeyPos('PTP', self.filepath, '.src') # PTP = SAFEPos
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
@@ -1229,7 +1210,8 @@ def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
     # n x [....] beruecksichtigen...???
         
     if filepath != 'none': # Aufruf von Button Import
-        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfF_TIMEPTS(filepath)
+        TIMEPTS_PATHPTS, NAN = RfF_KeyPos('TIMEPTS', filepath, '.dat')
+        TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)
         # todo
         #TIMEPTS_Safe = 0
         #TIMEPTS_SafeCount = 1
