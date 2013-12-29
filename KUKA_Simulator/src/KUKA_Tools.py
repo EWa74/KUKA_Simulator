@@ -202,400 +202,52 @@ def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode)
     print('WtF_KeyPos :' + Keyword + ' geschrieben.')
     print('_____________________________________________________________________________')
 
-
-def RfF_AdjustmentPos(filepath):
+def RfF_KeyPos(Keyword, filepath, FileExt):
     print('_____________________________________________________________________________')
-    print('Read from File - RfF_AdjustmentPos')
+    print('RfF_KeyPos :' + Keyword)  
+    # Create a file for output
+    Skalierung  = 1000
+    FilenameSRC = filepath
+    FilenameSRC = FilenameSRC.replace(".dat", FileExt) 
+    fin = open(FilenameSRC)
+    gesamtertext = fin.read()
+    fin.close
     
-    # ==========================================    
-    # Import der RfF_AdjustmentPos = KUKA (*.cfg) Kreation von mir!
-    # Die Adjustmentposition soll die Verschiebung des realen Roboters zur virtuellen CAD-Welt beruecksichtigen [TEST]
-    # ==========================================    
-    try:
-        FilenameSRC = filepath
-        FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
-        d = open(FilenameSRC)
-        gesamtertext = d.read()
-        d.close
-        # Umwandeln in eine Liste
-        zeilenliste =[]
-        zeilenliste = gesamtertext.split(chr(10))
-    
-        # ==========================================
-        # Suche nach "PTP"
-        # ==========================================
-        suchAnf = "ADJUSTMENTPos {X"
-        suchEnd = "ADJUSTMENTPos {X"
-        PATHPTSCountPTP = len(zeilenliste)
-        PathIndexAnf = 0
-        PathIndexEnd = PATHPTSCountPTP
-        for i in range(PATHPTSCountPTP):
-            if zeilenliste[i].find(suchAnf)!=-1: 
-                PathIndexAnf = i
-            if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
-                PathIndexEnd = i
-                break
-        PATHPTSCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
-        
-        # ==========================================
-        # Einlesen der PTP Werte (X, Y, Z, A, B C) 
-        # ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A -128.2708, B -0.4798438, C -178.1682} 
-        # MES = {X -237, Y 0, Z 342, A 0, B 0, C 0 }
-        # ==========================================
-        PTPX = []
-        PTPY = []
-        PTPZ = []
-        PTPAngleA = []
-        PTPAngleB = []
-        PTPAngleC = []
-        beg=0
-        # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
-        for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
-       
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
-       
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
-       
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])] # * (2*math.pi)/360 als rad einlesen!
-            print('PTPAngleA' +str(PTPAngleA))
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
-            print('PTPAngleB' +str(PTPAngleB))
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
-            PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
-            print('PTPAngleC' +str(PTPAngleC))
-        SkalierungPTP = 1000
-        
-        ADJUSTMENTPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
-        # XYZ = CBA
-        # A = -Z
-        # TESTEN!!!!
-        ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz1 *PTPAngleB[0])), float(str(Vorz1 *PTPAngleA[0])) # in Grad
-    except: 
-        print('RfF_AdjustmentPos exception')
-    print('RfF_AdjustmentPos done')
-    print('_____________________________________________________________________________')
-    return ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle    
-
-def RfF_HomePos(filepath):
-    print('_____________________________________________________________________________')
-    print('Read from File - RfF_HomePos')
-    
-    # ==========================================    
-    # Import der RfF_HomePos = KUKA (*.cfg) Kreation von mir!
-    # Die RfF_HomePosition sol ...
-    # ==========================================    
-    try:
-        FilenameSRC = filepath
-        FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
-        d = open(FilenameSRC)
-        gesamtertext = d.read()
-        d.close
-        # Umwandeln in eine Liste
-        zeilenliste =[]
-        zeilenliste = gesamtertext.split(chr(10))
-    
-        # ==========================================
-        # Suche nach "PTP"
-        # ==========================================
-        suchAnf = "HOMEPos {X"
-        suchEnd = "HOMEPos {X"
-        PATHPTSCountPTP = len(zeilenliste)
-        PathIndexAnf = 0
-        PathIndexEnd = PATHPTSCountPTP
-        for i in range(PATHPTSCountPTP):
-            if zeilenliste[i].find(suchAnf)!=-1: 
-                PathIndexAnf = i
-            if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
-                PathIndexEnd = i
-                break
-        PATHPTSCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
-        
-        # ==========================================
-        # Einlesen der PTP Werte (X, Y, Z, A, B C) 
-        # HOMEPos {X 653.4455, Y 922.3803, Z 842.2034, A -128.2708, B -0.4798438, C -178.1682} 
-        # ==========================================
-        PTPX = []
-        PTPY = []
-        PTPZ = []
-        PTPAngleA = []
-        PTPAngleB = []
-        PTPAngleC = []
-        beg=0
-        # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
-        for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
-       
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
-       
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
-       
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])] # * (2*math.pi)/360 als rad einlesen!
-            print('PTPAngleA' +str(PTPAngleA))
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
-            print('PTPAngleB' +str(PTPAngleB))
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
-            PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
-            print('PTPAngleC' +str(PTPAngleC))
-        SkalierungPTP = 1000
-        
-        HOMEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
-        # XYZ = CBA
-        # A = -Z
-        # TESTEN!!!!
-        HOMEPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz2 *PTPAngleB[0])), float(str(Vorz3 *PTPAngleA[0])) # in Grad
-    except: 
-        print('RfF_AdjustmentPos exception')
-    print('RfF_HomePos done')
-    print('_____________________________________________________________________________')
-    return HOMEPos_Koord, HOMEPos_Angle 
-
- 
-def RfF_BasePos(filepath):
-    print('_____________________________________________________________________________')
-    print('Read from File - RfF_BasePos')
-    
-    # ==========================================    
-    # Import der BasePosition = KUKA (*.cfg) Kreation von mir!
-    # ==========================================    
-    try:
-        FilenameSRC = filepath
-        FilenameSRC = FilenameSRC.replace(".dat", ".cfg") 
-        d = open(FilenameSRC)
-        gesamtertext = d.read()
-        d.close
-        # Umwandeln in eine Liste
-        zeilenliste =[]
-        zeilenliste = gesamtertext.split(chr(10))
-    
-        # ==========================================
-        # Suche nach "PTP"
-        # ==========================================
-        suchAnf = "BASEPos {X"
-        suchEnd = "BASEPos {X"
-        PATHPTSCountPTP = len(zeilenliste)
-        PathIndexAnf = 0
-        PathIndexEnd = PATHPTSCountPTP
-        for i in range(PATHPTSCountPTP):
-            if zeilenliste[i].find(suchAnf)!=-1: 
-                PathIndexAnf = i
-            if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
-                PathIndexEnd = i
-                break
-        PATHPTSCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
-        
-        # ==========================================
-        # Einlesen der PTP Werte (X, Y, Z, A, B C) 
-        # BASEPos {X 82.815240, Y 100.194500, Z -11.291560, A(Z) 69.842480, B(Y) -2.680786, C(X) -3.097058}
-        # ==========================================
-        PTPX = []
-        PTPY = []
-        PTPZ = []
-        PTPAngleA = []
-        PTPAngleB = []
-        PTPAngleC = []
-        beg=0
-        # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
-        for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
-       
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
-       
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
-       
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])] # * (2*math.pi)/360 als rad einlesen!
-            print('PTPAngleA' +str(PTPAngleA))
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
-            print('PTPAngleB' +str(PTPAngleB))
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
-            PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
-            print('PTPAngleC' +str(PTPAngleC))
-        SkalierungPTP = 1000
-        # XYZ = CBA - TEST: ABC, BAC
-        BASEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
-        #BASEPos_Koord  = Vector([float(PTPY[0])/SkalierungPTP, float(PTPX[0])/SkalierungPTP, float(-PTPZ[0])/SkalierungPTP])
-        # XYZ = CBA - TEST: ABC, BAC
-        # A = -Z
-        #BASEPos_Angle  = float(str(PTPAngleA[0])), float(str(PTPAngleB[0])), float(str(PTPAngleC[0])) # in Grad
-        BASEPos_Angle  = float(str(PTPAngleC[0])), float(str(PTPAngleB[0])), float(str(PTPAngleA[0])) # in Grad
-        
-     
-        
-    except: 
-        print('RfF_BasePos exception')
-    print('RfF_BasePos done')
-    print('_____________________________________________________________________________')
-    return BASEPos_Koord, BASEPos_Angle    
-
-def RfF_SafePos(filepath):
-    print('_____________________________________________________________________________')
-    print('Read from File - RfF_SafePos')
-    
-    # ==========================================    
-    # Import der SAFEPosition = KUKA (*.src)
-    # ==========================================    
-    try:
-        FilenameSRC = filepath
-        FilenameSRC = FilenameSRC.replace(".dat", ".src") 
-        d = open(FilenameSRC)
-        gesamtertext = d.read()
-        d.close
-        # Umwandeln in eine Liste
-        zeilenliste =[]
-        zeilenliste = gesamtertext.split(chr(10))
-    
-        # ==========================================
-        # Suche nach "PTP"
-        # ==========================================
-        suchAnf = "PTP {X"
-        suchEnd = "PTP {X"
-        PATHPTSCountPTP = len(zeilenliste)
-        PathIndexAnf = 0
-        PathIndexEnd = PATHPTSCountPTP
-        for i in range(PATHPTSCountPTP):
-            if zeilenliste[i].find(suchAnf)!=-1: 
-                PathIndexAnf = i
-            if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
-                PathIndexEnd = i
-                break
-        PATHPTSCountPTP = PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
-        
-        # ==========================================
-        # Einlesen der PTP Werte (X, Y, Z, A(Z), B(Y) C(X)) 
-        # PTP {X 82.815240, Y 100.194500, Z -11.291560, A 69.842480, B -2.680786, C -3.097058}
-        # ==========================================
-        PTPX = []
-        PTPY = []
-        PTPZ = []
-        PTPAngleA = []
-        PTPAngleB = []
-        PTPAngleC = []
-        beg=0
-        # die Schleife ist eigentlich unnoetig da es nur eine SAFEPosition gibt...
-        for i in range(0,PATHPTSCountPTP,1):
-            IndXA = zeilenliste[PathIndexAnf+i].index("X ", beg, len(zeilenliste[PathIndexAnf+i])) # Same as find(), but raises an exception if str not found 
-            IndXE = zeilenliste[PathIndexAnf+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPX = PTPX + [float(zeilenliste[PathIndexAnf+i][IndXA+2:IndXE])]
-       
-            IndYA = zeilenliste[PathIndexAnf+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndYE = zeilenliste[PathIndexAnf+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPY = PTPY + [float(zeilenliste[PathIndexAnf+i][IndYA+2:IndYE])]
-       
-            IndZA = zeilenliste[PathIndexAnf+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndZE = zeilenliste[PathIndexAnf+i].index(", A", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPZ = PTPZ + [float(zeilenliste[PathIndexAnf+i][IndZA+2:IndZE])]
-       
-            IndAA = zeilenliste[PathIndexAnf+i].index("A ", beg, len(zeilenliste[PathIndexAnf+i])) 
-            IndAE = zeilenliste[PathIndexAnf+i].index(", B", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleA = PTPAngleA + [float(zeilenliste[PathIndexAnf+i][IndAA+2:IndAE])]
-       
-            IndBA = zeilenliste[PathIndexAnf+i].index("B ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndBE = zeilenliste[PathIndexAnf+i].index(", C", beg, len(zeilenliste[PathIndexAnf+i]))
-            PTPAngleB = PTPAngleB + [float(zeilenliste[PathIndexAnf+i][IndBA+2:IndBE])]
-       
-            IndCA = zeilenliste[PathIndexAnf+i].index("C ", beg, len(zeilenliste[PathIndexAnf+i]))  
-            IndCE = len(zeilenliste[PathIndexAnf+i])-2 # }   " "+chr(125) funktioniert nicht?!
-            PTPAngleC = PTPAngleC + [float(zeilenliste[PathIndexAnf+i][IndCA+2:IndCE])]
-        
-        SkalierungPTP  = 1000
-        
-        #SAFEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
-        SAFEPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
-        print('SAFEPos_Koord' + str(SAFEPos_Koord))
-        # XYZ = CBA
-        # A = -Z
-        #SAFEPos_Angle  = float(str(PTPAngleA[0])), float(str(PTPAngleB[0])), float(str(PTPAngleC[0])) # in Grad
-        SAFEPos_Angle  = Vorz1 *float(str(PTPAngleC[0])), Vorz2 *float(str(PTPAngleB[0])), Vorz3 *float(str(PTPAngleA[0])) # in Grad
-        print('SAFEPos_Angle' + str(SAFEPos_Angle))
-        print('RfF_SafePos - passed')
-        return SAFEPos_Koord, SAFEPos_Angle
-        
-    except: 
-        #  IOError, wenn file not found (laeuft (im debug mode?) nicht....
-        # falls kein *.src vorhanden, setze die delta transform/ SAFEPosition auf Null:
-        
-        # POP UP Window:
-        # todo: POP UP window ....
-        #bpy.ops.object.dialog_operator('INVOKE_DEFAULT')
-        print('RfF_SafePos - exeption - INVOKE_DEFAULT')
-    print('Read from File - RfF_SafePos done')
-    print('_____________________________________________________________________________')
-    
-def RfF_PATHPTS(filepath, BASEPos_Koord, BASEPos_Angle):     
-    print('_____________________________________________________________________________')
-    print('RfF_PATHPTS')
-    #todo: Abfragen ob selektiertes Obj. auch wirklich curve ist (und nur ein Obj. selectiert ist)
-    #bpy.data.curves[DataName].splines[0].bezier_points[0].co=(0,1,1)
-    SkalierungPTP  = 1000
-    # Zugriffsversuch
-    #try:
-    d = open(filepath)
-    #d = open("E84_BFS_Sport_Sitz_1032_10_08_BT.dat")  
-        #d = open("KUKA-TEST.dat")  
-    #except:
-    #    print("Dateizugriff nicht erfolgreich")
-    #    sys.exit(0) # Achtung: wenn de Datei nicht gefunden wurde fuehrt dies zum Blender Absturz mit Fehler "blender not freed memory blocks"
-    
-    # lesen der gesamten Textdatei (*.dat)
-    gesamtertext = d.read()
-    # schliessen der Datei
-    d.close
     # Umwandeln in eine Liste
+    zeilenliste =[]
     zeilenliste = gesamtertext.split(chr(10))
 
-    # ==========================================
-    # Suche nach "FOLD PATH DATA" und "ENDFOLD"
-    # ==========================================
-    suchAnf = "FOLD PATH DATA"
-    suchEnd = "ENDFOLD"
-    PATHPTSCount = len(zeilenliste)
+    # BASEPos, PTP (=SAFEPos), HOMEPos, ADJUSTMENTPos (X, Y, Z, A, B, C) 
+    if (Keyword == 'BASEPos' or Keyword =='PTP' or Keyword =='HOMEPos' or Keyword =='ADJUSTMENTPos'):
+        n=0 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
+        suchAnf = Keyword + " {X"
+        suchEnd = Keyword + " {X"
+        CountI = 0
+    # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
+    # LOADPTS[2]={FX NAN, FY NAN, FZ -120, TX NAN, TY NAN, TZ NAN }    
+    if (Keyword == 'PATHPTS' or Keyword == 'LOADPTS'):
+        n=1 # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
+        suchAnf = "FOLD PATH DATA"
+        suchEnd = "ENDFOLD"
+        CountI = -2
+        
+    Count = len(zeilenliste)
     PathIndexAnf = 0
-    PathIndexEnd = PATHPTSCount
-    for i in range(PATHPTSCount):
+    PathIndexEnd = Count
+    for i in range(Count):
         if zeilenliste[i].find(suchAnf)!=-1: 
             PathIndexAnf = i
-        if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PATHPTSCount): 
+        if (zeilenliste[i].find(suchEnd)!=-1 and PathIndexAnf!=PathIndexEnd): 
             PathIndexEnd = i
             break
-    print("...")
-    PATHPTSCount = PathIndexEnd - (PathIndexAnf+1) # Achtung: hier wird 'zwischen' den Suchmarken ausgelesen
+    Count = CountI + PathIndexEnd - PathIndexAnf +1 # Achtung: hier wird 'ab der' Suchmarken ausgelesen
+    
+    
     
     # ==========================================
-    # Einlesen der PATHPTS Werte (X, Y, Z, A, B C) 
-    # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
+    # Einlesen der PTP Werte (X, Y, Z, A, B C) 
+    # ADJUSTMENTPos {X 0.0, Y 0.0, Z 0.0, A -128.2708, B -0.4798438, C -178.1682} 
+    # MES = {X -237, Y 0, Z 342, A 0, B 0, C 0 }
     # ==========================================
     PathPointX = []
     PathPointY = []
@@ -604,148 +256,59 @@ def RfF_PATHPTS(filepath, BASEPos_Koord, BASEPos_Angle):
     PathAngleB = []
     PathAngleC = []
     beg=0
+    # die Schleife ist eigentlich unnoetig da es nur eine BASEPosition gibt...
+    for i in range(0,Count,1):
+        IndXA = zeilenliste[PathIndexAnf+n+i].index("X ", beg, len(zeilenliste[PathIndexAnf+n+i])) # Same as find(), but raises an exception if str not found 
+        IndXE = zeilenliste[PathIndexAnf+n+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+n+i]))
+        PathPointX = PathPointX + [float(zeilenliste[PathIndexAnf+n+i][IndXA+2:IndXE])/Skalierung]
    
-    for i in range(0,PATHPTSCount,1):
-        IndXA = zeilenliste[PathIndexAnf+1+i].index("X ", beg, len(zeilenliste[PathIndexAnf+1+i])) # Same as find(), but raises an exception if str not found 
-        IndXE = zeilenliste[PathIndexAnf+1+i].index(", Y", beg, len(zeilenliste[PathIndexAnf+1+i]))
-        PathPointX = PathPointX + [float(zeilenliste[PathIndexAnf+1+i][IndXA+2:IndXE])/SkalierungPTP]
+        IndYA = zeilenliste[PathIndexAnf+n+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
+        IndYE = zeilenliste[PathIndexAnf+n+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+n+i]))
+        PathPointY = PathPointY + [float(zeilenliste[PathIndexAnf+n+i][IndYA+2:IndYE])/Skalierung]
    
-        IndYA = zeilenliste[PathIndexAnf+1+i].index("Y ", beg, len(zeilenliste[PathIndexAnf+1+i]))  
-        IndYE = zeilenliste[PathIndexAnf+1+i].index(", Z", beg, len(zeilenliste[PathIndexAnf+1+i]))
-        PathPointY = PathPointY + [float(zeilenliste[PathIndexAnf+1+i][IndYA+2:IndYE])/SkalierungPTP]
+        IndZA = zeilenliste[PathIndexAnf+n+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+n+i])) 
+        IndZE = zeilenliste[PathIndexAnf+n+i].index(", A", beg, len(zeilenliste[PathIndexAnf+n+i]))
+        PathPointZ = PathPointZ + [float(zeilenliste[PathIndexAnf+n+i][IndZA+2:IndZE])/Skalierung]
    
-        IndZA = zeilenliste[PathIndexAnf+1+i].index("Z ", beg, len(zeilenliste[PathIndexAnf+1+i])) 
-        IndZE = zeilenliste[PathIndexAnf+1+i].index(", A", beg, len(zeilenliste[PathIndexAnf+1+i]))
-        PathPointZ = PathPointZ + [float(zeilenliste[PathIndexAnf+1+i][IndZA+2:IndZE])/SkalierungPTP]
+        IndAA = zeilenliste[PathIndexAnf+n+i].index("A ", beg, len(zeilenliste[PathIndexAnf+n+i])) 
+        IndAE = zeilenliste[PathIndexAnf+n+i].index(", B", beg, len(zeilenliste[PathIndexAnf+n+i]))
+        PathAngleA = PathAngleA + [float(zeilenliste[PathIndexAnf+n+i][IndAA+2:IndAE])]
    
-        IndAA = zeilenliste[PathIndexAnf+1+i].index("A ", beg, len(zeilenliste[PathIndexAnf+1+i])) 
-        IndAE = zeilenliste[PathIndexAnf+1+i].index(", B", beg, len(zeilenliste[PathIndexAnf+1+i]))
-        PathAngleA = PathAngleA + [float(zeilenliste[PathIndexAnf+1+i][IndAA+2:IndAE])]
+        IndBA = zeilenliste[PathIndexAnf+n+i].index("B ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
+        IndBE = zeilenliste[PathIndexAnf+n+i].index(", C", beg, len(zeilenliste[PathIndexAnf+n+i]))
+        PathAngleB = PathAngleB + [float(zeilenliste[PathIndexAnf+n+i][IndBA+2:IndBE])]
    
-        IndBA = zeilenliste[PathIndexAnf+1+i].index("B ", beg, len(zeilenliste[PathIndexAnf+1+i]))  
-        IndBE = zeilenliste[PathIndexAnf+1+i].index(", C", beg, len(zeilenliste[PathIndexAnf+1+i]))
-        PathAngleB = PathAngleB + [float(zeilenliste[PathIndexAnf+1+i][IndBA+2:IndBE])]
-   
-        IndCA = zeilenliste[PathIndexAnf+1+i].index("C ", beg, len(zeilenliste[PathIndexAnf+1+i]))  
-        IndCE = len(zeilenliste[PathIndexAnf+1+i])-2 # }   " "+chr(125) funktioniert nicht?!
-        PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+1+i][IndCA+2:IndCE]) ] # in Grad
+        IndCA = zeilenliste[PathIndexAnf+n+i].index("C ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
+        IndCE = len(zeilenliste[PathIndexAnf+n+i])-2 # }   " "+chr(125) funktioniert nicht?!
+        PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+n+i][IndCA+2:IndCE]) ] # in Grad
+        
+    #ADJUSTMENTPos_Koord  = Vector([float(PTPX[0])/SkalierungPTP, float(PTPY[0])/SkalierungPTP, float(PTPZ[0])/SkalierungPTP])
+    #ADJUSTMENTPos_Angle  = float(str(Vorz1 *PTPAngleC[0])), float(str(Vorz1 *PTPAngleB[0])), float(str(Vorz1 *PTPAngleA[0])) # in Grad
 
-    print('RfF_PATHPTS - Pathpositions und Angles initialisiert')
     # ==========================================    
     # Erstellen der Datenkontainer fuer location und rotation
     # ==========================================    
     
-    # Korrektur der Punkte um die Tooljustierung:
-    ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(filepath) 
-    ADJUSTMENTPos_KoordB, ADJUSTMENTPos_AngleB = TransfRel(BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle)
-    #ADJUSTMENTPos_KoordBD, ADJUSTMENTPos_AngleBD = DeltaFrom(BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle)
-    
-    mList= createMatrix(PATHPTSCount,1) # eigene Class "createMatrix" erstellt
-    TList= createMatrix(PATHPTSCount,1) # eigene Class "createMatrix" erstellt
-    dataPATHPTS_Loc = []
-    dataPATHPTS_LocT = []
-    # TODO: test, Vorzeichen an realen Kuka angepasst
-    # Z-hoch = -Wert, X = - Wert, Y= -Wert  - TEST: ABC, BAC
-    for i in range(0,PATHPTSCount,1):
-        #mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-        mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
-        dataPATHPTS_Loc = dataPATHPTS_Loc + [mList[i]] 
-        TList[i][0:3] = [(PathPointX[i] + ADJUSTMENTPos_KoordB[0]) , (PathPointY[i] + ADJUSTMENTPos_KoordB[1]) , (PathPointZ[i] + ADJUSTMENTPos_KoordB[2]) ]
-        dataPATHPTS_LocT  = dataPATHPTS_LocT + [TList[i]]
-    # float(str(ADJUSTMENTPos_Koord[0])) 
-    nList= createMatrix(PATHPTSCount,1)  
-    UList= createMatrix(PATHPTSCount,1) 
-    dataPATHPTS_Rot =[] 
-    dataPATHPTS_RotT =[] 
-    # XYZ = CBA
-    # A = -Z
-    for i in range(0,PATHPTSCount,1):
-        #nList[i][0:3] = [PathAngleA[i], PathAngleB[i], PathAngleC[i]]
-        
-        nList[i][0:3] = [Vorz1 *PathAngleC[i], Vorz2 *PathAngleB[i], Vorz3 *PathAngleA[i]]
-        
-        # ... DAS SOLLTE JETZT SO OK SEIN: Die XYZ Verschiebung wird durch die Armature beruecksichtigt. D.h. Das Empty, bzw
-        # die PATHPTS geben die TCP Position des Werkzeugs an. Es wird dann nur noch 'Vorverdrehung' beim Anschrauben des Werkzeugs
-        # an das Flansch beruecksichtigt. (hier: -38�)
-        # Achtung: TODO: noch nicht bei EXPORT beruecksichtigt... [Pruefung: nicht 100% OK, verworfen!!!!...]
-        #nList[i][0:3] = [Vorz1 *(PathAngleC[i]-ADJUSTMENTPos_Angle[0]), Vorz2 *(PathAngleB[i]-ADJUSTMENTPos_Angle[1]), Vorz3 *(PathAngleA[i]-ADJUSTMENTPos_Angle[2])]
-        
-        dataPATHPTS_Rot = dataPATHPTS_Rot + [nList[i]]
-        
-        UList[i][0:3] = [(PathAngleC[i] + ADJUSTMENTPos_AngleB[0]) , (PathAngleB[i] + ADJUSTMENTPos_AngleB[1]) , (PathAngleA[i] + ADJUSTMENTPos_AngleB[2]) ]
-        dataPATHPTS_RotT  = dataPATHPTS_RotT + [UList[i]]
-        
-    #dataPATHPTS_Loc = dataPATHPTS_LocT
-    #dataPATHPTS_Rot = dataPATHPTS_RotT
-    print('RfF_PATHPTS - Curve data - splines ersetzt')
-    print('_____________________________________________________________________________')
-    return dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCount, dataPATHPTS_LocT, dataPATHPTS_RotT
+    if Count ==1:
+        KeyPos_Koord  = Vector([float(PathPointX[0]), float(PathPointY[0]), float(PathPointZ[0])])
+        KeyPos_Angle  = float(str(Vorz1 *PathAngleC[0])), float(str(Vorz1 *PathAngleB[0])), float(str(Vorz1 *PathAngleA[0])) # in Grad
+    else:   
+        mList= createMatrix(Count,1) # eigene Class "createMatrix" erstellt
+        KeyPos_Koord = []
+        for i in range(0,Count,1):
+            mList[i][0:3] = [PathPointX[i], PathPointY[i], PathPointZ[i]]
+            KeyPos_Koord = KeyPos_Koord + [mList[i]] 
+       
+        nList= createMatrix(Count,1)   
+        KeyPos_Angle =[]  
+        for i in range(0,Count,1):
+            nList[i][0:3] = [Vorz1 *PathAngleC[i], Vorz2 *PathAngleB[i], Vorz3 *PathAngleA[i]]      
+            KeyPos_Angle = KeyPos_Angle + [nList[i]]
 
-    
-    
-    
-def TransfRel(BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle):
+    print('RfF_KeyPos :' + Keyword + ' gelesen.')
     print('_____________________________________________________________________________')
-    print('TransfRel')
-    print('BASEPos_Koord: ' +str(BASEPos_Koord))
-    print('BASEPos_Angle: ' +str(BASEPos_Angle))
-    print('ADJUSTMENTPos_Koord: ' +str(ADJUSTMENTPos_Koord))
-    print('ADJUSTMENTPos_Angle: ' +str(ADJUSTMENTPos_Angle))  
-    print('')
-    matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
-    point_local  = ADJUSTMENTPos_Koord
-    point_world  = matrix_world * point_local
-    print(' ADJUSTMENTPos_Koord local bezogen auf Base: point_local ' +str(point_local))
-    print(' ADJUSTMENTPos_Koord local bezogen auf World: point_world ' +str(point_world))
-    print('')
-    print('Transformation von ADJUSTMENTPos auf GlobalKoordinaten...')
+    return KeyPos_Koord, KeyPos_Angle 
     
-    
-    
-    #todo: evtl auf ZYX aendern???:
-    eul = mathutils.Euler((math.radians(BASEPos_Angle[0]), math.radians(BASEPos_Angle[1]), math.radians(BASEPos_Angle[2])), RotationModeTransform) # XYZ
-    print('eul: ' +str(eul))
-    mat_rot = eul.to_matrix()
-    mat_loc = point_local 
-    mat = mat_rot * mat_loc 
-    print('mat: ' +str(mat))
-    
-    #print('Rotation von ADJUSTMENTPos_Koord bezogen auf BaseKoordinaten...')
-    #matrix_world = mathutils.Matrix.Translation(BASEPos_Koord)
-    #print('matrix_world: ' +str(matrix_world))
-    #point_local  = mat
-    #point_world  = matrix_world * point_local
-    #print('point_world2: ' +str(point_world))
-    
-    #print('BASEPos_Koord: ' +str(BASEPos_Koord))
-    #print('BASEPos_Angle: ' +str(BASEPos_Angle))
-    #print('ADJUSTMENTPos_Koord: ' +str(ADJUSTMENTPos_Koord))
-    #print('ADJUSTMENTPos_Angle: ' +str(ADJUSTMENTPos_Angle)) 
-    
-    #SetOrigin(Obj, Obj)
-    
-    #ADJUSTMENTPos_KoordB = point_world
-    ADJUSTMENTPos_KoordB = mat
-    
-    #print('Safe-Origin  = Obj auf point_world  gesetzt.')
-    #-----------------------------------
-    
-    print('ADJUSTMENTPos_AngleB wieder dem Origin zuweisen unter Beruecksichtigung der BaseOrientierung:')
-    ADJUSTMENTPos_AngleB = []
-    # todo - test : vertauschen der Winkel... unklar... Import=Export, aber nicht = KUKA Film... 
-    #ADJUSTMENTPos_AngleB[0] = list(BASEPos_Angle[0] +ADJUSTMENTPos_Angle[0])
-    #ADJUSTMENTPos_AngleB[1] = list(BASEPos_Angle[1] +ADJUSTMENTPos_Angle[1])
-    #ADJUSTMENTPos_AngleB[2] = list(BASEPos_Angle[2] +ADJUSTMENTPos_Angle[2])
-    ADJUSTMENTPos_AngleB = [(BASEPos_Angle[0] + ADJUSTMENTPos_Angle[0]) , (BASEPos_Angle[1] + ADJUSTMENTPos_Angle[1]) , (BASEPos_Angle[2] + ADJUSTMENTPos_Angle[2]) ]     
-    print('BASEPos_Koord: ' +str(BASEPos_Koord))
-    print('BASEPos_Angle: ' +str(BASEPos_Angle))
-    print('ADJUSTMENTPos_AngleB: ' +str(ADJUSTMENTPos_AngleB))    
-    print('ADJUSTMENTPos_KoordB: ' +str(ADJUSTMENTPos_KoordB)) 
-    
-    print('TransfRel done')
-    print('_____________________________________________________________________________')
-    
-    return ADJUSTMENTPos_KoordB, ADJUSTMENTPos_AngleB
 
 def RfF_TIMEPTS(filepath):
     print('_____________________________________________________________________________')
@@ -1365,7 +928,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         objHome = bpy.data.objects['Sphere_HOMEPos']
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
         
-        # Wichtig: Verdrehung des Koordinaten Systems (TODO: vgl. Euler Winkel)
+        # Wichtig: Fuer die Interpolation (fcurves) wird Quaternation verwendet um Gimbal Lock zu vermeiden!
         bpy.data.objects[objBase.name].rotation_mode = RotationModeBase
         bpy.data.objects[objSafe.name].rotation_mode = RotationModePATHPTS
         bpy.data.objects[objCurve.name].rotation_mode = RotationModePATHPTS
@@ -1418,9 +981,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         
         TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
         WtF_KeyPos('TIMEPTS',TIMEPTS_PATHPTS, '', self.filepath, '.dat', 'a')
-        
-        #WtF_KUKAdat(context.object, objEmpty_A6, PATHPTSObjName, self.filepath, BASEPos_Koord, BASEPos_Angle)
-        
+            
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
@@ -1496,13 +1057,16 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         #--------------------------------------------------------------------------------
         
         print("Erstellen der BezierCurve: done")
-        BASEPos_Koord, BASEPos_Angle = RfF_BasePos(self.filepath)
+        #BASEPos_Koord, BASEPos_Angle = RfF_BasePos(self.filepath)
+        BASEPos_Koord, BASEPos_Angle = RfF_KeyPos('BASEPos', self.filepath, '.cfg')
         try:
-            ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath)
+            #ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath)
+            ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_KeyPos('ADJUSTMENTPos', self.filepath, '.cfg')
         except:
             print('failed to load AdjustmentPos')
         try:
-            HOMEPos_Koord, HOMEPos_Angle = RfF_HomePos(self.filepath)
+            #HOMEPos_Koord, HOMEPos_Angle = RfF_HomePos(self.filepath)
+            HOMEPos_Koord, HOMEPos_Angle = RfF_KeyPos('HOMEPos', self.filepath, '.cfg')
         except:
             
             print('failed to load HomePos')
@@ -1510,60 +1074,13 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         
         # create Container (Location, Rotation) for each path point (PTP): dataPATHPTS_Loc, dataPATHPTS_Rot
-        dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, dataPATHPTS_LocT, dataPATHPTS_RotT = RfF_PATHPTS(self.filepath, BASEPos_Koord, BASEPos_Angle) 
-        
-        
-        
-        #XYZ bei transformation nochmal zu zyx tauschen, bzw. YXZ ; Winkelverdrehung ergibt sich daraus, das die SAE Schale um 90 Grad 
-        # verdreht montiert wird. dazu Kommt die HOMEPos von -128 -> -128 + 90 = -38 Grad Korrektur auf der Z Achse
-        
-        #todo: test ueber RfF_AdjustmentPos
-        # wenn so richtig, dann muss fuer den Export alles ueber Adjustment Ruecktransformiert werden!
-        # -> Diese Verdrehung +90 Grad bezieht sich nur auf die Montage des EndEffektors (SAE) Schale.
-        # -> Die -128 Grad sind dem Roboter bekannt (da in der HOMEPos gespeichert.
-        # -> Daraus folgt aber, das die Justageposition mit den CAD-World Winkeln Deckungsgleich ist!
-        # --> Um die -178 aus HomePos zu beruecksichtigen, muss ich die SAE Schale nochmal drehen!
-        # --> Damit die PATHPTS die Ausrichtung der SAE Schale wiedergeben muss die Verdrehte Montage Verdrehung HOMEPos + Verdr. Tool (A -128.2708, B -0.4798438, C -178.1682)
-        # bzgl. der Winkel und MES = {X -237, Y 0, Z 342, A (90), B 0, C 0 } bzgl der Verschiebung beruecksichtigt werden
-        # Zusaetzlich: die PATHPTS haben ein rechtsdrehndes (linke HandRegel) System (YXZ) (Vg. Euler Winkel)
-        
-        
-        # --> Die Verdrehungen werden ueber DeltaRotation angewandt, da diese nicht Teil des KUKA selbst sind.
-        # D.h. nicht in den PATHPTS beruecksichtigt werden.
-        #SetBasePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
-        
-        # TEST: warum verschieben sich die PATHPTS nicht mit der BASEPos?
-        # Warum liegt die Kartesische HOMEPos nicht auf der Achsspez. HOMEPos?
-        # Warum kann das Modell die Kartesische HOMEPos nicht einnehmen?
-        # Achtung: Base = f(World) mit rechte Hand-Regel (links drehendes System)
-        #          PATHPTS = f(Base) mit rechte/linke? Hand-Regel und links drehendem System -> entsteht dadurch das ZXY System???
-        
-        #ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath) 
-        #BASEPos_Koord[0] = BASEPos_Koord[0] + ADJUSTMENTPos_Koord[0]
-        #BASEPos_Koord[1] = BASEPos_Koord[1] + ADJUSTMENTPos_Koord[1]
-        #BASEPos_Koord[2] = BASEPos_Koord[2] + ADJUSTMENTPos_Koord[2]
-        #liste1 = BASEPos_Angle[0] + ADJUSTMENTPos_Koord[0]
-        #liste2 = BASEPos_Angle[1] + ADJUSTMENTPos_Koord[1]
-        #liste3 = BASEPos_Angle[2] + ADJUSTMENTPos_Koord[2]
-        #BASEPos_Angle = [liste1, liste2, liste3]
-        
+        #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfF_PATHPTS(self.filepath, BASEPos_Koord, BASEPos_Angle) # local, bez. auf Base
+        dataPATHPTS_Loc, dataPATHPTS_Rot = RfF_KeyPos('PATHPTS', self.filepath, '.dat')
+        PATHPTSCountFile = len(dataPATHPTS_Loc)
         SetBasePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
-        try:
-            SetAdjustmentPos(guifeld)
-        except:
-            print('failed to set Adjustement Position....')
         SetBasePos(context.object, objHome, HOMEPos_Koord, HOMEPos_Angle)
         
-        #SetObjRelToBase(objBase, BASEPos_Koord, BASEPos_Angle, ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle )
-        
-        
-        #ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_AdjustmentPos(self.filepath) 
-        
-        # todo - test: uebergebe um adjustement korrigierte werte fuer die pathpts...
         create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
-        #create_PATHPTSObj(dataPATHPTS_LocT, dataPATHPTS_RotT, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle)
-        
-        #bezierCurve = bpy.data.curves[objCurve.name] #bpy.context.active_object #.data.name
         SetCurvePos(context.object, objBase, BASEPos_Koord, BASEPos_Angle)
         replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) 
         
@@ -1572,13 +1089,14 @@ class CurveImport (bpy.types.Operator, ImportHelper):
        
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' + str(BASEPos_Angle))
-        SAFEPos_Koord, SAFEPos_Angle = RfF_SafePos(self.filepath)
+        #SAFEPos_Koord, SAFEPos_Angle = RfF_SafePos(self.filepath)
+        SAFEPos_Koord, SAFEPos_Angle = RfF_KeyPos('PTP', self.filepath, '.src') # PTP = SAFEPos
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         print('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' A Z {0:.3f}'.format(SAFEPos_Angle[2]))
         # Achtung: Die Reihenfolge der Aufrufe von SetBasePos und SetObjRelToBase darf nicht vertauscht werden!
-        SetObjRelToBase(objSafe, SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        
+        SetObjRelToBase(objSafe, SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
@@ -1646,7 +1164,7 @@ class ClassRefreshButton (bpy.types.Operator):
 
 def OptimizeRotation(ObjList, countObj):
     
-    # Begrenze Rotation auf 360�
+    # Begrenze Rotation auf 360째
     for i in range(countObj-1):
         Rot = bpy.data.objects[ObjList[i]].rotation_euler
         modRot= math.modf(Rot.x/ (2*math.pi)) # Ergebnis: (Rest, n)
@@ -1657,8 +1175,8 @@ def OptimizeRotation(ObjList, countObj):
         Rot.z = modRot[0] * (2*math.pi) 
     
     # Teil 1:
-    # wenn zum erreichen des folgenden Winkels mehr als 180� (PI) zurueckzulegen ist, 
-    # dann zaehle 360� drauf (wenn er negativ ist) bzw. ziehe 360� (wenn er positiv ist)
+    # wenn zum erreichen des folgenden Winkels mehr als 180째 (PI) zurueckzulegen ist, 
+    # dann zaehle 360째 drauf (wenn er negativ ist) bzw. ziehe 360째 (wenn er positiv ist)
     
     
     for i in range(countObj-1):
@@ -1682,28 +1200,6 @@ def OptimizeRotation(ObjList, countObj):
         elif DeltaRot[2] > math.pi and Rot2.z >=0:
             Rot2.z = -2*math.pi + Rot2.z #-
        
-    '''   
-    for i in range(countObj-1):
-        Rot1 = bpy.data.objects[ObjList[i]].rotation_euler
-        Rot2 = bpy.data.objects[ObjList[i+1]].rotation_euler
-        
-        DeltaRot = [math.fabs(Rot2.x - Rot1.x),math.fabs(Rot2.y - Rot1.y),math.fabs(Rot2.z - Rot1.z)]
-                
-        if  DeltaRot[0] > math.pi and Rot2.x < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
-            Rot2.x =  2*math.pi + Rot2.x
-        elif DeltaRot[0] > math.pi and Rot2.x >=0:
-            Rot2.x = -2*math.pi + Rot2.x #-
-            
-        if  DeltaRot[1] > math.pi and Rot2.y < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
-            Rot2.y =  2*math.pi + Rot2.y
-        elif DeltaRot[1] > math.pi and Rot2.y >=0:
-            Rot2.y = -2*math.pi + Rot2.y #-
-        
-        if  DeltaRot[2] > math.pi and Rot2.z < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
-            Rot2.z =  2*math.pi + Rot2.z
-        elif DeltaRot[2] > math.pi and Rot2.z >=0:
-            Rot2.z = -2*math.pi + Rot2.z #-   
-    '''     
                     
 def OptimizeRotationQuaternion(ObjList, countObj):
     
@@ -2124,7 +1620,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
                 
                 bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
-                SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
+                SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                       
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
             print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
@@ -2145,7 +1641,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
             bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
-            SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
+            SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                 
     bpy.context.area.type = original_type 
     print('create_PATHPTSObj done')
@@ -2218,7 +1714,7 @@ def RefreshButton_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
                 
-                SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
+                SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                       
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
             print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
@@ -2235,7 +1731,7 @@ def RefreshButton_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
             
-            SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle)
+            SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                 
     bpy.context.area.type = original_type 
     print('RefreshButton_todo_PATHPTS done')
