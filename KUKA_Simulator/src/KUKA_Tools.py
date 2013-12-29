@@ -185,7 +185,6 @@ def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode)
             fout.write(";FOLD TIME DATA" + "\n")
             Count = len(KeyPos_Koord)
     
-        
         for i in range(0,Count,1):    
             fout.write(Keyword +"[" + str(i+1) + "]=" + 
                        "{0:.5f}".format(KeyPos_Koord[i] ) +
@@ -209,7 +208,6 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
     fin = open(FilenameSRC)
     gesamtertext = fin.read()
     fin.close
-    
     
     KeyPos_Koord = []
     KeyPos_Angle =[] # rad 
@@ -301,7 +299,7 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
        
             IndCA = zeilenliste[PathIndexAnf+n+i].index("C ", beg, len(zeilenliste[PathIndexAnf+n+i]))  
             IndCE = len(zeilenliste[PathIndexAnf+n+i])-2 # }   " "+chr(125) funktioniert nicht?!
-            PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+n+i][IndCA+2:IndCE])*2*math.pi/360] # in rad
+            PathAngleC = PathAngleC + [float(zeilenliste[PathIndexAnf+n+i][IndCA+2:IndCE])*2*math.pi/360] # [Grad] -> [rad]
             
         # ==========================================    
         # Erstellen der Datenkontainer fuer location und rotation
@@ -309,7 +307,7 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
         
         if Count ==1:
             KeyPos_Koord  = Vector([float(PathPointX[0]), float(PathPointY[0]), float(PathPointZ[0])])
-            KeyPos_Angle  = float(str(Vorz1 *PathAngleC[0])), float(str(Vorz1 *PathAngleB[0])), float(str(Vorz1 *PathAngleA[0])) # in Grad
+            KeyPos_Angle  = float(str(Vorz1 *PathAngleC[0])), float(str(Vorz1 *PathAngleB[0])), float(str(Vorz1 *PathAngleA[0])) # [rad]
         else:   
             mList= createMatrix(Count,1) # eigene Class "createMatrix" erstellt
             for i in range(0,Count,1):
@@ -459,10 +457,10 @@ def FindFCurveID(objEmpty_A6, action):
     
     print(action.name)
     
-    locID=['xx',9999,9999]
-    rotID=[9999,9999,9999, 9999]
-    scaleID=[9999,9999,9999]
-    dlocID =[9999,9999,9999]
+    locID  =[9999, 9999, 9999]
+    rotID  =[9999, 9999, 9999, 9999]
+    scaleID=[9999, 9999, 9999]
+    dlocID =[9999, 9999, 9999]
          
     action_data =action.fcurves
     print(action_data)
@@ -590,13 +588,13 @@ def SetKukaToCurve(objCurve):
     bpy.data.objects[objCurve.name].rotation_mode = RotationModeTransform #RotationModePATHPTS
     objCurve.delta_location = (0,0,0)
     
-    object       = bpy.data.objects['BezierCircle']
-    matrix_world = object.matrix_world
-    curve_data   = object.data
+    matrix_world = objCurve.matrix_world
     # Wichtig: Beim letzten Punkt in der Kurve [-1] Anfangen, warum auch immer
     # (ansonsten offset zwischen Punkt [0] und [-1]
-    point_local  = curve_data.splines[0].bezier_points[-1].co
+    point_local  = objCurve.data.splines[0].bezier_points[-1].co
+    
     point_world  = matrix_world * point_local
+    
     bpy.data.objects['Empty_Zentralhand_A6'].location = point_world
     
     #-----------------------------------
@@ -661,23 +659,23 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     
     matrix_world =bpy.data.objects[objBase.name].matrix_world
     point_local  = Obj_Koord    
+    if (Obj_Angle !='' and BASEPos_Angle !=''):
+        print('point_local'+ str(point_local))  # neuer Bezugspunkt
+        mat_rotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # C = -179 Global
+        mat_rotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y') # B = -20
+        mat_rotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z') # A = -35
+        Mrot = mat_rotZ * mat_rotY * mat_rotX
+        print('Mrot'+ str(Mrot))
+        mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # Local (bez. auf Base)
+        mat_rotY2 = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
+        mat_rotZ2 = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
+        Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2 # KUKA Erg.
+        print('Mrot2'+ str(Mrot2))
     
-    print('point_local'+ str(point_local))  # neuer Bezugspunkt
-    mat_rotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # C = -179 Global
-    mat_rotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y') # B = -20
-    mat_rotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z') # A = -35
-    Mrot = mat_rotZ * mat_rotY * mat_rotX
-    print('Mrot'+ str(Mrot))
-    mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # Local (bez. auf Base)
-    mat_rotY2 = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
-    mat_rotZ2 = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
-    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2 # KUKA Erg.
-    print('Mrot2'+ str(Mrot2))
-    
-    rot_matrix_world = Mrot2.transposed() * Mrot.transposed()       
-    rot_matrix_world = rot_matrix_world.transposed()
-    rotEuler =rot_matrix_world.to_euler('XYZ')
-    Obj.rotation_euler = rotEuler
+        rot_matrix_world = Mrot2.transposed() * Mrot.transposed()       
+        rot_matrix_world = rot_matrix_world.transposed()
+        rotEuler =rot_matrix_world.to_euler('XYZ')
+        Obj.rotation_euler = rotEuler
     
     print('rotEuler'+ str(rotEuler))
     print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
@@ -770,7 +768,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
         #ClearParenting() # hier wird das Parenting geloest!
         
-        ApplyScale(context.object) 
+        ApplyScale(objCurve) 
         #--------------------------------------------------------------------------------
         
         #BASEPos_Koord, BASEPos_Angle = objBase.location, [objBase.rotation_euler.x* 360 / (2*math.pi), objBase.rotation_euler.y* 360 / (2*math.pi), objBase.rotation_euler.z* 360 / (2*math.pi)]
@@ -823,7 +821,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' Z A {0:.3f}'.format(SAFEPos_Angle[2]))
         #--------------------------------------------------------------------------------
         # Achtung: SetKukaToCurve funktioniert nur richtig, wenn das Parenting vorher geloest wurde!
-        SetKukaToCurve(context.object)
+        SetKukaToCurve(objCurve)
         #SetParenting() # hier wird ein Parenting hergestellt!
         # 2ter Aufruf notwendig, (wegen Kopie der Koordinaten vom parent to child objekt):
         #SetKukaToCurve(context.object) 
@@ -874,7 +872,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         ObjName = filename
                 
         #ClearParenting()
-        ApplyScale(context.object)
+        ApplyScale(objCurve)
         #--------------------------------------------------------------------------------
         
         print("Erstellen der BezierCurve: done")
@@ -942,10 +940,15 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         # der folgende Befehl muss nach dem Parenting nochmal
         # ausgefuehrt werden um die Verschiebung es Empty wieder aufzuheben!
         # Achtung: SetKukaToCurve funktioniert nur richtig, wenn das Parenting vorher geloest wurde!
-        SetKukaToCurve(context.object)
+        
+        SetKukaToCurve(objCurve)
+        
+        # todo: transform func ueberarbeiten:
+        #SetObjRelToBase(objEmpty_A6, objEmpty_A6.location, '', objCurve, curve_data.splines[0].bezier_points[-1].co, '')
+        
         #SetParenting() # hier wird ein Parenting hergestellt!
         # 2ter Aufruf notwendig, (wegen Kopie der Koordinaten vom parent to child objekt):
-        SetKukaToCurve(context.object) 
+        SetKukaToCurve(objCurve) 
         
         return {'FINISHED'} 
     print('CurveImport done')
@@ -970,7 +973,7 @@ class ClassRefreshButton (bpy.types.Operator):
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
         PATHPTSObjName = 'PTPObj_'
         
-        ApplyScale(context.object) 
+        ApplyScale(objCurve) 
         #--------------------------------------------------------------------------------
         
         BASEPos_Koord, BASEPos_Angle = objBase.location, objBase.rotation_euler
@@ -986,7 +989,7 @@ class ClassRefreshButton (bpy.types.Operator):
         objCurve.rotation_euler = BASEPos_Angle
         replace_CP(objCurve, PATHPTSObjName, '', countPATHPTSObj, BASEPos_Koord, BASEPos_Angle) 
         
-        SetKukaToCurve(context.object)
+        SetKukaToCurve(objCurve)
         
         filepath ='none'
         GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, filepath)
