@@ -85,6 +85,7 @@ bl_info = {
     "tracker_url": "http://..."
     }
 #--- ### Imports
+import time # um Zeitstempel im Logfile zu schreiben
 import bpy, os
 import sys
 from bpy.utils import register_module, unregister_module
@@ -118,6 +119,14 @@ Vorz3 = +1#-1 # -A = Z
 CalledFrom =[] 
 filepath=[]
 
+def writelog(text=''):
+    FilenameLog = bpy.data.filepath
+    FilenameLog = FilenameLog.replace(".blend", '.log')
+    fout = open(FilenameLog, 'a')
+    localtime = time.asctime( time.localtime(time.time()) )
+    fout.write(localtime + " : " + str(text) + '\n')
+    fout.close();
+    
 def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):
     
     print('_____________________________________________________________________________')
@@ -853,6 +862,8 @@ class CurveImport (bpy.types.Operator, ImportHelper):
 class ClassRefreshButton (bpy.types.Operator):
     print('ClassRefreshButton- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
     print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+    
+    
     ''' Import selected curve '''
     bl_idname = "curve.refreshbutton"
     bl_label = "Refresh (TB)" #Toolbar - Label
@@ -863,6 +874,7 @@ class ClassRefreshButton (bpy.types.Operator):
  
     def execute(self, context):  
         print('- - -refreshbutton - - - - - - -')
+        writelog('Testlog von ClassRefreshButton')
         #testen-...
         objBase = bpy.data.objects['Sphere_BASEPos']
         objHome = bpy.data.objects['Sphere_HOMEPos']
