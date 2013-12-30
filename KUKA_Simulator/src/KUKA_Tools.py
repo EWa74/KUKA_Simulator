@@ -335,49 +335,58 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
     return KeyPos_Koord, KeyPos_Angle 
     
  
-def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
+ 
+def RfS_LocRot(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
     
-    # dataPATHPTS_Rot [rad]
-    # BASEPos_Angle [rad]
+    # dataPATHPTS_Rot [rad], BASEPos_Angle [rad]
     # Aufruf von: create_PATHPTSObj, SetSafePos
     # Diese Funktion wird nur bei Export, Refresh (unnoetiger Weise) und Import (ueber replaceCP) aufgerufen.
     # Wiedergabe von LOC/Rot bezogen auf Base
     
-    # World2Local - OK
+    # World2Local - OK (absolut -> relativ)
     
+    # Gegeben: Mtrans, Mrot = Base / Vtrans_abs, Mrot_abs
+    # Ges:  Mrot_rel, Vtrans_rel
+    #
+    # Mworld  / Mworld_rel / Mworld_abs mit world = trans * rot
+    # Mtrans  / Mtrans_rel / Mtrans_abs
+    # Mrot    / Mrot_rel   / Mrot_abs
+    #
     # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
     # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
     print('_____________________________________________________________________________')
     print('Funktion: RfS_LocRotX - lokale Koordinaten bezogen auf Base!')
-    
-    objBase = bpy.data.objects['Sphere_BASEPos']
-    PATHPTS_Angle = []
-    
-    matrix_world = bpy.data.objects[objBase.name].matrix_world  #global
-    point_local  = dataPATHPTS_Loc                              #global 
-    
-    print('point_local'+ str(point_local))  # neuer Bezugspunkt
+            
+    Mtrans    = mathutils.Matrix.Translation(Vector(BASEPos_Koord))
+    Vtrans_abs = dataPATHPTS_Loc                              #global 
+    print('Vtrans_abs'+ str(Vtrans_abs))  # neuer Bezugspunkt
     
     #--------------------------------------------------------------------------
-    mat_rotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # Global
-    mat_rotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y')
-    mat_rotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z')
-    Mrot = mat_rotZ * mat_rotY * mat_rotX
+    MrotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # Global
+    MrotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y')
+    MrotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z')
+    Mrot = MrotZ * MrotY * MrotX
     print('Mrot :'+ str(Mrot))
-    mat_rotX2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
-    mat_rotY2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
-    mat_rotZ2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
-    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
-    print('Mrot2'+ str(Mrot2))
+    
+    Mworld_rel = Mtrans * Mrot.to_4x4()
+    
+    Mrot_absX = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
+    Mrot_absY = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
+    Mrot_absZ = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
+    Mrot_abs = Mrot_absZ * Mrot_absY * Mrot_absX
+    print('Mrot_abs :'+ str(Mrot_abs))
     #--------------------------------------------------------------------------
      
-    PATHPTS_Koord = matrix_world.inverted() *point_local    # transpose fuehrt zu einem andren Ergebnis?!
+    #PATHPTS_Koord = matrix_world.inverted() *point_local    # transpose fuehrt zu einem andren Ergebnis?!
+    Vtrans_rel   = Mworld_rel.inverted() *Vtrans_abs  
+    PATHPTS_Koord = Vtrans_rel
+    
     print('PATHPTS_Koord : '+ str(PATHPTS_Koord))           # neuer Bezugspunkt
     
-    matrix_1R0 = Mrot.inverted()  * Mrot2 
-    print('matrix_1R0'+ str(matrix_1R0))
+    Mrot_rel = Mrot.inverted()  * Mrot_abs 
+    print('Mrot_rel'+ str(Mrot_rel))
     
-    newR =matrix_1R0.to_euler('XYZ')
+    newR = Mrot_rel.to_euler('XYZ')
     
     print('newR'+ str(newR))    
     print('newR[0] :'+ str(newR[0]*360/(2*math.pi)))
@@ -645,46 +654,59 @@ def SetOrigin(sourceObj, targetObj):
         bpy.ops.object.mode_set(mode='EDIT', toggle=True)
 
 
-
-
 def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
     # Aufruf bei Import
-    # Obj_Angle [rad]
-    # BASEPos_Angle [rad]
+    # Obj_Koord, Obj_Angle [rad]: relativ
+    # BASEPos_Koord, BASEPos_Angle [rad]: absolut 
+    
     # Transformation Local2World
     
+    # Gegeben: Mtrans, Mrot = Base --> Mworld/ Mrot_rel, Vtrans_rel --> Mworld_rel
+    # Ges:  Vtrans_abs, Mrot_abs
+    #
+    # Mworld  / Mworld_rel / Mworld_abs mit world = trans * rot
+    # Mtrans  / Mtrans_rel / Mtrans_abs
+    # Mrot    / Mrot_rel   / Mrot_abs
+    
     objBase = bpy.data.objects['Sphere_BASEPos']
-    bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
+    #bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
     
     matrix_world =bpy.data.objects[objBase.name].matrix_world
-    point_local  = Obj_Koord    
-    if (Obj_Angle !='' and BASEPos_Angle !=''):
-        print('point_local'+ str(point_local))  # neuer Bezugspunkt
-        mat_rotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # C = -179 Global
-        mat_rotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y') # B = -20
-        mat_rotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z') # A = -35
-        Mrot = mat_rotZ * mat_rotY * mat_rotX
-        print('Mrot'+ str(Mrot))
-        mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # Local (bez. auf Base)
-        mat_rotY2 = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
-        mat_rotZ2 = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
-        Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2 # KUKA Erg.
-        print('Mrot2'+ str(Mrot2))
+    #point_local  = Obj_Koord 
     
-        rot_matrix_world = Mrot2.transposed() * Mrot.transposed()       
-        rot_matrix_world = rot_matrix_world.transposed()
-        rotEuler =rot_matrix_world.to_euler('XYZ')
-        Obj.rotation_euler = rotEuler
+    Mtrans     = mathutils.Matrix.Translation(Vector(BASEPos_Koord))
+    Vtrans_rel = Obj_Koord                              #lokal 
+    print('Vtrans_rel'+ str(Vtrans_rel))  # neuer Bezugspunkt
+      
+    MrotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # C = -179 Global
+    MrotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y') # B = -20
+    MrotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z') # A = -35
+    Mrot = MrotZ * MrotY * MrotX
+    print('Mrot'+ str(Mrot))
+    
+    Mworld = Mtrans * Mrot.to_4x4()
+    
+    Mrot_relX = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # Local (bez. auf Base)
+    Mrot_relY = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
+    Mrot_relZ = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
+    Mrot_rel = Mrot_relZ * Mrot_relY * Mrot_relX # KUKA Erg.
+    print('Mrot_rel'+ str(Mrot_rel))
+
+
+    Mrot_abs = Mrot_rel.transposed() * Mrot.transposed()       
+    Mrot_abs = Mrot_abs.transposed()
+    rotEuler =Mrot_abs.to_euler('XYZ')
+    Obj.rotation_euler = rotEuler
     
     print('rotEuler'+ str(rotEuler))
     print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
     print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*math.pi)))
     print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*math.pi)))
-    
-    point_world = matrix_world *point_local
-    Obj.location = point_world #Vector_World
-    print('point_world :'+ str(point_world))
+        
+    Vtrans_abs = Mworld *Vtrans_rel
+    Obj.location = Vtrans_abs #Vector_World
+    print('Vtrans_abs :'+ str(Vtrans_abs))
        
     return
 
@@ -781,7 +803,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' Y B {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
         
-        SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         
         print('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
@@ -795,7 +817,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         PathPoint = createMatrix(countPATHPTSObj,3)
         PathAngle = createMatrix(countPATHPTSObj,3)
         for i in range(countPATHPTSObj):    
-            PathPoint[i][0:2], PathAngle[i][0:2] = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]], bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+            PathPoint[i][0:2], PathAngle[i][0:2] = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
         WtF_KeyPos('PATHPTS',PathPoint, PathAngle, self.filepath, '.dat', 'w')
         
         TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
@@ -890,7 +912,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         
         # create Container (Location, Rotation) for each path point (PTP): dataPATHPTS_Loc, dataPATHPTS_Rot
         #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfF_PATHPTS(self.filepath, BASEPos_Koord, BASEPos_Angle) # local, bez. auf Base
-        dataPATHPTS_Loc, dataPATHPTS_Rot = RfF_KeyPos('PATHPTS', self.filepath, '.dat')
+        dataPATHPTS_Loc, dataPATHPTS_Rot = RfF_KeyPos('PATHPTS', self.filepath, '.dat') # relativ (bez. auf Base)
         PATHPTSCountFile = len(dataPATHPTS_Loc)
         
         SetOrigin(objHome, objHome)
@@ -922,6 +944,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         print('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' A Z {0:.3f}'.format(SAFEPos_Angle[2]))
         # Achtung: Die Reihenfolge der Aufrufe von SetBasePos und SetObjRelToBase darf nicht vertauscht werden!
+        
         SetObjRelToBase(objSafe, SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
@@ -977,7 +1000,7 @@ class ClassRefreshButton (bpy.types.Operator):
         #--------------------------------------------------------------------------------
         
         BASEPos_Koord, BASEPos_Angle = objBase.location, objBase.rotation_euler
-        SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
         
         OptimizeRotation(PATHPTSObjList, countPATHPTSObj) # todo: testen und auch bei export einfuehren
@@ -1275,9 +1298,9 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
             if (PATHPTSCountFile-1) >= n: # Wenn ein Datenpunkt im File da ist, nehm ihn und ersetzte damit den aktellen Punkt
                 print()
                 
-                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]], bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]], bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]], bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].location, bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
+                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
+                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
+                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].location, bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
                 #bzs[n] fuehrte zu Fehlermeldung ???:
                 bezierCurve.splines[0].bezier_points[n].handle_left = NewLocRot[0][0]
                 bezierCurve.splines[0].bezier_points[n].co = NewLocRot[1][0]
@@ -1290,9 +1313,9 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
             #bpy.data.curves['BezierCircle'].splines[0].bezier_points.add(1)
             bezierCurve.splines[0].bezier_points.add(1) #spline.bezier_points.add(1)
             #todo: Daten sollten eigentlich von dataPATHPTS_Loc verwendet werden:
-            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]], bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]], bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]], bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].location, bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
+            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
+            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
+            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].location, bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
             
             bezierCurve.splines[0].bezier_points[n].handle_left = NewLocRot[0][0]
             bezierCurve.splines[0].bezier_points[n].co = NewLocRot[1][0]
@@ -1457,7 +1480,9 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
                 
                 bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
+                
                 SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+                
                       
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
             print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
@@ -1478,8 +1503,9 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                       + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
             bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
+            
             SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
-                
+               
     bpy.context.area.type = original_type 
     print('create_PATHPTSObj done')
     print('_____________________________________________________________________________')
