@@ -732,7 +732,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         PathPoint = createMatrix(countPATHPTSObj,3)
         PathAngle = createMatrix(countPATHPTSObj,3)
         for i in range(countPATHPTSObj):    
-            PathPoint[i][0:2], PathAngle[i][0:2] = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+            PathPoint[i][0:3], PathAngle[i][0:3] = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
         WtF_KeyPos('PATHPTS',PathPoint, PathAngle, self.filepath, '.dat', 'w')
         
         TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
@@ -841,7 +841,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         objCurve.location = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
         objCurve.rotation_euler = BASEPos_Angle
 
-        replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) 
+        replace_CP(objCurve, dataPATHPTS_Loc) 
         
         # Achtung: die Reihenfolge fon SetCurvePos und SetBasePos muss eingehalten werden! 
         # (da sonst die Curve nicht mit der Base mit verschoben wird!
@@ -909,8 +909,14 @@ class ClassRefreshButton (bpy.types.Operator):
         bpy.data.objects[objCurve.name].rotation_mode =RotationModePATHPTS
         objCurve.location = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
         objCurve.rotation_euler = BASEPos_Angle
-        replace_CP(objCurve, PATHPTSObjName, '', countPATHPTSObj, BASEPos_Koord, BASEPos_Angle) 
         
+        PathPoint = createMatrix(countPATHPTSObj,3)
+        PathAngle = createMatrix(countPATHPTSObj,3)
+        for i in range(countPATHPTSObj):    
+            PathPoint[i][0:3], PathAngle[i][0:3] = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+        
+        replace_CP(objCurve, PathPoint) 
+            
         filepath ='none'
         GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, filepath)
         
@@ -957,7 +963,7 @@ def OptimizeRotation(ObjList, countObj):
        
                     
 def OptimizeRotationQuaternion(ObjList, countObj):
-    
+    # Status: on hold...
     QuaternionList= [bpy.data.objects[ObjList[0]].rotation_euler.to_quaternion()]
     # Teil 1:
     # wenn zum erreichen des folgenden Winkels alle drei Achsen ueber Null gehen muessen, 
@@ -1115,10 +1121,9 @@ class KUKAPanel(bpy.types.Panel):
 # Bezier
 # ________________________________________________________________________________________________________________________
 
-def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle):
+def replace_CP(objCurve, dataPATHPTS_Loc):
     
-    # todo: replace durch create Fkt ersetzten/ ergaenzen und die alte Kurve loeschen
-    
+    # dataPATHPTS_Loc: absolut
     print('_____________________________________________________________________________')
     print('replace_CP')
     #bpy.data.curves[bpy.context.active_object.data.name].user_clear()
@@ -1140,8 +1145,6 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
     
     #bpy.data.objects['BezierCircle'].select=True
     
-    PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
-    
     bpy.ops.object.mode_set(mode='EDIT', toggle=False) # switch to edit mode
     
     bezierCurve.dimensions = '3D'
@@ -1151,11 +1154,11 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
     
     # sicherstellen das kein ControlPoint selektiert ist:
     for n in range(PATHPTSCount):
-        bezierCurve.splines[0].bezier_points[n].select_control_point= False
-        bezierCurve.splines[0].bezier_points[n].select_right_handle = False
-        bezierCurve.splines[0].bezier_points[n].select_left_handle = False             
+        bzs[n].select_control_point= False
+        bzs[n].select_right_handle = False
+        bzs[n].select_left_handle = False             
     CountCP = 0
-    
+    PATHPTSCountFile = len(dataPATHPTS_Loc[:])
     if PATHPTSCountFile <= PATHPTSCount:
         CountCP = PATHPTSCount
     if PATHPTSCountFile > PATHPTSCount:
@@ -1168,9 +1171,9 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
         delList = [PATHPTSCountFile]*(PATHPTSCountFile+zuViel)
         
         for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
-            bezierCurve.splines[0].bezier_points[delList[n]].select_control_point=True
-            bezierCurve.splines[0].bezier_points[delList[n]].select_right_handle = True
-            bezierCurve.splines[0].bezier_points[delList[n]].select_left_handle = True
+            bzs[delList[n]].select_control_point=True
+            bzs[delList[n]].select_right_handle = True
+            bzs[delList[n]].select_left_handle = True
             #bpy.ops.curve.delete(type='SELECTED') # erzeugte Fehler bei Wechsel von Version 2.68-2 auf 2.69
             bpy.ops.curve.delete()
         CountCP = len(bzs)
@@ -1178,53 +1181,33 @@ def replace_CP(objCurve, PATHPTSObjName, dataPATHPTS_Loc, PATHPTSCountFile, BASE
     for n in range(CountCP):
         if (PATHPTSCount-1) >= n: # Wenn ein Datenpunkt auf der vorhandenen Kurve da ist,
             # Waehle einen Punkt auf der vorhandenen Kurve aus:
-            bezierCurve.splines[0].bezier_points[n].select_control_point = True
-            print(bezierCurve.splines[0].bezier_points[n])
-            print('Select control point:' + str(bezierCurve.splines[0].bezier_points[n].select_control_point))
+            bzs[n].select_control_point = True
+            print(bzs[n])
+            print('Select control point:' + str(bzs[n].select_control_point))
             
-            bezierCurve.splines[0].bezier_points[n].handle_left_type='VECTOR'
-            print(bezierCurve.splines[0].bezier_points[n].handle_left_type)
+            bzs[n].handle_left_type='VECTOR'
+            print(bzs[n].handle_left_type)
             
-            bezierCurve.splines[0].bezier_points[n].handle_right_type='VECTOR'
-            print(bezierCurve.splines[0].bezier_points[n].handle_right_type)
-            
-            NewLocRot =[]
-            
+            bzs[n].handle_right_type='VECTOR'
+            print(bzs[n].handle_right_type)
             
             if (PATHPTSCountFile-1) >= n: # Wenn ein Datenpunkt im File da ist, nehm ihn und ersetzte damit den aktellen Punkt
                 print()
+                bzs[n].handle_left  =  dataPATHPTS_Loc[n-1]
+                bzs[n].co           = dataPATHPTS_Loc[n] 
+                bzs[n].handle_right = dataPATHPTS_Loc[n-PATHPTSCountFile+1] 
                 
-                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-                NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].location, bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-                #bzs[n] fuehrte zu Fehlermeldung ???:
-                bezierCurve.splines[0].bezier_points[n].handle_left = NewLocRot[0][0]
-                bezierCurve.splines[0].bezier_points[n].co = NewLocRot[1][0]
-                bezierCurve.splines[0].bezier_points[n].handle_right = NewLocRot[2][0]
-                
-                bezierCurve.splines[0].bezier_points[n].select_control_point = False  
+                bzs[n].select_control_point = False  
                 
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
-            #bzs.add(1) #spline.bezier_points.add(1)
-            #bpy.data.curves['BezierCircle'].splines[0].bezier_points.add(1)
-            bezierCurve.splines[0].bezier_points.add(1) #spline.bezier_points.add(1)
-            #todo: Daten sollten eigentlich von dataPATHPTS_Loc verwendet werden:
-            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-1]].location, bpy.data.objects[PATHPTSObjList[n-1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
-            NewLocRot = NewLocRot + [RfS_LocRot(bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].location, bpy.data.objects[PATHPTSObjList[n-PATHPTSCountFile+1]].rotation_euler, BASEPos_Koord, BASEPos_Angle)]
+            bzs.add(1) 
+        
+            bzs[n].handle_left = dataPATHPTS_Loc[n-1] 
+            bzs[n].co =  dataPATHPTS_Loc[n] 
+            bzs[n].handle_right = dataPATHPTS_Loc[n-PATHPTSCountFile+1] 
             
-            bezierCurve.splines[0].bezier_points[n].handle_left = NewLocRot[0][0]
-            bezierCurve.splines[0].bezier_points[n].co = NewLocRot[1][0]
-            bezierCurve.splines[0].bezier_points[n].handle_right = NewLocRot[2][0]
-            
-            bezierCurve.splines[0].bezier_points[n].handle_right_type='VECTOR'
-            bezierCurve.splines[0].bezier_points[n].handle_left_type='VECTOR'
-            print(bezierCurve.splines[0].bezier_points[n])
-            print(bezierCurve.splines[0].bezier_points[n].select_control_point)
-            print(bezierCurve.splines[0].bezier_points[n].handle_left_type)
-            print('handle_right' + str(bezierCurve.splines[0].bezier_points[n].handle_right_type))
-            print(bezierCurve.splines[0].bezier_points[n])
-            
+            bzs[n].handle_right_type='VECTOR'
+            bzs[n].handle_left_type='VECTOR'
     
     if original_mode!= 'OBJECT':
         bpy.ops.object.mode_set(mode='EDIT', toggle=True)
