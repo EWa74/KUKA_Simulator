@@ -529,92 +529,8 @@ def ApplyScale(objCurve):
         bpy.ops.object.select_all(action='DESELECT')
         print('ApplyScale done')
         print('_____________________________________________________________________________')
-           
-def ClearParenting():
-    print('_____________________________________________________________________________')
-    print('ClearParenting')
-    objSafe = bpy.data.objects['Sphere_SAFEPos']
-    objBase = bpy.data.objects['Sphere_BASEPos']
-    objCurve = bpy.data.objects['BezierCircle']
-    objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
-    # testen: objEmpty_A6 = bpy.context.scene.objects.get('Empty_Zentralhand_A6')
-    # 1. Parenting zwischen BASEPosition und Kurve loesen:
-    bpy.ops.object.select_all(action='DESELECT')
-    objCurve.select = True   
-    objBase.select= True
-    bpy.context.scene.objects.active = objBase 
-    bpy.ops.object.parent_clear(type='CLEAR')
-    
-    # 2. Parenting zwischen Zentralhand_A6 (Empty) und Kurve loesen:
-    bpy.ops.object.select_all(action='DESELECT')
-    objEmpty_A6.select=True
-    objCurve.select=True
-    bpy.context.scene.objects.active = objCurve
-    bpy.ops.object.parent_clear(type='CLEAR')
-    
-    # 3. Parenting zwischen SAFEPosition und Kurve loesen:
-    bpy.ops.object.select_all(action='DESELECT')
-    objCurve.select = True   
-    objSafe.select= True 
-    bpy.context.scene.objects.active = objSafe
-    bpy.ops.object.parent_clear(type='CLEAR')
-    print('ClearParenting done')
-    print('_____________________________________________________________________________')
-    
-def SetParenting():
-    print('_____________________________________________________________________________')
-    print('SetParenting')
-    objCurve = bpy.data.objects['BezierCircle']
-    objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
-    # Parenting zwischen Zentralhand_A6 (Emppty) und Kurve:
-    bpy.ops.object.select_all(action='DESELECT')
-    objEmpty_A6.select=True
-    objCurve.select=True
-    bpy.context.scene.objects.active = objCurve
-    objEmpty_A6.parent=objCurve
-    bpy.ops.object.parent_set(type='FOLLOW', xmirror=False, keep_transform=True)
-        
-    # Parenting zwischen BASEPosition und Kurve:
-    #bpy.data.objects['Sphere_BASEPos'].parent=bpy.data.objects['BezierCircle']  
-        
-    print('SetParenting done')
-    print('_____________________________________________________________________________')
-    
-def SetKukaToCurve(objCurve):
-    print('_____________________________________________________________________________')
-    print('SetKukaToCurve')
-    # Achtung: SetKukaToCurve funktioniert nur richtig, wenn das Parenting vorher geloest wurde!
-    
-    '''
-    bpy.ops.object.select_all(action='DESELECT')
-    bpy.data.objects['Empty_Zentralhand_A6'].select
-    bpy.data.objects['BezierCircle'].select
-    bpy.ops.object.parent_clear(type='CLEAR')
-    '''
-    
-    # Empty_Zentralhand_A6 auf Startpunkt der Kurve setzen
-    # Achtung: Delta Location muss auf Nullgesetzt werden:
-    bpy.data.objects[objCurve.name].rotation_mode = RotationModeTransform #RotationModePATHPTS
-    objCurve.delta_location = (0,0,0)
-    
-    matrix_world = objCurve.matrix_world
-    # Wichtig: Beim letzten Punkt in der Kurve [-1] Anfangen, warum auch immer
-    # (ansonsten offset zwischen Punkt [0] und [-1]
-    point_local  = objCurve.data.splines[0].bezier_points[-1].co
-    
-    point_world  = matrix_world * point_local
-    
-    bpy.data.objects['Empty_Zentralhand_A6'].location = point_world
-    
-    #-----------------------------------
-    bpy.ops.object.select_all(action='DESELECT')
-    #-----------------------------------
-    print('SetKukaToCurve done')
-    print('_____________________________________________________________________________')
 
-
-
-
+    
 def SetOrigin(sourceObj, targetObj):
     # todo: Sicherheitsabfrage/bug: 'EDIT' Mode line 919, in SetOrigin
     # TypeError: Converting py args to operator properties:  enum "EDIT" not found in ('OBJECT')
@@ -654,7 +570,7 @@ def SetOrigin(sourceObj, targetObj):
         bpy.ops.object.mode_set(mode='EDIT', toggle=True)
 
 
-def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+def SetObjRelToBase(Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
     # Aufruf bei Import
     # Obj_Koord, Obj_Angle [rad]: relativ
@@ -697,7 +613,7 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     Mrot_abs = Mrot_rel.transposed() * Mrot.transposed()       
     Mrot_abs = Mrot_abs.transposed()
     rotEuler =Mrot_abs.to_euler('XYZ')
-    Obj.rotation_euler = rotEuler
+    #Obj.rotation_euler = rotEuler
     
     print('rotEuler'+ str(rotEuler))
     print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
@@ -705,10 +621,10 @@ def SetObjRelToBase(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*math.pi)))
         
     Vtrans_abs = Mworld *Vtrans_rel
-    Obj.location = Vtrans_abs #Vector_World
+    #Obj.location = Vtrans_abs #Vector_World
     print('Vtrans_abs :'+ str(Vtrans_abs))
        
-    return
+    return Vtrans_abs, rotEuler
 
    
     # ==========================================    
@@ -788,7 +704,6 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
         print(' FUNKTIONSAUFRUF CurveExport KUKA_Tools')
         print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-        #ClearParenting() # hier wird das Parenting geloest!
         
         ApplyScale(objCurve) 
         #--------------------------------------------------------------------------------
@@ -842,12 +757,7 @@ class CurveExport (bpy.types.Operator, ExportHelper):
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         print('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' Z A {0:.3f}'.format(SAFEPos_Angle[2]))
         #--------------------------------------------------------------------------------
-        # Achtung: SetKukaToCurve funktioniert nur richtig, wenn das Parenting vorher geloest wurde!
-        SetKukaToCurve(objCurve)
-        #SetParenting() # hier wird ein Parenting hergestellt!
-        # 2ter Aufruf notwendig, (wegen Kopie der Koordinaten vom parent to child objekt):
-        #SetKukaToCurve(context.object) 
-        
+       
         return {'FINISHED'}
     print('CurveExport done')  
 
@@ -893,7 +803,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         #fp = open(realpath, 'w')
         ObjName = filename
                 
-        #ClearParenting()
+        
         ApplyScale(objCurve)
         #--------------------------------------------------------------------------------
         
@@ -945,7 +855,7 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         print('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' A Z {0:.3f}'.format(SAFEPos_Angle[2]))
         # Achtung: Die Reihenfolge der Aufrufe von SetBasePos und SetObjRelToBase darf nicht vertauscht werden!
         
-        SetObjRelToBase(objSafe, SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
+        objSafe.location, objSafe.rotation_euler = SetObjRelToBase(SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
         print('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
         print('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         print('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
@@ -958,20 +868,6 @@ class CurveImport (bpy.types.Operator, ImportHelper):
         GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, self.filepath)
         
         #--------------------------------------------------------------------------------
-        
-        # Kuka mit neuer Kurve verknuepfen:
-        # der folgende Befehl muss nach dem Parenting nochmal
-        # ausgefuehrt werden um die Verschiebung es Empty wieder aufzuheben!
-        # Achtung: SetKukaToCurve funktioniert nur richtig, wenn das Parenting vorher geloest wurde!
-        
-        SetKukaToCurve(objCurve)
-        
-        # todo: transform func ueberarbeiten:
-        #SetObjRelToBase(objEmpty_A6, objEmpty_A6.location, '', objCurve, curve_data.splines[0].bezier_points[-1].co, '')
-        
-        #SetParenting() # hier wird ein Parenting hergestellt!
-        # 2ter Aufruf notwendig, (wegen Kopie der Koordinaten vom parent to child objekt):
-        SetKukaToCurve(objCurve) 
         
         return {'FINISHED'} 
     print('CurveImport done')
@@ -991,6 +887,7 @@ class ClassRefreshButton (bpy.types.Operator):
         print('- - -refreshbutton - - - - - - -')
         #testen-...
         objBase = bpy.data.objects['Sphere_BASEPos']
+        objHome = bpy.data.objects['Sphere_HOMEPos']
         objSafe = bpy.data.objects['Sphere_SAFEPos']
         objCurve = bpy.data.objects['BezierCircle']
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
@@ -1000,6 +897,8 @@ class ClassRefreshButton (bpy.types.Operator):
         #--------------------------------------------------------------------------------
         
         BASEPos_Koord, BASEPos_Angle = objBase.location, objBase.rotation_euler
+        HOMEPos_Koord, HOMEPos_Angle = objHome.location, objHome.rotation_euler
+        
         SAFEPos_Koord, SAFEPos_Angle = RfS_LocRot(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
         
@@ -1012,12 +911,9 @@ class ClassRefreshButton (bpy.types.Operator):
         objCurve.rotation_euler = BASEPos_Angle
         replace_CP(objCurve, PATHPTSObjName, '', countPATHPTSObj, BASEPos_Koord, BASEPos_Angle) 
         
-        SetKukaToCurve(objCurve)
-        
         filepath ='none'
         GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, filepath)
         
-                
         return {'FINISHED'} 
     print('- - -ClassRefreshButton done- - - - - - -')     
 
@@ -1481,7 +1377,8 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                 
                 bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
                 
-                SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+                #SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+                bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler = SetObjRelToBase(Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                 
                       
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
@@ -1504,101 +1401,13 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                       + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
             bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
             
-            SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+            #SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+            bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler = SetObjRelToBase(Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                
     bpy.context.area.type = original_type 
     print('create_PATHPTSObj done')
     print('_____________________________________________________________________________')
     
-    
-    
-    
-    
-def RefreshButton_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
-    
-    # todo: under construction.....
-    # KeyFrames (in der Scene) setzen, unabhaengig ob TIMPTS from Scene/ from File
-    # Aufruf von: CurveImport
-    original_type = bpy.context.area.type
-    bpy.context.area.type = "VIEW_3D" 
-    bpy.ops.object.select_all(action='DESELECT')
-    print('_____________________________________________________________________________')
-    print('RefreshButton_todo_PATHPTS')
-    # erstellen von 'TIMEPTSCount' KeyFrames an den Positionen 'dataPATHPTS_Loc' mit der Ausrichtung 'dataPATHPTS_Rot'
-    # fuer das Objekt objEmpty_A6
-    PATHPTSObjName = 'PTPObj_'
-    # 1. Wieviele PTPObj Objekte sind in der Scene vorhanden? (Beachte: Viele Objekte koennen den selben Datencontainer verwenden)
-    PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-    print('Es sind ' + str(countPATHPTSObj) + 'PATHPTSObj in der Szene vorhanden.' )
-    # todo
-    TIMEPTS, TIMEPTSCount = RfS_TIMEPTS(objEmpty_A6)
-    print('Es sind ' + str(TIMEPTSCount) + 'TIMEPTS in der Szene vorhanden.' )
-    print('Folgende PATHPTSObj wurden in der Szene gefunden: ' + str(PATHPTSObjList))
-    
-    
-    # Datencontainer:  
-    for mesh in bpy.data.meshes:
-        print(mesh.name)  
-    # 2. Anpassen der Anzahl der Objekte auf 'PATHPTSCountFile'
-    # sicherstellen das kein ControlPoint selektiert ist:
-    bpy.ops.object.select_all(action='DESELECT')
-    
-    if PATHPTSCountFile <= countPATHPTSObj:
-        CountCP = countPATHPTSObj
-        print('Der Import hat weniger oder gleich viele PATHPTS als in der Szene bereits vorhanden.')
-    if PATHPTSCountFile > countPATHPTSObj:
-        CountCP = PATHPTSCountFile
-        print('Der Import hat mehr PATHPTS als in der Szene bereits vorhanden.')
-    # 3. Zuweisen von dataPATHPTS_Loc
-    # 4. Zuweisen von dataPATHPTS_Rot
-    # kuerze die Laenge der aktuellen Kurve auf die File-Kurve, wenn noetig
-    if PATHPTSCountFile < countPATHPTSObj:
-        print('Loeschen der ueberfluessigen PATHPTS Objekte aus der Szene...')
-        delList =[]
-        zuViel = countPATHPTSObj - PATHPTSCountFile
-        delList = [PATHPTSCountFile]*(PATHPTSCountFile+zuViel)
-        
-        for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
-            bpy.data.objects[PATHPTSObjList[n]].select = True
-            bpy.ops.object.delete()
-            bpy.ops.object.select_all(action='DESELECT')
-        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        CountCP = countPATHPTSObj
-        
-    for n in range(CountCP):
-        if (countPATHPTSObj-1) >= n: # Wenn ein PATHPTS Objekt vorhandenen ist,
-            # Waehle eine PATHPTS Objekt aus:
-            bpy.data.objects[PATHPTSObjList[n]].select
-            print('Waehle Objekt aus: ' + str(PATHPTSObjList[n]))
-            
-            if (PATHPTSCountFile-1) >= n: # Wenn ein Datenpunkt (PATHPTS) im File da ist, uebertrage loc und rot auf PATHPTSObj
-                print('PATHPTS Objekt ' + str(n) + ' vorhanen:' + str(bpy.data.objects[PATHPTSObjList[n]].name))
-                print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
-                      + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
-                      + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
-                
-                SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
-                      
-        else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
-            print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
-            print('Erstelle neues PATHPTS Objekt.')
-            
-            # add an new MESH object
-            print('bpy.context.area.type: ' + bpy.context.area.type)
-            bpy.ops.object.add(type='MESH')  
-            #bpy.context.object.name = PATHPTSObjName + str(n+1) # "%03d" % 2
-            bpy.context.object.name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
-            PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-            bpy.data.objects[PATHPTSObjList[n]].data = bpy.data.objects[PATHPTSObjList[1]].data
-            print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
-                      + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
-                      + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
-            
-            SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
-                
-    bpy.context.area.type = original_type 
-    print('RefreshButton_todo_PATHPTS done')
-    print('_____________________________________________________________________________')    
     
 def frame_to_time(frame_number):
         fps = bpy.context.scene.render.fps
