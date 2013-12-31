@@ -85,13 +85,14 @@ bl_info = {
     "tracker_url": "http://..."
     }
 #--- ### Imports
+import kuka_dat
 import time # um Zeitstempel im Logfile zu schreiben
 import bpy, os
 import sys
 from bpy.utils import register_module, unregister_module
 from bpy.props import FloatProperty, IntProperty
-from mathutils import Vector  
-from mathutils import *
+#test from mathutils import Vector  
+#test from mathutils import *
 import mathutils
 import math
 import re  # zum sortieren de Objektliste
@@ -101,6 +102,9 @@ from bpy_extras.io_utils import ExportHelper
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
+
+
+
 
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
@@ -344,11 +348,6 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
     return KeyPos_Koord, KeyPos_Angle 
     
  
- 
-
-
-
-
 def RfS_TIMEPTS(objEmpty_A6):
     
     # todo: objSafe -> action_name ...
@@ -875,7 +874,12 @@ class ClassRefreshButton (bpy.types.Operator):
     def execute(self, context):  
         writelog('- - -refreshbutton - - - - - - -')
         writelog('Testlog von ClassRefreshButton')
+        
+        
         #testen-...
+        kuka_dat.Eric()
+        
+        
         objBase = bpy.data.objects['Sphere_BASEPos']
         objHome = bpy.data.objects['Sphere_HOMEPos']
         objSafe = bpy.data.objects['Sphere_SAFEPos']
