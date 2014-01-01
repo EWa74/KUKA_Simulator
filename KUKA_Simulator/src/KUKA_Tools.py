@@ -21,7 +21,7 @@
 # naming convention
 # gui panel (add/remove pathpoints, timepts
 #
-from symbol import except_clause
+
 
 # todo: geladenes File anzeigen
 #git
@@ -65,14 +65,14 @@ from symbol import except_clause
 # TODO: GUI Feld um die Winkel bezogen auf Base oder Tool (bez. sich auf Base) editieren zu koennen
 '''
 
-${workspace_loc:CurveExport/src/curve_export.py}
+${workspace_loc:KUKA_OT_Export/src/curve_export.py}
 
 Bevel add-on
 bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co=(0,1,1)
 '''  
 #--- ### Header 
 bl_info = { 
-    "name": "CurveExport",
+    "name": "KUKA_OT_Export",
     "author": "Eric Wahl",
     "version": (1, 0, 1),
     "blender": (2, 5, 7),
@@ -84,8 +84,15 @@ bl_info = {
     "wiki_url": "http://...",
     "tracker_url": "http://..."
     }
+
+
 #--- ### Imports
-# import kuka_dat --> todo: spaeter Funktionen/ Klasse(n) dorthin auslagern...
+
+import bpy
+# ExportHelper is a helper class, defines filename and
+# invoke() function which calls the file selector.
+from bpy_extras.io_utils import ExportHelper
+from bpy_extras.io_utils import ImportHelper
 import time # um Zeitstempel im Logfile zu schreiben
 import bpy, os
 import sys
@@ -96,41 +103,9 @@ from mathutils import *
 import mathutils
 import math
 import re  # zum sortieren de Objektliste
-# ExportHelper is a helper class, defines filename and
-# invoke() function which calls the file selector.
-from bpy_extras.io_utils import ExportHelper
-from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
-
-# http://wiki.blender.org/index.php/Doc:2.6/Manual/Extensions/Python/Properties
-# http://www.blender.org/documentation/blender_python_api_2_57_1/bpy.props.html
-class ObjectSettings(bpy.types.PropertyGroup):
-    ID = bpy.props.IntProperty()
-    # type: BASEPos, PTP, HOMEPos, ADJUSTMENTPos
-    type = bpy.props.StringProperty()
-    
-    PATHPTS = bpy.props.FloatVectorProperty(size=6)
-    
-    # LOADPTS[1]={FX NAN, FY NAN, FZ NAN, TX NAN, TY NAN, TZ NAN }
-    # bpy.data.objects['PTPObj_001'].PATHPTS.LOADPTS[:] 
-    LOADPTS = bpy.props.IntVectorProperty(size=6)
-    LOADPTSmsk = bpy.props.BoolVectorProperty(size=6) # fuer NAN Eintrag
-    
-    # TTIMEPTS[1]=0.2
-    TIMEPTS = bpy.props.FloatProperty()
-    
-    # STOPPTS[1]=1
-    STOPPTS = bpy.props.BoolProperty()
-    
-    # ACTIONMSK[1]=0
-    ACTIONMSK = bpy.props.BoolProperty()
-    
-
-bpy.utils.register_class(ObjectSettings)
-
-bpy.types.Object.kuka = \
-    bpy.props.PointerProperty(type=ObjectSettings)
+from symbol import except_clause
 
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
@@ -140,11 +115,6 @@ objCurve    = bpy.data.objects['BezierCircle']
 #objCurve = bpy.data.curves[bpy.context.active_object.data.name]
 objHome     = bpy.data.objects['Sphere_HOMEPos']
 objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
-
-
-
-
-
 
 Mode = 'XYZ' # YXZ
 
@@ -156,13 +126,16 @@ RotationModeTransform = Mode # XYZ YXZ
 Vorz1 = +1#-1 # +C = X
 Vorz2 = +1#-1 # -B = Y
 Vorz3 = +1#-1 # -A = Z
-
-
-
-       
-#objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+   
 CalledFrom =[] 
 filepath=[]
+
+#import kuka_dat -> bug?: wird beim debuggen nicht aktualisiert....
+#from kuka_dat import *
+#import kuka_dat
+# http://wiki.blender.org/index.php/Doc:2.6/Manual/Extensions/Python/Properties
+# http://www.blender.org/documentation/blender_python_api_2_57_1/bpy.props.html
+
 
 def writelog(text=''):
     FilenameLog = bpy.data.filepath
@@ -171,7 +144,56 @@ def writelog(text=''):
     localtime = time.asctime( time.localtime(time.time()) )
     fout.write(localtime + " : " + str(text) + '\n')
     fout.close();
+
+class ObjectSettings(bpy.types.PropertyGroup):
+    ID = bpy.props.IntProperty()
+    # type: BASEPos, PTP, HOMEPos, ADJUSTMENTPos
+    type = bpy.props.StringProperty()
     
+    PATHPTS = bpy.props.FloatVectorProperty(size=6)
+    
+    # LOADPTS[1]={FX NAN, FY NAN, FZ NAN, TX NAN, TY NAN, TZ NAN }
+    # bpy.data.objects['PTPObj_001'].PATHPTS.LOADPTS[:] 
+    LOADPTS = bpy.props.IntVectorProperty(size=6)
+    LOADPTSmsk = bpy.props.BoolVectorProperty(size=6) # fuer NAN Eintrag
+    LOADPTSmsk = (False, False, False, False, False, False)
+    
+    # TTIMEPTS[1]=0.2
+    TIMEPTS = bpy.props.FloatProperty()
+    
+    # STOPPTS[1]=1
+    STOPPTS = bpy.props.BoolProperty()
+    STOPPTS = 'False'
+    
+    # ACTIONMSK[1]=0
+    ACTIONMSK = bpy.props.BoolProperty()
+    ACTIONMSK = 'False'
+    
+    # RouteName
+    RouteName = bpy.props.StringProperty()
+    
+    # RouteNbr
+    RouteNbr = bpy.props.IntProperty()  
+    
+bpy.utils.register_class(ObjectSettings)
+
+bpy.types.Object.kuka = \
+    bpy.props.PointerProperty(type=ObjectSettings)
+
+class createMatrix(object):
+    writelog('_____________________________________________________________________________')
+    writelog('createMatrix')
+    def __init__(self, rows, columns, default=0):
+        self.m = []
+        for i in range(rows):
+            self.m.append([default for j in range(columns)])
+    def __getitem__(self, index):
+        return self.m[index]
+    writelog('createMatrix done')
+    writelog('_____________________________________________________________________________')  
+
+
+   
 def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):
     
     writelog('_____________________________________________________________________________')
@@ -487,19 +509,6 @@ def FindFCurveID(objEmpty_A6, action):
     return locID, rotID
   
 
-class createMatrix(object):
-    writelog('_____________________________________________________________________________')
-    writelog('createMatrix')
-    def __init__(self, rows, columns, default=0):
-        self.m = []
-        for i in range(rows):
-            self.m.append([default for j in range(columns)])
-    def __getitem__(self, index):
-        return self.m[index]
-    writelog('createMatrix done')
-    writelog('_____________________________________________________________________________')
-    
-    
 def ApplyScale(objCurve):
         writelog('_____________________________________________________________________________')
         writelog('ApplyScale')
@@ -610,7 +619,7 @@ def get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle)
     writelog('newR[1] :'+ str(newR[1]*360/(2*math.pi)))
     writelog('newR[2] :'+ str(newR[2]*360/(2*math.pi)))
         
-    PATHPTS_Angle = (Vorz1* newR[0], Vorz2*newR[1], Vorz3*newR[2]) # [rad]
+    PATHPTS_Angle = (Vorz1* newR[0], Vorz2*newR[1], Vorz3*newR[2]) # [rad]     
     
     writelog('PATHPTS_Koord : ' + str(PATHPTS_Koord))
     writelog('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
@@ -672,283 +681,8 @@ def get_absolute(Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
        
     return Vtrans_abs, rotEuler
 
-  
-class CurveExport (bpy.types.Operator, ExportHelper):
-    writelog('CurveExport - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
-    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-    #bpy.ops.curve.curveexport(
-                              
-    # Export selected curve of the mesh
-    bl_idname = "curve.curveexport"
-    bl_label = "CurveExport (TB)" #Toolbar - Label
-    bl_description = "Export selected Curve1" # Kommentar im Specials Kontextmenue
-    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
-    #                                  parameters of this operator interactively 
-    #                                  (in the Tools pane) 
-    
-    # ExportHelper mixin class uses this
-    filename_ext = ".dat"
-
-    filter_glob = StringProperty(
-            default="*.dat",
-            options={'HIDDEN'},
-            )
-
-    def execute(self, context):
-        
-        writelog('FUNKTIONSAUFRUF - CurveExport')
-        
-        # Wichtig: Fuer die Interpolation (fcurves) wird Quaternation verwendet um Gimbal Lock zu vermeiden!
-        objBase.rotation_mode     = RotationModeBase
-        objSafe.rotation_mode     = RotationModePATHPTS
-        objCurve.rotation_mode    = RotationModePATHPTS
-        objEmpty_A6.rotation_mode = RotationModeEmpty_Zentralhand_A6
-        
-        
-        PATHPTSObjName = 'PTPObj_'
-        filename = os.path.basename(self.filepath)
-        #realpath = os.path.realpath(os.path.expanduser(self.filepath))
-        #fp = open(realpath, 'w')
-        ObjName = filename
-            
-        # Wichtig: Vor dem Export muss die Lokale-Skalierung erst mit der Global-Skalierung in uebereinstimmung gebracht werden.
-        # Entspricht [STRG] + A (Apply Scale)
-        # um nicht auch das Tool selber zu beeinflussen muss das parenting dafuer geloest werden. (--> def ApplyScale)
-        
-        # nur fuer Scaling, da Location, Rotatation (mit Hilfe des Mesh-Objektes 'Sphere_BASEPos') beim Export in *.src file geschrieben wird:
-        # --> [STRG] + A (Apply Location, Rotation) wird nicht normiert sondern wieder eingelesen! (KUKA BASEPosition)
-        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-        writelog(' FUNKTIONSAUFRUF CurveExport KUKA_Tools')
-        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-        
-        ApplyScale(objCurve) 
-        #--------------------------------------------------------------------------------
-        
-        #BASEPos_Koord, BASEPos_Angle = objBase.location, [objBase.rotation_euler.x* 360 / (2*math.pi), objBase.rotation_euler.y* 360 / (2*math.pi), objBase.rotation_euler.z* 360 / (2*math.pi)]
-        BASEPos_Koord, BASEPos_Angle = objBase.location, objBase.rotation_euler
-        
-        ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = (0,0,0), (0,0,0) #RfS_AdjustmentPos(aus GUI)
-        #HOMEPos_Koord, HOMEPos_Angle = objHome.location, [objHome.rotation_euler.x* 360 / (2*math.pi), objHome.rotation_euler.y* 360 / (2*math.pi), objHome.rotation_euler.z* 360 / (2*math.pi)]
-        HOMEPos_Koord, HOMEPos_Angle = objHome.location, objHome.rotation_euler
-        
-        writelog('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' Y B {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
-        
-        SAFEPos_Koord, SAFEPos_Angle = get_relative(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
-        
-        writelog('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
-        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
-        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
-        
-        
-        PathPoint = []
-        PathAngle = []  
-        PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
-        PathPoint = createMatrix(countPATHPTSObj,3)
-        PathAngle = createMatrix(countPATHPTSObj,3)
-        for i in range(countPATHPTSObj):    
-            PathPoint[i][0:3], PathAngle[i][0:3] = get_relative(bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
-        WtF_KeyPos('PATHPTS',PathPoint, PathAngle, self.filepath, '.dat', 'w')
-        
-        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
-        WtF_KeyPos('TIMEPTS',TIMEPTS_PATHPTS, '', self.filepath, '.dat', 'a')
-            
-        writelog('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
-        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
-        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
-        
-        WtF_KeyPos('BASEPos', BASEPos_Koord, BASEPos_Angle, self.filepath, '.cfg', 'w')
-        WtF_KeyPos('ADJUSTMENTPos', ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, self.filepath, '.cfg', 'a')
-        WtF_KeyPos('HOMEPos', HOMEPos_Koord, HOMEPos_Angle, self.filepath, '.cfg', 'a')
-         
-        writelog('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' X C {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
-        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
-        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
-        WtF_KeyPos('PTP', SAFEPos_Koord, SAFEPos_Angle, self.filepath, '.src', 'w')
-        writelog('_________________CurveExport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveExport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' X C {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
-        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
-        writelog('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' Z A {0:.3f}'.format(SAFEPos_Angle[2]))
-        #--------------------------------------------------------------------------------
-       
-        return {'FINISHED'}
-    writelog('CurveExport done')  
-
-class CurveImport (bpy.types.Operator, ImportHelper):
-    writelog('CurveImport- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
-    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-    ''' Import selected curve '''
-    bl_idname = "curve.curveimport"
-    bl_label = "CurveImport (TB)" #Toolbar - Label
-    bl_description = "Import selected Curve2" # Kommentar im Specials Kontextmenue
-    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
-    #                                  parameters of this operator interactively 
-    #                                  (in the Tools pane) 
-
-    # ImportHelper mixin class uses this
-    filename_ext = ".dat"
-
-    filter_glob = StringProperty(
-            default="*.dat",
-            options={'HIDDEN'},
-            )
- 
-    def execute(self, context):  
-        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-        writelog(' FUNKTIONSAUFRUF CurveImport')
-        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-        
-        # Wichtig: Verdrehung des Koordinaten Systems (TODO: vgl. Euler Winkel)
-        objBase.rotation_mode     = RotationModeBase
-        objSafe.rotation_mode     = RotationModePATHPTS
-        objCurve.rotation_mode    = RotationModePATHPTS
-        objEmpty_A6.rotation_mode = RotationModeEmpty_Zentralhand_A6
-        
-        filename = os.path.basename(self.filepath)
-        #realpath = os.path.realpath(os.path.expanduser(self.filepath))
-        #fp = open(realpath, 'w')
-        ObjName = filename
-                
-        ApplyScale(objCurve)
-        #--------------------------------------------------------------------------------
-        
-        writelog("Erstellen der BezierCurve: done")
-        BASEPos_Koord, BASEPos_Angle = RfF_KeyPos('BASEPos', self.filepath, '.cfg')
-        try:
-            ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_KeyPos('ADJUSTMENTPos', self.filepath, '.cfg')
-        except:
-            writelog('failed to load AdjustmentPos')
-        try:
-            HOMEPos_Koord, HOMEPos_Angle = RfF_KeyPos('HOMEPos', self.filepath, '.cfg')
-        except:
-            writelog('failed to load HomePos')
-        writelog('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
-        
-        # create Container (Location, Rotation) for each path point (PTP): dataPATHPTS_Loc, dataPATHPTS_Rot
-        #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfF_PATHPTS(self.filepath, BASEPos_Koord, BASEPos_Angle) # local, bez. auf Base
-        dataPATHPTS_Loc, dataPATHPTS_Rot = RfF_KeyPos('PATHPTS', self.filepath, '.dat') # relativ (bez. auf Base)
-        PATHPTSCountFile       = len(dataPATHPTS_Loc)
-        
-        
-        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        #GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, self.filepath)
-        
-        TIMEPTS_PATHPTS, NAN = RfF_KeyPos('TIMEPTS', self.filepath, '.dat')
-        TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)
-        
-        for i in range(TIMEPTS_PATHPTSCount):    
-            bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
-            
-        
-        SetOrigin(objHome, objHome)
-        objHome.location       = HOMEPos_Koord
-        objHome.rotation_euler = HOMEPos_Angle
-        
-        SetOrigin(objBase, objBase)
-        objBase.location       = BASEPos_Koord
-        objBase.rotation_euler = BASEPos_Angle
-        
-        # todo: update_ObjList
-        # PATHPTSObjList an create_PATHPTSObj uebergeben
-                
-        create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) # relative Koordinaten
-        
-        # Kurve: Origin der Kurve auf BASEPosition verschieben
-        SetOrigin(objCurve, objBase)
-        bpy.data.objects[objCurve.name].rotation_mode = RotationModePATHPTS
-        objCurve.location       = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
-        objCurve.rotation_euler = BASEPos_Angle
-
-        replace_CP(objCurve, dataPATHPTS_Loc) # relativ, weil Origin der Kurve auf BasePos liegt!
-        
-        # Achtung: die Reihenfolge fon SetCurvePos und SetBasePos muss eingehalten werden! 
-        # (da sonst die Curve nicht mit der Base mit verschoben wird!
-       
-        writelog('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveImport - BASEPos_Angle' + str(BASEPos_Angle))
-        SAFEPos_Koord, SAFEPos_Angle = RfF_KeyPos('PTP', self.filepath, '.src') # PTP = SAFEPos
-        writelog('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
-        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
-        writelog('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' A Z {0:.3f}'.format(SAFEPos_Angle[2]))
-        # Achtung: Die Reihenfolge der Aufrufe von SetBasePos und get_absolute darf nicht vertauscht werden!
-        
-        objSafe.location, objSafe.rotation_euler = get_absolute(SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
-        writelog('_________________CurveImport - BASEPos_Koord' + str(BASEPos_Koord))
-        writelog('_________________CurveImport - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
-        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
-        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
-        
-        # todo: GUI Liste aktualisieren (falls vorhanden), danach Aufruf von GetRoute
-        
-        #CalledFrom = 'Import'
-        #PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, self.filepath)
-        
-        #--------------------------------------------------------------------------------
-        
-        return {'FINISHED'} 
-    writelog('CurveImport done')
-
-class ClassRefreshButton (bpy.types.Operator):
-    writelog('ClassRefreshButton- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
-    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
-    
-    
-    ''' Import selected curve '''
-    bl_idname = "curve.refreshbutton"
-    bl_label = "Refresh (TB)" #Toolbar - Label
-    bl_description = "Set Animation Data" # Kommentar im Specials Kontextmenue
-    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
-    #                                  parameters of this operator interactively 
-    #                                  (in the Tools pane) 
- 
-    def execute(self, context):  
-        writelog('- - -refreshbutton - - - - - - -')
-        writelog('Testlog von ClassRefreshButton')
-        
-        objBase.rotation_mode     = RotationModeBase
-        objSafe.rotation_mode     = RotationModePATHPTS
-        objCurve.rotation_mode    = RotationModePATHPTS
-        objEmpty_A6.rotation_mode = RotationModeEmpty_Zentralhand_A6
-        
-        
-        ApplyScale(objCurve) 
-        #--------------------------------------------------------------------------------
-        
-        BASEPos_Koord, BASEPos_Angle = objBase.location, objBase.rotation_euler
-        HOMEPos_Koord, HOMEPos_Angle = objHome.location, objHome.rotation_euler
-        
-        SAFEPos_Koord, SAFEPos_Angle = get_relative(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
-        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        
-        OptimizeRotation(PATHPTSObjList, countPATHPTSObj) # todo: testen und auch bei export einfuehren
-        #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = get_relative(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
-        
-        SetOrigin(objCurve, objBase)
-        bpy.data.objects[objCurve.name].rotation_mode =RotationModePATHPTS
-        objCurve.location       = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
-        objCurve.rotation_euler = BASEPos_Angle
-        
-        PathPoint = createMatrix(countPATHPTSObj,3)
-        PathAngle = createMatrix(countPATHPTSObj,3)
-        for i in range(countPATHPTSObj):    
-            PathPoint[i][0:3], PathAngle[i][0:3] = get_relative(bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
-        
-        replace_CP(objCurve, PathPoint)  #relativ, weil Origin der Kurve auf BasePos liegt!
-            
-        filepath ='none'
-        GetRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, filepath)
-        
-        return {'FINISHED'} 
-    writelog('- - -ClassRefreshButton done- - - - - - -')     
-
-def OptimizeRotation(ObjList, countObj):
-    
+def OptimizeRotation(ObjList):
+    countObj = len(ObjList)
     # Begrenze Rotation auf 360 Grad
     for i in range(countObj-1):
         Rot   = bpy.data.objects[ObjList[i]].rotation_euler
@@ -1002,206 +736,104 @@ def OptimizeRotationQuaternion(ObjList, countObj):
         QuaternionList = QuaternionList + [bpy.data.objects[ObjList[n+1]].rotation_euler.to_quaternion()]
         
     return QuaternionList    
-        
 
-def GetRoute(objEmpty_A6, ObjList, countObj, filepath):
-    # Diese Funktion wird erst interessant, wenn Routen ueber mehrere Objektgruppen erzeugt werden sollen.
-    # in RefreshButton den Ablauf: [Ruhepos, n x (Safepos, PATHPTS, Safepos), Ruhepos] festlegen        
+
+# ________________________________________________________________________________________________________________________
+
+def count_PATHPTSObj(PATHPTSObjName):
+    writelog('_____________________________________________________________________________')
+    writelog('count_PATHPTSObj')
+    countPATHPTSObj = 0
+    countObj = 0
+    PATHPTSObjList=[]
     
-    # 1. Schritt: Umsetzung nur fuer einfache Reihenfolge
+    for item in bpy.data.objects:
+        if item.type == "MESH":
+            countObj = countObj +1
+            writelog(item.name)  
+            if PATHPTSObjName in item.name:
+                countPATHPTSObj = countPATHPTSObj +1
+                PATHPTSObjList = PATHPTSObjList + [item.name]
+          
+    # Nullen voranstellen: http://blenderscripting.blogspot.de/2011/05/padding-number-with-zeroes.html
+    # oder neu sortieren:       http://blenderscripting.blogspot.de/2011/05/python-32-semi-natural-sorting.html    
+    pattern = '\d+'  # one or more numerical characters  
+    def SortObjList(pose):  
+        match = re.search(pattern, pose)  
+        return int(match.group())  
+    PATHPTSObjList = sorted(PATHPTSObjList, key=SortObjList)
+    writelog('PATHPTSObjList sorted: ' + str(PATHPTSObjList))
     
-    # todo: GUI Liste abfragen (falls vorhanden) Reihenfolge der Objektgruppen/-Objekte zum erstellen der Route
-    # n x [....] beruecksichtigen...???
+      
+    
+    writelog('Anzahl an Objekten in der Szene - countObj: ' +str(countObj))
+    writelog('Anzahl an PathPoint Objekten in der Szene - countPATHPTSObj: ' +str(countPATHPTSObj))
+    writelog('count_PATHPTSObj')
+    writelog('_____________________________________________________________________________')
+    return PATHPTSObjList, countPATHPTSObj
+
+def renamePATHObj(PATHPTSObjList):
+    writelog('_____________________________________________________________________________')
+    writelog('renamePATHObj')
+         
+    for n in range(len(PATHPTSObjList)-1,0, -1): 
+        bpy.data.objects[PATHPTSObjList[n]].name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
+        PATHPTSObjList[n] = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2  
+    writelog('renamePATHObj done')
+    writelog('_____________________________________________________________________________')
+    return PATHPTSObjList
+
+def ValidateTIMEPTS(PATHPTSObjList, TIMEPTS):
+    writelog('_____________________________________________________________________________')
+    writelog('ValidateTIMEPTS')
+    countPATHPTSObj = len(PATHPTSObjList)
         
-    if filepath != 'none': # Aufruf von Button Import
-        TIMEPTS_PATHPTS, NAN = RfF_KeyPos('TIMEPTS', filepath, '.dat')
-        TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)
-        # todo
-        #TIMEPTS_Safe = 0
-        #TIMEPTS_SafeCount = 1
-    elif ObjList != '': # Aufruf von Button RefreshButton
-        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
-        #todo:
-        #TIMEPTS_Safe, TIMEPTS_SafeCount  = RfS_TIMEPTS(objEmpty_A6, objSafe.name)
-        
-    #TIMEPTS_Safe, TIMEPTS_SafeCount = RfS_TIMEPTS(objEmpty_A6, objSafe.name) 
-    # todo: Klasse definieren: PATHPTS.loc/rot/TIMEPTS/LOADPTS/STOPPTS/ACTIONMSK
-         
-    Route_ObjList = ObjList                    # spaeter: [objSafe.name, PATHPTSObjList] .... syntax pruefen...
-    Route_TIMEPTS = TIMEPTS_PATHPTS            # spaeter: [TIMEPTS_Safe, TIMEPTS_PATHPTS]
-    Route_TIMEPTSCount = TIMEPTS_PATHPTSCount  # spaeter: [TIMEPTS_SafeCount, TIMEPTS_PATHPTSCount]
-    
-    RefreshButton(objEmpty_A6, Route_ObjList, Route_TIMEPTS, Route_TIMEPTSCount)
-         
-def RefreshButton(objEmpty_A6, TargetObjList, TIMEPTS, TIMEPTSCount):
-    # Diese Funktion soll spaeter anhand einer chronologisch geordneten Objektgruppen 
-    # und Objekt/PATHPTS - Liste die KeyFrames eintragen
-    
-    
-    # TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen
-    
-    original_type         = bpy.context.area.type
-    bpy.context.area.type = "VIEW_3D"
-    bpy.ops.object.select_all(action='DESELECT')
-     
-    #TargetObjList = bpy.data.objects[PATHPTSObjList[n]] 
-         
-    #scene = bpy.context.scene
-    #fps = scene.render.fps
-    #fps_base = scene.render.fps_base
-    
-    PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
-    
-    TIMEPTS = ValidateTIMEPTS(countPATHPTSObj, PATHPTSObjList, TIMEPTS)
-    PATHPTSObjList =  renamePATHObj(PATHPTSObjList)
-    
-    
-    TargetObjList = PATHPTSObjList # todo: Bei Bearbeitung und Konkatonierung per GUI Ablauf 
-    # von GetRout u. RefreshButton ueberdenken
-    
-    raw_time=[]
-    frame_number=[]
-    
-    bpy.context.scene.objects.active = objEmpty_A6
-    
-    # todo: Achtung, bei Konkatonation von KeyFrames muss der folgende Aufruf entfallen:
-    objEmpty_A6.select = True
-    bpy.ops.anim.keyframe_clear_v3d() #Remove all keyframe animation for selected objects
-    # --- Alternativ kann die TIMEPTS Reihe gemerged werden (Safepos + PathPTS); Vorteil: 
-    
-    ob = bpy.context.active_object
-    #bpy.data.objects[objCurve.name].rotation_mode = 'QUATERNION'
-    ob.rotation_mode = 'QUATERNION'
-    
-    #QuaternionList = OptimizeRotationQuaternion(TargetObjList, TIMEPTSCount)
-    
-    for n in range(countPATHPTSObj):
-        writelog(n)
-        bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n])) 
-        ob.location = bpy.data.objects[TargetObjList[n]].location
-        # todo - done: keyframes auf quaternion um gimbal lock zu vermeiden
+    # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS
+    while len(TIMEPTS)<countPATHPTSObj:
+        for i in range(countPATHPTSObj):
+            if PATHPTSObjList[i].find('.')!=-1: # wenn Objektname = "PTPObj_017.001", wichtig, um festzustellen wo das PTPObj eingefuegt wurde
+                # Geschw. des letzten Positionswechsels ermitteln:
+                if (i+1) < countPATHPTSObj:
+                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i-1]].location
+                    v = s.length/(TIMEPTS[i]-TIMEPTS[i-1]) # [i] weil i der alte i+1 Eintrag ist
+                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i]].location
+                elif (i+1) >= countPATHPTSObj:
+                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
+                    v = s.length/(TIMEPTS[i-1]-TIMEPTS[i-2])
+                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
                 
-        ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
-           
-        ob.keyframe_insert(data_path="location", index=-1)
-        # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
+                deltaT = abs(s.length /v)
+                NewTIMEPTS = deltaT + TIMEPTS[i-1] # v=s/t -> t = s/v
+                TIMEPTS.insert( i, NewTIMEPTS)
+                # alle anderen TIMEPTS zeitlich um NewTIMEPTS verschieben:
+                for n in range(i+1, len(TIMEPTS)):
+                    TIMEPTS[n] = TIMEPTS[n] +  deltaT
+             
+    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS    
+    # Achtung: wird noch nicht benoetigt, da in der Funktion erst alle KeyFrames geloescht werden. D.h. TIMEPTS Werte 
+    # bleiben ggf. ungenutzt, ohne Fehler zu erzeugen.
+    # Achtung: wuerde Sinn machen eine Klasse PATHPTS erstellen um die Zuordnung von Zeit, Kraft, etc. zu bekommen.
         
-        ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
-        #ob.keyframe_insert(data_path="rotation_euler", index=-1)
-            
-    if len(TIMEPTS)> countPATHPTSObj:
-        writelog('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
-    # todo: end frame not correct if PATHPTS added....
-    bpy.context.scene.frame_end = time_to_frame(TIMEPTS[TIMEPTSCount-1])
-    
-    bpy.data.scenes['Scene'].frame_current=1
-    bpy.ops.object.select_all(action='DESELECT')
-    bpy.context.area.type = original_type 
-                        
-class KUKAPanel(bpy.types.Panel):
+    writelog('ValidateTIMEPTS done')    
     writelog('_____________________________________________________________________________')
-    writelog()
-    writelog('KUKAPanel....')
-    writelog()
-    """Creates a Panel in the scene context of the properties editor"""
-    bl_label = "KUKA Panel" # heading of panel
-    #bl_idname = "SCENE_PT_layout"
-    bl_idname = "OBJECT_PT_layout"
+    return TIMEPTS
     
-    # bpy.ops.OBJECT_PT_layout.module....
+    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS 
     
-    bl_space_type = 'PROPERTIES' # window type panel is displayed in
-    bl_region_type = 'WINDOW' # region of window panel is displayed in
-    bl_context = "object"
-    #bl_context = "scene"
+
+def frame_to_time(frame_number):
+        fps = bpy.context.scene.render.fps
+        raw_time = (frame_number - 1) / fps
+        return round(raw_time, 3)
     
-    # check poll() to avoid exception.
-    '''
-    if bpy.ops.object.mode_set.poll():
-        bpy.ops.object.mode_set(mode='EDIT')
-    '''
+def time_to_frame(time_value):
+    fps = bpy.context.scene.render.fps
+    frame_number = (time_value * fps) +1
+    return int(round(frame_number, 0))    
     
-    #@classmethod
-    #def poll(cls, context):
-    #    return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
 
-    
-    def draw(self, context):
-        
-        ob = context.object
-        
-        layout = self.layout
-
-        scene = context.scene
-        #scene = context.object
-        # Create a simple row.
-        layout.label(text=" EWa: Simple Row:")
-
-        row = layout.row()
-        row.prop(scene, "frame_start")
-        row.prop(scene, "frame_end")
-
-        # Create an row where the buttons are aligned to each other.
-        layout.label(text=" Aligned Row:")
-
-        row = layout.row(align=True)
-        row.prop(scene, "frame_start")
-        row.prop(scene, "frame_end")
-
-        # Create two columns, by using a split layout.
-        layout.label(text="Tool location / orientation:")
-        row = layout.row()
-
-        row.column().prop(ob, "delta_location")
-        if ob.rotation_mode == 'QUATERNION':
-            row.column().prop(ob, "delta_rotation_quaternion", text="Rotation")
-        elif ob.rotation_mode == 'AXIS_ANGLE':
-            #row.column().label(text="Tool_Rotation")
-            #row.column().prop(pchan, "delta_rotation_angle", text="Angle")
-            #row.column().prop(pchan, "delta_rotation_axis", text="Axis")
-            #row.column().prop(ob, "delta_rotation_axis_angle", text="Rotation")
-            row.column().label(text="Not for Axis-Angle")
-        else:
-            row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
-        
-        
-        layout.label(text="Base location / orientation:")
-        row = layout.row()
-
-        row.column().prop(ob, "delta_location")
-        if ob.rotation_mode == 'QUATERNION':
-            row.column().prop(ob, "delta_rotation_quaternion", text="Rotation")
-        elif ob.rotation_mode == 'AXIS_ANGLE':
-            #row.column().label(text="Tool_Rotation")
-            #row.column().prop(pchan, "delta_rotation_angle", text="Angle")
-            #row.column().prop(pchan, "delta_rotation_axis", text="Axis")
-            #row.column().prop(ob, "delta_rotation_axis_angle", text="Rotation")
-            row.column().label(text="Not for Axis-Angle")
-        else:
-            row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
-            
-        #row.column().prop(ob, "delta_scale")
-        
-        # Import/ Export Button:
-        layout.label(text="Curvepath Import/ Export:")
-        row = layout.row(align=True)        
-        sub = row.row()
-        sub.scale_x = 1.0
-        sub.operator("curve.curveimport")
-        row.operator("curve.curveexport")
-        
-        # Set KeyFrames Button:
-        layout.label(text="Refresh Button:")
-        row = layout.row(align=True)
-        
-        row.operator("curve.refreshbutton")  
-           
-    writelog('KUKAPanel done')
-    writelog('_____________________________________________________________________________')
-
-
-#class CURVE_OT_RefreshButtonButton(bpy.types.Operator):
- 
 
 
 #### Curve creation functions
@@ -1308,89 +940,398 @@ def replace_CP(objCurve, dataPATHPTS_Loc):
     writelog('_____________________________________________________________________________')
     
 
-def count_PATHPTSObj(PATHPTSObjName):
-    writelog('_____________________________________________________________________________')
-    writelog('count_PATHPTSObj')
-    countPATHPTSObj = 0
-    countObj = 0
-    PATHPTSObjList=[]
-    
-    for item in bpy.data.objects:
-        if item.type == "MESH":
-            countObj = countObj +1
-            writelog(item.name)  
-            if PATHPTSObjName in item.name:
-                countPATHPTSObj = countPATHPTSObj +1
-                PATHPTSObjList = PATHPTSObjList + [item.name]
-          
-    # Nullen voranstellen: http://blenderscripting.blogspot.de/2011/05/padding-number-with-zeroes.html
-    # oder neu sortieren:       http://blenderscripting.blogspot.de/2011/05/python-32-semi-natural-sorting.html    
-    pattern = '\d+'  # one or more numerical characters  
-    def SortObjList(pose):  
-        match = re.search(pattern, pose)  
-        return int(match.group())  
-    PATHPTSObjList = sorted(PATHPTSObjList, key=SortObjList)
-    writelog('PATHPTSObjList sorted: ' + str(PATHPTSObjList))
-    
-      
-    
-    writelog('Anzahl an Objekten in der Szene - countObj: ' +str(countObj))
-    writelog('Anzahl an PathPoint Objekten in der Szene - countPATHPTSObj: ' +str(countPATHPTSObj))
-    writelog('count_PATHPTSObj')
-    writelog('_____________________________________________________________________________')
-    return PATHPTSObjList, countPATHPTSObj
 
-def renamePATHObj(PATHPTSObjList):
-    writelog('_____________________________________________________________________________')
-    writelog('renamePATHObj')
+
+  
+class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
+    writelog('KUKA_OT_Export - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+    #bpy.ops.curve.KUKA_OT_Export(
+                              
+    # Export selected curve of the mesh
+    bl_idname = "object.kuka_export"
+    bl_label = "KUKA_OT_Export (TB)" #Toolbar - Label
+    bl_description = "Export selected Curve1" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+    
+    # ExportHelper mixin class uses this
+    filename_ext = ".dat"
+
+    filter_glob = StringProperty(
+            default="*.dat",
+            options={'HIDDEN'},
+            )
+
+    def execute(self, context):
+        
+        writelog('FUNKTIONSAUFRUF - KUKA_OT_Export')
+        
+        # Wichtig: Fuer die Interpolation (fcurves) wird Quaternation verwendet um Gimbal Lock zu vermeiden!
+        objBase.rotation_mode     = RotationModeBase
+        objSafe.rotation_mode     = RotationModePATHPTS
+        objCurve.rotation_mode    = RotationModePATHPTS
+        objEmpty_A6.rotation_mode = RotationModeEmpty_Zentralhand_A6
+        
+        
+        PATHPTSObjName = 'PTPObj_'
+        filename = os.path.basename(self.filepath)
+        #realpath = os.path.realpath(os.path.expanduser(self.filepath))
+        #fp = open(realpath, 'w')
+        ObjName = filename
+            
+        # Wichtig: Vor dem Export muss die Lokale-Skalierung erst mit der Global-Skalierung in uebereinstimmung gebracht werden.
+        # Entspricht [STRG] + A (Apply Scale)
+        # um nicht auch das Tool selber zu beeinflussen muss das parenting dafuer geloest werden. (--> def ApplyScale)
+        
+        # nur fuer Scaling, da Location, Rotatation (mit Hilfe des Mesh-Objektes 'Sphere_BASEPos') beim Export in *.src file geschrieben wird:
+        # --> [STRG] + A (Apply Location, Rotation) wird nicht normiert sondern wieder eingelesen! (KUKA BASEPosition)
+        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+        writelog(' FUNKTIONSAUFRUF KUKA_OT_Export KUKA_Tools')
+        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+        
+        ApplyScale(objCurve) 
+        #--------------------------------------------------------------------------------
+        
+        #BASEPos_Koord, BASEPos_Angle = objBase.location, [objBase.rotation_euler.x* 360 / (2*math.pi), objBase.rotation_euler.y* 360 / (2*math.pi), objBase.rotation_euler.z* 360 / (2*math.pi)]
+        BASEPos_Koord, BASEPos_Angle = objBase.location, objBase.rotation_euler
+        
+        ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = (0,0,0), (0,0,0) #RfS_AdjustmentPos(aus GUI)
+        #HOMEPos_Koord, HOMEPos_Angle = objHome.location, [objHome.rotation_euler.x* 360 / (2*math.pi), objHome.rotation_euler.y* 360 / (2*math.pi), objHome.rotation_euler.z* 360 / (2*math.pi)]
+        HOMEPos_Koord, HOMEPos_Angle = objHome.location, objHome.rotation_euler
+        
+        writelog('_________________KUKA_OT_Export - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Export - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' Y B {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
+        
+        SAFEPos_Koord, SAFEPos_Angle = get_relative(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        
+        writelog('_________________KUKA_OT_Export - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Export - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
+        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
+        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
+        
+        
+        PathPoint = []
+        PathAngle = []  
+        PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
+        PathPoint = createMatrix(countPATHPTSObj,3)
+        PathAngle = createMatrix(countPATHPTSObj,3)
+        for i in range(countPATHPTSObj):    
+            PathPoint[i][0:3], PathAngle[i][0:3] = get_relative(bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+        WtF_KeyPos('PATHPTS',PathPoint, PathAngle, self.filepath, '.dat', 'w')
+        
+        TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
+        WtF_KeyPos('TIMEPTS',TIMEPTS_PATHPTS, '', self.filepath, '.dat', 'a')
+            
+        writelog('_________________KUKA_OT_Export - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Export - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
+        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
+        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
+        
+        WtF_KeyPos('BASEPos', BASEPos_Koord, BASEPos_Angle, self.filepath, '.cfg', 'w')
+        WtF_KeyPos('ADJUSTMENTPos', ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle, self.filepath, '.cfg', 'a')
+        WtF_KeyPos('HOMEPos', HOMEPos_Koord, HOMEPos_Angle, self.filepath, '.cfg', 'a')
          
-    for n in range(len(PATHPTSObjList)-1,0, -1): 
-        bpy.data.objects[PATHPTSObjList[n]].name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
-        PATHPTSObjList[n] = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2  
-    writelog('renamePATHObj done')
-    writelog('_____________________________________________________________________________')
-    return PATHPTSObjList
+        writelog('_________________KUKA_OT_Export - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Export - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' X C {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
+        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
+        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
+        WtF_KeyPos('PTP', SAFEPos_Koord, SAFEPos_Angle, self.filepath, '.src', 'w')
+        writelog('_________________KUKA_OT_Export - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Export - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' X C {0:.3f}'.format(BASEPos_Angle[1])+' Z A {0:.3f}'.format(BASEPos_Angle[2]))
+        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
+        writelog('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' Z A {0:.3f}'.format(SAFEPos_Angle[2]))
+        #--------------------------------------------------------------------------------
+       
+        return {'FINISHED'}
+    writelog('KUKA_OT_Export done')  
 
-def ValidateTIMEPTS(countPATHPTSObj, PATHPTSObjList, TIMEPTS):
-    writelog('_____________________________________________________________________________')
-    writelog('ValidateTIMEPTS')
+class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
+    writelog('KUKA_OT_Import- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+    ''' Import selected curve '''
+    bl_idname = "object.kuka_import"
+    bl_label = "KUKA_OT_Import (TB)" #Toolbar - Label
+    bl_description = "Import selected Curve2" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+
+    # ImportHelper mixin class uses this
+    filename_ext = ".dat"
+
+    filter_glob = StringProperty(
+            default="*.dat",
+            options={'HIDDEN'},
+            )
+ 
+    def execute(self, context):  
+        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+        writelog(' FUNKTIONSAUFRUF KUKA_OT_Import')
+        writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
         
-    # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS
-    while len(TIMEPTS)<countPATHPTSObj:
-        for i in range(countPATHPTSObj):
-            if PATHPTSObjList[i].find('.')!=-1: # wenn Objektname = "PTPObj_017.001", wichtig, um festzustellen wo das PTPObj eingefuegt wurde
-                # Geschw. des letzten Positionswechsels ermitteln:
-                if (i+1) < countPATHPTSObj:
-                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i-1]].location
-                    v = s.length/(TIMEPTS[i]-TIMEPTS[i-1]) # [i] weil i der alte i+1 Eintrag ist
-                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
-                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i]].location
-                elif (i+1) >= countPATHPTSObj:
-                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
-                    v = s.length/(TIMEPTS[i-1]-TIMEPTS[i-2])
-                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
-                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
+        # Wichtig: Verdrehung des Koordinaten Systems (TODO: vgl. Euler Winkel)
+        objBase.rotation_mode     = RotationModeBase
+        objSafe.rotation_mode     = RotationModePATHPTS
+        objCurve.rotation_mode    = RotationModePATHPTS
+        objEmpty_A6.rotation_mode = RotationModeEmpty_Zentralhand_A6
+        
+        filename = os.path.basename(self.filepath)
+        #realpath = os.path.realpath(os.path.expanduser(self.filepath))
+        #fp = open(realpath, 'w')
+        ObjName = filename
                 
-                deltaT = abs(s.length /v)
-                NewTIMEPTS = deltaT + TIMEPTS[i-1] # v=s/t -> t = s/v
-                TIMEPTS.insert( i, NewTIMEPTS)
-                # alle anderen TIMEPTS zeitlich um NewTIMEPTS verschieben:
-                for n in range(i+1, len(TIMEPTS)):
-                    TIMEPTS[n] = TIMEPTS[n] +  deltaT
-             
-    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS    
-    # Achtung: wird noch nicht benoetigt, da in der Funktion erst alle KeyFrames geloescht werden. D.h. TIMEPTS Werte 
-    # bleiben ggf. ungenutzt, ohne Fehler zu erzeugen.
-    # Achtung: wuerde Sinn machen eine Klasse PATHPTS erstellen um die Zuordnung von Zeit, Kraft, etc. zu bekommen.
+        ApplyScale(objCurve)
+        #--------------------------------------------------------------------------------
         
-    writelog('ValidateTIMEPTS done')    
-    writelog('_____________________________________________________________________________')
-    return TIMEPTS
+        writelog("Erstellen der BezierCurve: done")
+        BASEPos_Koord, BASEPos_Angle = RfF_KeyPos('BASEPos', self.filepath, '.cfg')
+        try:
+            ADJUSTMENTPos_Koord, ADJUSTMENTPos_Angle = RfF_KeyPos('ADJUSTMENTPos', self.filepath, '.cfg')
+        except:
+            writelog('failed to load AdjustmentPos')
+        try:
+            HOMEPos_Koord, HOMEPos_Angle = RfF_KeyPos('HOMEPos', self.filepath, '.cfg')
+        except:
+            writelog('failed to load HomePos')
+        writelog('_________________KUKA_OT_Import - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Import - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
+        
+        # create Container (Location, Rotation) for each path point (PTP): dataPATHPTS_Loc, dataPATHPTS_Rot
+        #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = RfF_PATHPTS(self.filepath, BASEPos_Koord, BASEPos_Angle) # local, bez. auf Base
+        dataPATHPTS_Loc, dataPATHPTS_Rot = RfF_KeyPos('PATHPTS', self.filepath, '.dat') # relativ (bez. auf Base)
+        PATHPTSCountFile       = len(dataPATHPTS_Loc)
+        
+        
+        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        #DefRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, self.filepath)
+        '''
+        TIMEPTS_PATHPTS, NAN = RfF_KeyPos('TIMEPTS', self.filepath, '.dat')
+        TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)
+        
+        for i in range(TIMEPTS_PATHPTSCount):    
+            bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
+        '''    
+        
+        SetOrigin(objHome, objHome)
+        objHome.location       = HOMEPos_Koord
+        objHome.rotation_euler = HOMEPos_Angle
+        
+        SetOrigin(objBase, objBase)
+        objBase.location       = BASEPos_Koord
+        objBase.rotation_euler = BASEPos_Angle
+        
+        # todo: update_ObjList
+        # PATHPTSObjList an create_PATHPTSObj uebergeben
+                
+        create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) # relative Koordinaten
+        
+        # Achtung: die Reihenfolge fon SetCurvePos und SetBasePos muss eingehalten werden! 
+        # (da sonst die Curve nicht mit der Base mit verschoben wird!
+       
+        writelog('_________________KUKA_OT_Import - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Import - BASEPos_Angle' + str(BASEPos_Angle))
+        SAFEPos_Koord, SAFEPos_Angle = RfF_KeyPos('PTP', self.filepath, '.src') # PTP = SAFEPos
+        writelog('_________________KUKA_OT_Import - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Import - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
+        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
+        writelog('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' A Z {0:.3f}'.format(SAFEPos_Angle[2]))
+        # Achtung: Die Reihenfolge der Aufrufe von SetBasePos und get_absolute darf nicht vertauscht werden!
+        
+        objSafe.location, objSafe.rotation_euler = get_absolute(SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
+        writelog('_________________KUKA_OT_Import - BASEPos_Koord' + str(BASEPos_Koord))
+        writelog('_________________KUKA_OT_Import - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
+        writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
+        writelog('_________________SAFEPos_Angle' +'A {0:.3f}'.format(SAFEPos_Angle[0])+' B {0:.3f}'.format(SAFEPos_Angle[1])+' C {0:.3f}'.format(SAFEPos_Angle[2]))
+        
+        # todo: GUI Liste aktualisieren (falls vorhanden), danach Aufruf von DefRoute
+        
+        # Kurve: Origin der Kurve auf BASEPosition verschieben
+        SetOrigin(objCurve, objBase)
+        bpy.data.objects[objCurve.name].rotation_mode = RotationModePATHPTS
+        objCurve.location       = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
+        objCurve.rotation_euler = BASEPos_Angle
+
+        Route_ObjList = DefRoute(objEmpty_A6, self.filepath)
+        countRoute_ObjList = len(Route_ObjList)
+        PathPoint = createMatrix(countRoute_ObjList,3)
+        PathAngle = createMatrix(countRoute_ObjList,3)
+        for i in range(countRoute_ObjList):    
+            PathPoint[i][0:3], PathAngle[i][0:3] = get_relative(bpy.data.objects[Route_ObjList[i]].location, bpy.data.objects[Route_ObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+        
+        replace_CP(objCurve, PathPoint)  #relativ, weil Origin der Kurve auf BasePos liegt!
+        
+        #--------------------------------------------------------------------------------
+        
+        return {'FINISHED'} 
+    writelog('KUKA_OT_Import done')
+
+class KUKA_OT_RefreshButton (bpy.types.Operator):
+    writelog('KUKA_OT_RefreshButton- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
     
-    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS 
     
+    ''' Import selected curve '''
+    bl_idname = "object.refreshbutton"
+    bl_label = "Refresh (TB)" #Toolbar - Label
+    bl_description = "Set Animation Data" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+ 
+    def execute(self, context):  
+        writelog('- - -refreshbutton - - - - - - -')
+        writelog('Testlog von KUKA_OT_RefreshButton')
+        
+        objBase.rotation_mode     = RotationModeBase
+        objSafe.rotation_mode     = RotationModePATHPTS
+        objCurve.rotation_mode    = RotationModePATHPTS
+        objEmpty_A6.rotation_mode = RotationModeEmpty_Zentralhand_A6
+        
+        
+        ApplyScale(objCurve) 
+        #--------------------------------------------------------------------------------
+        
+        BASEPos_Koord, BASEPos_Angle = objBase.location, objBase.rotation_euler
+        HOMEPos_Koord, HOMEPos_Angle = objHome.location, objHome.rotation_euler
+        
+        SAFEPos_Koord, SAFEPos_Angle = get_relative(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        
+        
+        #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = get_relative(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        
+        SetOrigin(objCurve, objBase)
+        bpy.data.objects[objCurve.name].rotation_mode =RotationModePATHPTS
+        objCurve.location       = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
+        objCurve.rotation_euler = BASEPos_Angle
+        
+        
+        filepath ='none'
+        Route_ObjList = DefRoute(objEmpty_A6, filepath)
+        countRoute_ObjList = len(Route_ObjList)
+        PathPoint = createMatrix(countRoute_ObjList,3)
+        PathAngle = createMatrix(countRoute_ObjList,3)
+        for i in range(countRoute_ObjList):    
+            PathPoint[i][0:3], PathAngle[i][0:3] = get_relative(bpy.data.objects[Route_ObjList[i]].location, bpy.data.objects[Route_ObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+        
+        replace_CP(objCurve, PathPoint)  #relativ, weil Origin der Kurve auf BasePos liegt!
+        
+        
+        
+        return {'FINISHED'} 
+    writelog('- - -KUKA_OT_RefreshButton done- - - - - - -')     
+
+
+
+def DefRoute(objEmpty_A6, filepath):
+    # Diese Funktion wird erst interessant, wenn Routen ueber mehrere Objektgruppen erzeugt werden sollen.
+    # in RefreshButton den Ablauf: [HomePos, n x (Safepos, PATHPTS, Safepos), HomePos] festlegen        
+    
+    # 1. Schritt: Umsetzung nur fuer einfache Reihenfolge
+    
+    # todo: GUI Liste abfragen (falls vorhanden) Reihenfolge der Objektgruppen/-Objekte zum erstellen der Route
+    # n x [....] beruecksichtigen...???
+    
+    # todo: Bei Bearbeitung und Konkatonierung per GUI Ablauf (Object.RouteNbr)
+    
+    # Festlegen der TIMEPTS fuer jedes beteiligte Objekt:
+    PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+    PATHPTSObjList =  renamePATHObj(PATHPTSObjList)
+        
+    if filepath != 'none': # Aufruf von Button Import
+        TIMEPTS_PATHPTS, NAN = RfF_KeyPos('TIMEPTS', filepath, '.dat')
+        TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)
+        
+        # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS:
+        TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
+        
+        for i in range(TIMEPTS_PATHPTSCount):    
+            bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
+        
+    elif filepath == 'none': # Aufruf von Button RefreshButton
+        #TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6)
+        TIMEPTS_PATHPTS = []
+        for i in range(countPATHPTSObj):
+            TIMEPTS_PATHPTS = TIMEPTS_PATHPTS + [bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS]
+            
+    # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS:  
+    TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
+    TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)   # Achtung: Aufruf dieser Zeile vor ValidateTIMEPTS hat die uebergabe von TIMEPTS_PATHPTS in INTEGER gewandelt!
+    
+    TIMEPTS_Safe = TIMEPTS_PATHPTS[TIMEPTS_PATHPTSCount-1] + 2 # Sekunden
+    objSafe.kuka.TIMEPTS = TIMEPTS_Safe
+    TIMEPTS_Home = 0 # Sekunden
+    objHome.kuka.TIMEPTS = TIMEPTS_Home
+    
+    # todo: Aufrufen der HomePos am Anfang und am Ende... (RouteNbr)
+    
+    # Festlegen der Reihenfolge der Objekte:
+    Route_ObjList = [objHome.name] + PATHPTSObjList + [objSafe.name]
+    Route_TIMEPTS = [TIMEPTS_Home] + TIMEPTS_PATHPTS + [TIMEPTS_Safe]          
+    
+    OptimizeRotation(Route_ObjList) 
+    
+    # todo: Validierung der Objekte.TIMEPTS (ob jedes Objekt einen plausiblen Wert hat)
+    
+    SetKeyFrames(objEmpty_A6, Route_ObjList, Route_TIMEPTS)
+    return Route_ObjList
+    
+         
+def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
+    # Diese Funktion soll spaeter anhand einer chronologisch geordneten Objektgruppen 
+    # und Objekt/PATHPTS - Liste die KeyFrames eintragen
+    
+    original_type         = bpy.context.area.type
+    bpy.context.area.type = "VIEW_3D"
+    bpy.ops.object.select_all(action='DESELECT')
+          
+    #scene = bpy.context.scene
+    #fps = scene.render.fps
+    #fps_base = scene.render.fps_base
+     
+    raw_time=[]
+    frame_number=[]
+    
+    bpy.context.scene.objects.active = objEmpty_A6
+    
+    objEmpty_A6.select = True
+    bpy.ops.anim.keyframe_clear_v3d() #Remove all keyframe animation for selected objects
+
+    ob = bpy.context.active_object
+    ob.rotation_mode = 'QUATERNION'
+    
+    #QuaternionList = OptimizeRotationQuaternion(TargetObjList, TIMEPTSCount)
+    
+    for n in range(len(TargetObjList)):
+        writelog(n)
+        #bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n])) 
+        bpy.context.scene.frame_set(time_to_frame(bpy.data.objects[TargetObjList[n]].kuka.TIMEPTS))
+        ob.location = bpy.data.objects[TargetObjList[n]].location
+        # todo - done: keyframes auf quaternion um gimbal lock zu vermeiden
+                
+        ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+           
+        ob.keyframe_insert(data_path="location", index=-1)
+        # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
+        
+        ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
+        #ob.keyframe_insert(data_path="rotation_euler", index=-1)
+            
+    if len(TIMEPTS)> len(TargetObjList):
+        writelog('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
+    # todo: end frame not correct if PATHPTS added....
+    bpy.context.scene.frame_end = time_to_frame(TIMEPTS[len(TIMEPTS)-1])
+    
+    bpy.data.scenes['Scene'].frame_current=1
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.area.type = original_type 
+                 
+
+
 def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle ):
-    # Aufruf von: CurveImport
+    # Aufruf von: KUKA_OT_Import
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D" 
     bpy.ops.object.select_all(action='DESELECT')
@@ -1478,16 +1419,118 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     writelog('_____________________________________________________________________________')
     
     
-def frame_to_time(frame_number):
-        fps = bpy.context.scene.render.fps
-        raw_time = (frame_number - 1) / fps
-        return round(raw_time, 3)
+
+       
+class KUKA_PT_Panel(bpy.types.Panel):
+    writelog('_____________________________________________________________________________')
+    writelog()
+    writelog('KUKA_PT_Panel....')
+    writelog()
+    """Creates a Panel in the scene context of the properties editor"""
+    bl_label = "KUKA Panel" # heading of panel
+    #bl_idname = "SCENE_PT_layout"
+    bl_idname = "OBJECT_PT_layout"
     
-def time_to_frame(time_value):
-    fps = bpy.context.scene.render.fps
-    frame_number = (time_value * fps) +1
-    return int(round(frame_number, 0))    
+    # bpy.ops.OBJECT_PT_layout.module....
     
+    bl_space_type = 'PROPERTIES' # window type panel is displayed in
+    bl_region_type = 'WINDOW' # region of window panel is displayed in
+    bl_context = "object"
+    #bl_context = "scene"
+    
+    # check poll() to avoid exception.
+    '''
+    if bpy.ops.object.mode_set.poll():
+        bpy.ops.object.mode_set(mode='EDIT')
+    '''
+    
+    #@classmethod
+    #def poll(cls, context):
+    #    return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+
+    
+    def draw(self, context):
+        
+        ob = context.object
+        
+        layout = self.layout
+
+        scene = context.scene
+        #scene = context.object
+        # Create a simple row.
+        layout.label(text=" EWa: Simple Row:")
+
+        row = layout.row()
+        row.prop(scene, "frame_start")
+        row.prop(scene, "frame_end")
+
+        # Create an row where the buttons are aligned to each other.
+        layout.label(text=" Aligned Row:")
+
+        row = layout.row(align=True)
+        row.prop(scene, "frame_start")
+        row.prop(scene, "frame_end")
+
+        # Create two columns, by using a split layout.
+        layout.label(text="Tool location / orientation:")
+        row = layout.row()
+
+        row.column().prop(ob, "delta_location")
+        if ob.rotation_mode == 'QUATERNION':
+            row.column().prop(ob, "delta_rotation_quaternion", text="Rotation")
+        elif ob.rotation_mode == 'AXIS_ANGLE':
+            #row.column().label(text="Tool_Rotation")
+            #row.column().prop(pchan, "delta_rotation_angle", text="Angle")
+            #row.column().prop(pchan, "delta_rotation_axis", text="Axis")
+            #row.column().prop(ob, "delta_rotation_axis_angle", text="Rotation")
+            row.column().label(text="Not for Axis-Angle")
+        else:
+            row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
+        
+        
+        layout.label(text="Base location / orientation:")
+        row = layout.row()
+
+        row.column().prop(ob, "delta_location")
+        if ob.rotation_mode == 'QUATERNION':
+            row.column().prop(ob, "delta_rotation_quaternion", text="Rotation")
+        elif ob.rotation_mode == 'AXIS_ANGLE':
+            #row.column().label(text="Tool_Rotation")
+            #row.column().prop(pchan, "delta_rotation_angle", text="Angle")
+            #row.column().prop(pchan, "delta_rotation_axis", text="Axis")
+            #row.column().prop(ob, "delta_rotation_axis_angle", text="Rotation")
+            row.column().label(text="Not for Axis-Angle")
+        else:
+            row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
+            
+        #row.column().prop(ob, "delta_scale")
+        
+        # Import/ Export Button:
+        layout.label(text="Curvepath Import/ Export:")
+        row = layout.row(align=True)        
+        sub = row.row()
+        sub.scale_x = 1.0
+        sub.operator("object.kuka_import")  
+        row.operator("object.kuka_export") 
+        
+        # Set KeyFrames Button:
+        layout.label(text="Refresh Button:")
+        row = layout.row(align=True)
+        
+        row.operator("object.refreshbutton")  
+           
+    writelog('KUKA_PT_Panel done')
+    writelog('_____________________________________________________________________________')
+
+
+#class CURVE_OT_RefreshButtonButton(bpy.types.Operator):
+ 
+
+
+
+    
+
+
 
 # ________________________________________________________________________________________________________________________
 
@@ -1495,12 +1538,11 @@ def time_to_frame(time_value):
 #--- ### Register
 #ToDo: KUKA Operator nicht regestriert....
 def register():
-    bpy.utils.register_class(KUKAPanel)  
-    
+    bpy.utils.register_class(KUKA_PT_Panel)  
     register_module(__name__)
     
 def unregister():
-    bpy.utils.unregister_class(KUKAPanel)
+    bpy.utils.unregister_class(KUKA_PT_Panel) 
     unregister_module(__name__)
 
 #--- ### Main code    
