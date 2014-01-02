@@ -106,6 +106,7 @@ import re  # zum sortieren de Objektliste
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 from symbol import except_clause
+from copy import deepcopy # fuer OptimizeRotation
 
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
@@ -695,12 +696,16 @@ def OptimizeRotation(ObjList):
     
     # Teil 1:
     # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurueckzulegen ist, 
-    # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
+    # dann zaehle 360Grad drauf (wenn er negativ ist) bzw. ziehe 360Grad (wenn er positiv ist)
     
     
     for i in range(countObj-1):
         Rot1 = bpy.data.objects[ObjList[i]].rotation_euler
         Rot2 = bpy.data.objects[ObjList[i+1]].rotation_euler
+        Rot2old = deepcopy(Rot2)
+
+        Rot2Q = bpy.data.objects[ObjList[i+1]].rotation_euler.to_quaternion()
+
         
         DeltaRot = [math.fabs(Rot2.x - Rot1.x),math.fabs(Rot2.y - Rot1.y),math.fabs(Rot2.z - Rot1.z)]
                 
@@ -718,6 +723,12 @@ def OptimizeRotation(ObjList):
             Rot2.z =  2*math.pi + Rot2.z
         elif DeltaRot[2] > math.pi and Rot2.z >=0:
             Rot2.z = -2*math.pi + Rot2.z #-
+        
+        if Rot2.to_quaternion() == -Rot2Q: # notwendig um Quaternion flip zu vermeiden
+            Rot2.x = Rot2old.x
+            Rot2.y = Rot2old.y
+            Rot2.z = Rot2old.z
+            
        
                     
 def OptimizeRotationQuaternion(ObjList, countObj):
@@ -1255,6 +1266,9 @@ def DefRoute(objEmpty_A6, filepath):
         TIMEPTS_PATHPTS = []
         for i in range(countPATHPTSObj):
             TIMEPTS_PATHPTS = TIMEPTS_PATHPTS + [bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS]
+            if TIMEPTS_PATHPTS[i] == 0:
+                TIMEPTS_PATHPTS[i] = TIMEPTS_PATHPTS[i-1]+1
+                bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
             
     # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS:  
     TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
@@ -1270,9 +1284,15 @@ def DefRoute(objEmpty_A6, filepath):
     # Festlegen der Reihenfolge der Objekte:
     Route_ObjList = [objHome.name] + PATHPTSObjList + [objSafe.name]
     Route_TIMEPTS = [TIMEPTS_Home] + TIMEPTS_PATHPTS + [TIMEPTS_Safe]          
+
+    #Route_ObjList = PATHPTSObjList + [objSafe.name]
+    #Route_TIMEPTS = TIMEPTS_PATHPTS + [TIMEPTS_Safe]      
+    
+    #Route_ObjList = PATHPTSObjList
+    #Route_TIMEPTS = TIMEPTS_PATHPTS
     
     OptimizeRotation(Route_ObjList) 
-    
+     
     # todo: Validierung der Objekte.TIMEPTS (ob jedes Objekt einen plausiblen Wert hat)
     
     SetKeyFrames(objEmpty_A6, Route_ObjList, Route_TIMEPTS)
