@@ -681,7 +681,7 @@ def get_absolute(Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
     writelog('Vtrans_abs :'+ str(Vtrans_abs))
        
     return Vtrans_abs, rotEuler
-
+ 
 def OptimizeRotation(ObjList):
     countObj = len(ObjList)
     # Begrenze Rotation auf 360 Grad
@@ -724,13 +724,18 @@ def OptimizeRotation(ObjList):
         elif DeltaRot[2] > math.pi and Rot2.z >=0:
             Rot2.z = -2*math.pi + Rot2.z #-
         
-        if Rot2.to_quaternion() == -Rot2Q: # notwendig um Quaternion flip zu vermeiden
+        ''' 
+        # Quaternation-Flip disabled
+        new = [round(Rot2.to_quaternion()[0],6), round(Rot2.to_quaternion()[1],6),round(Rot2.to_quaternion()[2],6), round(Rot2.to_quaternion()[3],6)]
+        old = [-round(Rot2old.to_quaternion()[0],6), -round(Rot2old.to_quaternion()[1],6),-round(Rot2old.to_quaternion()[2],6), -round(Rot2old.to_quaternion()[3],6)]
+        
+        if new[:] == old[:]: # notwendig um Quaternion flip zu vermeiden
             Rot2.x = Rot2old.x
             Rot2.y = Rot2old.y
             Rot2.z = Rot2old.z
-            
-       
-                    
+        '''
+        print('')
+                               
 def OptimizeRotationQuaternion(ObjList, countObj):
     # Status: on hold...
     QuaternionList= [bpy.data.objects[ObjList[0]].rotation_euler.to_quaternion()]
@@ -1054,7 +1059,11 @@ class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
         writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
         writelog('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' Z A {0:.3f}'.format(SAFEPos_Angle[2]))
         #--------------------------------------------------------------------------------
-       
+        
+        bpy.ops.object.select_all(action='DESELECT')
+        objEmpty_A6.select=True
+        bpy.context.scene.objects.active = objEmpty_A6
+        
         return {'FINISHED'}
     writelog('KUKA_OT_Export done')  
 
@@ -1114,16 +1123,7 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
         dataPATHPTS_Loc, dataPATHPTS_Rot = RfF_KeyPos('PATHPTS', self.filepath, '.dat') # relativ (bez. auf Base)
         PATHPTSCountFile       = len(dataPATHPTS_Loc)
         
-        
-        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-        #DefRoute(objEmpty_A6, PATHPTSObjList, countPATHPTSObj, self.filepath)
-        '''
-        TIMEPTS_PATHPTS, NAN = RfF_KeyPos('TIMEPTS', self.filepath, '.dat')
-        TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)
-        
-        for i in range(TIMEPTS_PATHPTSCount):    
-            bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
-        '''    
+        #PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
         
         SetOrigin(objHome, objHome)
         objHome.location       = HOMEPos_Koord
@@ -1173,6 +1173,9 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
         
         replace_CP(objCurve, PathPoint)  #relativ, weil Origin der Kurve auf BasePos liegt!
         
+        bpy.ops.object.select_all(action='DESELECT')
+        objEmpty_A6.select=True
+        bpy.context.scene.objects.active = objEmpty_A6
         #--------------------------------------------------------------------------------
         
         return {'FINISHED'} 
@@ -1229,7 +1232,9 @@ class KUKA_OT_RefreshButton (bpy.types.Operator):
         
         replace_CP(objCurve, PathPoint)  #relativ, weil Origin der Kurve auf BasePos liegt!
         
-        
+        bpy.ops.object.select_all(action='DESELECT')
+        objEmpty_A6.select=True
+        bpy.context.scene.objects.active = objEmpty_A6
         
         return {'FINISHED'} 
     writelog('- - -KUKA_OT_RefreshButton done- - - - - - -')     
