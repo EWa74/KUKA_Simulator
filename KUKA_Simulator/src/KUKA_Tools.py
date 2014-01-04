@@ -695,7 +695,7 @@ def OptimizeRotation(ObjList):
         Rot.z = modRot[0] * (2*math.pi) 
     
     # Teil 1:
-    # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurueckzulegen ist, 
+    # wenn zum erreichen des folgenden Winkels mehr als 180Grad (PI) zurueckzulegen ist, 
     # dann zaehle 360Grad drauf (wenn er negativ ist) bzw. ziehe 360Grad (wenn er positiv ist)
     
     
@@ -724,16 +724,23 @@ def OptimizeRotation(ObjList):
         elif DeltaRot[2] > math.pi and Rot2.z >=0:
             Rot2.z = -2*math.pi + Rot2.z #-
         
-        ''' 
+        
         # Quaternation-Flip disabled
-        new = [round(Rot2.to_quaternion()[0],6), round(Rot2.to_quaternion()[1],6),round(Rot2.to_quaternion()[2],6), round(Rot2.to_quaternion()[3],6)]
-        old = [-round(Rot2old.to_quaternion()[0],6), -round(Rot2old.to_quaternion()[1],6),-round(Rot2old.to_quaternion()[2],6), -round(Rot2old.to_quaternion()[3],6)]
+        # ohne OptimRotation: Quaternion(( 0.1570675 9691238403, -0.639445 6028938293,  0.7424664497375488,  -0.1232177 3916482925))
+        # ohne flip:          Quaternion(( 0.1570675 3730773926, -0.639445 7221031189,  0.742466 390132904,  -0.1232177 9131889343))
+        # nach 1. flip (OK) : Quaternion((-0.1570675 0750541687,  0.639445 6624984741, -0.742466 4497375488,  0.1232177 7641773224)) auch ohne flip
+        # nach 2. flip (NOK): Quaternion(( 0.1570675 9691238403, -0.639445 6028938293,  0.742466 4497375488, -0.1232177 3916482925))
+        
+        
+        rF = 16
+        new = [round(Rot2.to_quaternion()[0],rF), round(Rot2.to_quaternion()[1],rF),round(Rot2.to_quaternion()[2],rF), round(Rot2.to_quaternion()[3],rF)]
+        old = [-round(Rot2old.to_quaternion()[0],rF), -round(Rot2old.to_quaternion()[1],rF),-round(Rot2old.to_quaternion()[2],rF), -round(Rot2old.to_quaternion()[3],rF)]
         
         if new[:] == old[:]: # notwendig um Quaternion flip zu vermeiden
             Rot2.x = Rot2old.x
             Rot2.y = Rot2old.y
             Rot2.z = Rot2old.z
-        '''
+        
         print('')
                                
 def OptimizeRotationQuaternion(ObjList, countObj):
@@ -795,6 +802,7 @@ def renamePATHObj(PATHPTSObjList):
     for n in range(len(PATHPTSObjList)-1,0, -1): 
         bpy.data.objects[PATHPTSObjList[n]].name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
         PATHPTSObjList[n] = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2  
+        writelog(PATHPTSObjList[n])
     writelog('renamePATHObj done')
     writelog('_____________________________________________________________________________')
     return PATHPTSObjList
@@ -831,6 +839,24 @@ def ValidateTIMEPTS(PATHPTSObjList, TIMEPTS):
     # Achtung: wird noch nicht benoetigt, da in der Funktion erst alle KeyFrames geloescht werden. D.h. TIMEPTS Werte 
     # bleiben ggf. ungenutzt, ohne Fehler zu erzeugen.
     # Achtung: wuerde Sinn machen eine Klasse PATHPTS erstellen um die Zuordnung von Zeit, Kraft, etc. zu bekommen.
+    
+    # Korrektur der TIMEPTS Werte, wenn Werte gleich sind (z.B. durch kopieren eines PATHPTS) oder Zeit zu kurz:
+    
+    v_max = 0.5 # 1m/s= 3,6km/h => 1/3,6m/s = 0,00027777m/s = 1km/h
+    
+    for i in range(countPATHPTSObj-1):
+        s = bpy.data.objects[PATHPTSObjList[i]].location - bpy.data.objects[PATHPTSObjList[i+1]].location
+        if (round(TIMEPTS[i+1],1) -round(TIMEPTS[i],1)) == 0:
+            TIMEPTS[i+1] = TIMEPTS[i] + 0.001
+        v = abs(s.length/(TIMEPTS[i+1]-TIMEPTS[i]))
+        
+        if v>= v_max: 
+            time_old = deepcopy(TIMEPTS[i+1])
+            TIMEPTS[i+1] = TIMEPTS[i] + s.length/v_max
+            deltaT = TIMEPTS[i+1] - time_old
+            # alle anderen TIMEPTS zeitlich um das deltaT verschieben:
+            for n in range(i+1, len(TIMEPTS)):
+                TIMEPTS[n] = TIMEPTS[n] +  deltaT
         
     writelog('ValidateTIMEPTS done')    
     writelog('_____________________________________________________________________________')
@@ -1262,8 +1288,7 @@ def DefRoute(objEmpty_A6, filepath):
         
         # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS:
         TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
-        
-        for i in range(TIMEPTS_PATHPTSCount):    
+        for i in range(len (TIMEPTS_PATHPTS)):    
             bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
         
     elif filepath == 'none': # Aufruf von Button RefreshButton
@@ -1271,15 +1296,19 @@ def DefRoute(objEmpty_A6, filepath):
         TIMEPTS_PATHPTS = []
         for i in range(countPATHPTSObj):
             TIMEPTS_PATHPTS = TIMEPTS_PATHPTS + [bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS]
-            if TIMEPTS_PATHPTS[i] == 0:
+            if TIMEPTS_PATHPTS[i] == 0: # besser: werte der fcurve zuruecklesen....
                 TIMEPTS_PATHPTS[i] = TIMEPTS_PATHPTS[i-1]+1
                 bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
+        TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
+        for i in range(len (TIMEPTS_PATHPTS)):    
+            bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
+       
             
     # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS:  
-    TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
-    TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)   # Achtung: Aufruf dieser Zeile vor ValidateTIMEPTS hat die uebergabe von TIMEPTS_PATHPTS in INTEGER gewandelt!
+    #TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
     
-    TIMEPTS_Safe = TIMEPTS_PATHPTS[TIMEPTS_PATHPTSCount-1] + 2 # Sekunden
+    
+    TIMEPTS_Safe = TIMEPTS_PATHPTS[len (TIMEPTS_PATHPTS)-1] + 2 # Sekunden
     objSafe.kuka.TIMEPTS = TIMEPTS_Safe
     TIMEPTS_Home = 0 # Sekunden
     objHome.kuka.TIMEPTS = TIMEPTS_Home
@@ -1295,7 +1324,13 @@ def DefRoute(objEmpty_A6, filepath):
     
     #Route_ObjList = PATHPTSObjList
     #Route_TIMEPTS = TIMEPTS_PATHPTS
+    '''
+    # Achtung: verfaelscht einen Winkel????
+    Route_TIMEPTS  = ValidateTIMEPTS(Route_ObjList, Route_TIMEPTS)
+    for i in range(len (Route_TIMEPTS)):    
+                bpy.data.objects[Route_ObjList[i]].kuka.TIMEPTS = Route_TIMEPTS[i]
     
+    '''
     OptimizeRotation(Route_ObjList) 
      
     # todo: Validierung der Objekte.TIMEPTS (ob jedes Objekt einen plausiblen Wert hat)
