@@ -1331,7 +1331,8 @@ def DefRoute(objEmpty_A6, filepath):
                 bpy.data.objects[Route_ObjList[i]].kuka.TIMEPTS = Route_TIMEPTS[i]
     
     '''
-    OptimizeRotation(Route_ObjList) 
+    if filepath == 'none': # Aufruf von Button RefreshButton
+        OptimizeRotation(Route_ObjList) 
      
     # todo: Validierung der Objekte.TIMEPTS (ob jedes Objekt einen plausiblen Wert hat)
     
