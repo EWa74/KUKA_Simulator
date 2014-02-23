@@ -1266,7 +1266,29 @@ class KUKA_OT_RefreshButton (bpy.types.Operator):
     writelog('- - -KUKA_OT_RefreshButton done- - - - - - -')     
 
 
+class KUKA_OT_bge_actionbutton (bpy.types.Operator):
+    writelog('KUKA_OT_bge_actionbutton- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+    
+    
+    ''' Import selected curve '''
+    bl_idname = "object.bge_actionbutton"
+    bl_label = "BGEAction (TB)" #Toolbar - Label
+    bl_description = "Set Animation Data for BGE" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+ 
+    def execute(self, context):  
+        writelog('- - -refreshbutton - - - - - - -')
+        writelog('Testlog von KUKA_OT_bge_actionbutton')
+        
 
+        
+        return {'FINISHED'} 
+    writelog('- - -KUKA_OT_bge_actionbutton done- - - - - - -') 
+    
+    
 def DefRoute(objEmpty_A6, filepath):
     # Diese Funktion wird erst interessant, wenn Routen ueber mehrere Objektgruppen erzeugt werden sollen.
     # in RefreshButton den Ablauf: [HomePos, n x (Safepos, PATHPTS, Safepos), HomePos] festlegen        
@@ -1363,6 +1385,17 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
     ob = bpy.context.active_object
     ob.rotation_mode = 'QUATERNION'
     
+    # EWa 23.02.14: test Blender/ Mathe "bug" bei BGE mit Quaternions. Deshalb Euler notwendig:
+    BGEActionCount = bpy.data.actions.find('BGEAction')
+    if BGEActionCount == -1:
+        bpy.data.actions.new('BGEAction')
+    bpy.data.actions['BGEAction'].fcurves.new(data_path = 'location', index=0, action_group="")
+    bpy.data.actions['BGEAction'].fcurves.new(data_path = 'location', index=1, action_group="")
+    bpy.data.actions['BGEAction'].fcurves.new(data_path = 'location', index=2, action_group="")
+    bpy.data.actions['BGEAction'].fcurves.new(data_path = 'rotation_euler', index=0, action_group="")
+    bpy.data.actions['BGEAction'].fcurves.new(data_path = 'rotation_euler', index=1, action_group="")
+    bpy.data.actions['BGEAction'].fcurves.new(data_path = 'rotation_euler', index=2, action_group="")
+    
     #QuaternionList = OptimizeRotationQuaternion(TargetObjList, TIMEPTSCount)
     
     for n in range(len(TargetObjList)):
@@ -1375,10 +1408,18 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
         ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
            
         ob.keyframe_insert(data_path="location", index=-1)
+        
+        bpy.data.actions['BGEAction'].keyframe_insert(data_path="location", index=-1)
+        
+        # --->>>> ggf. das eigentliche action wieder von quaternion nach euler zurücktransformieren (dann evtl. GimbalLock noch OK?!)
+        # bpy.data.actions['BGEAction'].fcurves.data.keyframe_insert(data_path="X_Location")    fcurve.data _path
+        
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
         
         ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
         #ob.keyframe_insert(data_path="rotation_euler", index=-1)
+        bpy.data.actions['BGEAction'].keyframe_insert(data_path="rotation_euler", index=-1)
+        
             
     if len(TIMEPTS)> len(TargetObjList):
         writelog('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
@@ -1579,6 +1620,12 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row(align=True)
         
         row.operator("object.refreshbutton")  
+        
+        # Set BGE Action Button:
+        layout.label(text="create BGE (Euler) Action:")
+        row = layout.row(align=True)
+        
+        row.operator("object.bge_actionbutton")  
            
     writelog('KUKA_PT_Panel done')
     writelog('_____________________________________________________________________________')
