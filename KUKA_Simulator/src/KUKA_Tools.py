@@ -1284,10 +1284,12 @@ class KUKA_OT_animateptps (bpy.types.Operator):
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
         
         # TODO: TargetObjList um Basepos erweitern ggf defroute funktion ueberarbeiten/ ueberbehmen
-        TargetObjList= PATHPTSObjList
-    
-        AnimateOBJScaling(TargetObjList)
+        filepath ='none'
+        Route_ObjList = DefRoute(objEmpty_A6, filepath)
         
+        #TargetObjList= PATHPTSObjList
+        #AnimateOBJScaling(TargetObjList)
+        AnimateOBJScaling(Route_ObjList)
         return {'FINISHED'} 
     writelog('- - -KUKA_OT_animatePTPs done- - - - - - -') 
 
