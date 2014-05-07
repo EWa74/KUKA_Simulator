@@ -121,7 +121,7 @@ Mode = 'XYZ' # YXZ
 
 RotationModeBase = Mode
 RotationModePATHPTS = Mode
-RotationModeEmpty_Zentralhand_A6 = 'QUATERNION'
+RotationModeEmpty_Zentralhand_A6 = 'QUATERNION' # 'XYZ'
 RotationModeTransform = Mode # XYZ YXZ
 
 Vorz1 = +1#-1 # +C = X
@@ -1266,6 +1266,33 @@ class KUKA_OT_RefreshButton (bpy.types.Operator):
     writelog('- - -KUKA_OT_RefreshButton done- - - - - - -')     
 
 
+
+class KUKA_OT_animateptps (bpy.types.Operator):
+    writelog('KUKA_OT_animatePTPs - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+    ''' Import selected curve '''
+    bl_idname = "object.animateptps"
+    bl_label = "animatePTPs (TB)" #Toolbar - Label
+    bl_description = "Set Animation Data for PathPoints (PTPs)" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+ 
+    def execute(self, context):  
+        writelog('- - -animatePTPs - - - - - - -')
+        writelog('Testlog von KUKA_OT_animatePTPs')
+        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        
+        # TODO: TargetObjList um Basepos erweitern ggf defroute funktion ueberarbeiten/ ueberbehmen
+        TargetObjList= PATHPTSObjList
+    
+        AnimateOBJScaling(TargetObjList)
+        
+        return {'FINISHED'} 
+    writelog('- - -KUKA_OT_animatePTPs done- - - - - - -') 
+
+
+
 class KUKA_OT_bge_actionbutton (bpy.types.Operator):
     writelog('KUKA_OT_bge_actionbutton- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
     writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
@@ -1361,7 +1388,68 @@ def DefRoute(objEmpty_A6, filepath):
     SetKeyFrames(objEmpty_A6, Route_ObjList, Route_TIMEPTS)
     return Route_ObjList
     
-         
+
+def AnimateOBJScaling(TargetObjList):
+    
+    # TODO: TargetObjList um Basepos erweitern
+    
+    # Funktion soll die PathPoints die gerade vom KUKA angefahren werden per Scaling der Objekte
+    # frühzeitig ausblenden und danach wieder einblenden
+    # evtl. später verschiedene Modi einstellbar (z.B. nur PTP vor dem Empty/ bzw. vor- & nach/ etc..)
+    
+    
+    # Ort & Zeit von Empty_A6 über seine Keyframes bekannt
+    # PTPs bekommen eigene keyframes mit entsprechender Scaling-Angabe zugewiesen:
+    # Ziel: die nächsten 3 PTPs einblenden
+    
+    original_type         = bpy.context.area.type
+    bpy.context.area.type = "VIEW_3D"
+    bpy.ops.object.select_all(action='DESELECT')
+    
+    
+        
+    # 1. alle vorhandenen Keyframes für das Objekt löschen bevor neue gesetzt werden:
+    for n in range(len(TargetObjList)):
+        bpy.data.objects[TargetObjList[n]].select = True #objEmpty_A6.select = True
+        bpy.ops.anim.keyframe_clear_v3d() #Remove all keyframe animation for selected objects
+        bpy.data.objects[TargetObjList[n]].select = False
+    
+    # 1. alle Objekte im scaling minimieren:
+    for n in range(len(TargetObjList)):
+        bpy.context.scene.objects.active = bpy.data.objects[TargetObjList[n]]
+        ob = bpy.context.active_object
+        ob.scale =   (0.2, 0.2, 0.2) 
+        ob.keyframe_insert(data_path="scale", index=-1, frame=1) #startframe
+        
+    # 2. 
+    for n in range(len(TargetObjList)):
+        
+        bpy.context.scene.objects.active = bpy.data.objects[TargetObjList[n]]
+        ob = bpy.context.active_object
+                
+        #wann:
+        bpy.context.scene.frame_set(time_to_frame(bpy.data.objects[TargetObjList[n]].kuka.TIMEPTS))
+        
+        # welche Eigenschaft:      
+        # bpy.data.objects['PTPObj_016'].scale -> Vector((1.0, 1.0, 1.0))
+         #bpy.data.objects[TargetObjList[n]].scale
+        #keyframe für scaling setzen:
+        ob.scale =   (0.2, 0.2, 0.2)
+        ob.keyframe_insert(data_path="scale", index=-1, frame=(bpy.context.scene.frame_current -25))
+        ob.scale =   (1.0, 1.0, 1.0)
+        ob.keyframe_insert(data_path="scale", index=-1, frame=(bpy.context.scene.frame_current -15))
+        ob.scale =   (0.2, 0.2, 0.2)
+        ob.keyframe_insert(data_path="scale", index=-1, frame=bpy.context.scene.frame_current)
+        #ob.scale =   (1.0, 1.0, 1.0)
+        #ob.keyframe_insert(data_path="scale", index=-1, frame=(bpy.context.scene.frame_current +25))
+        #ob.scale =   (0.2, 0.2, 0.2)
+        #ob.keyframe_insert(data_path="scale", index=-1, frame=(bpy.context.scene.frame_current +30))
+        
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.area.type = original_type 
+    
+    
+    
 def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
     # Diese Funktion soll spaeter anhand einer chronologisch geordneten Objektgruppen 
     # und Objekt/PATHPTS - Liste die KeyFrames eintragen
@@ -1383,9 +1471,10 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
     bpy.ops.anim.keyframe_clear_v3d() #Remove all keyframe animation for selected objects
 
     ob = bpy.context.active_object
-    ob.rotation_mode = 'QUATERNION'
+    ob.rotation_mode = 'QUATERNION' #'XYZ'
     
-    # EWa 23.02.14: test Blender/ Mathe "bug" bei BGE mit Quaternions. Deshalb Euler notwendig:
+       
+    '''
     BGEActionCount = bpy.data.actions.find('BGEAction')
     if BGEActionCount == -1:
         bpy.data.actions.new('BGEAction')
@@ -1395,6 +1484,7 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
     bpy.data.actions['BGEAction'].fcurves.new(data_path = 'rotation_euler', index=0, action_group="")
     bpy.data.actions['BGEAction'].fcurves.new(data_path = 'rotation_euler', index=1, action_group="")
     bpy.data.actions['BGEAction'].fcurves.new(data_path = 'rotation_euler', index=2, action_group="")
+    '''
     
     #QuaternionList = OptimizeRotationQuaternion(TargetObjList, TIMEPTSCount)
     
@@ -1406,10 +1496,14 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
         # todo - done: keyframes auf quaternion um gimbal lock zu vermeiden
                 
         ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        
+        #obQuaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        #ob.rotation_euler = obQuaternion.to_euler('XYZ')
+        #ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_euler
            
         ob.keyframe_insert(data_path="location", index=-1)
         
-        bpy.data.actions['BGEAction'].keyframe_insert(data_path="location", index=-1)
+        #bpy.data.actions['BGEAction'].keyframe_insert(data_path="location", index=-1)
         
         # --->>>> ggf. das eigentliche action wieder von quaternion nach euler zurücktransformieren (dann evtl. GimbalLock noch OK?!)
         # bpy.data.actions['BGEAction'].fcurves.data.keyframe_insert(data_path="X_Location")    fcurve.data _path
@@ -1417,8 +1511,10 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
         
         ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
+        
         #ob.keyframe_insert(data_path="rotation_euler", index=-1)
-        bpy.data.actions['BGEAction'].keyframe_insert(data_path="rotation_euler", index=-1)
+        
+        #bpy.data.actions['BGEAction'].keyframe_insert(data_path="rotation_euler", index=-1)
         
             
     if len(TIMEPTS)> len(TargetObjList):
@@ -1620,6 +1716,12 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row(align=True)
         
         row.operator("object.refreshbutton")  
+        
+        # Animate PTPs Button:
+        layout.label(text="Animate PTPs:")
+        row = layout.row(align=True)
+        
+        row.operator("object.animateptps")  
         
         # Set BGE Action Button:
         layout.label(text="create BGE (Euler) Action:")
