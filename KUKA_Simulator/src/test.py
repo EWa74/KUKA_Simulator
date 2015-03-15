@@ -1,6 +1,6 @@
 # each item in a matrix is a vector so vector utility functions can be used
 file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/mathutils.html#mathutils.Vector
- 
+  
 import mathutils
 from math import radians
 
@@ -75,7 +75,7 @@ bpy.data.objects[bpy.context.active_object.name].delta_rotation_euler.z = float(
     
     ObjNameEmpty = 'Empty_Zentralhand_A6'
     ObjNameCuve = obj.name
-    # - Deselct alle Objekte und in Objekte in richtiger Reihenfolge auswählen
+    # - Deselect alle Objekte und in Objekte in richtiger Reihenfolge auswählen
     bpy.ops.object.select_all(action='DESELECT')
     bpy.data.objects[ObjNameEmpty].select= True
     obj.select = True
@@ -1194,5 +1194,471 @@ def setBezierHandles(obj, mode = 'AUTOMATIC'):
     print('setBezierHandles done')
     print('_____________________________________________________________________________')
     
+def Curve2File(obj, filepath):
+    print('_____________________________________________________________________________')
+    print('Curve2File')  
+     
+    # Create a file for output
+    
+    print('Exporting ' + filepath)
+    fout = open(filepath, 'w')
 
+    # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
+    # TRANSFORM_OT_translate
+    # bpy.ops.transform.translate(value=(1,1,1))
+    # Transform Modal Map:  Property Value  Translate:  KeyMapItem.propvalue 
+    #  bpy.data.window_managers["WinMan"] ... propvalue
+    # space_userpref_keymap.py
+    # bpy.app.handlers.frame_change_pre.append(bpy.ops.curve.cureexport('BezierCurve'))
+    # Window.GetScreenInfo(Window.Types.VIEW3D)
+    # Die Info der Handles in PathPointA, B, C schreiben
+    # Jedesmal wenn handle_left geaendert wird soll ein skript aufgerufen werden das die 
+    # Roboterhand entsprechend mit dreht -> angel ????
+    # bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co.angle(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[1].co)
+    
+    PathPointX = []
+    PathPointY = []
+    PathPointZ = []
+    PathPointA = []
+    PathPointB = []
+    PathPointC = []
+    PathAngleA = []
+    PathAngleB = []
+    PathAngleC = []
+    PathAngleAx = []
+    PathAngleBy = []
+    PathAngleCz = []
+    PathPointABC = []
+    PathPointAB = []
+    PathPointAC = []
+    PathPointBC = []
+    PathAngleABC=[]
+    PathAngleAxByCz = []
+    ValRot = []
+    ValOrth = []
+    #koord = bpy.data.curves[obj.name].splines[0]
+    koord = bpy.data.curves[bpy.data.objects[obj.name].data.name].splines[0] # wichtig: name des Datenblocks verwenden
+    
+    # todo: vector.angle(other vector, fallback) aus import mathutils
+
+    n = len(koord.bezier_points.values())
+    for i in range(0,n,1): # Liste erzeugen
+        PathPointX = PathPointX +[koord.bezier_points[i].co.x]
+        PathPointY = PathPointY +[koord.bezier_points[i].co.y]
+        PathPointZ = PathPointZ +[koord.bezier_points[i].co.z]
+        # handle left fuer 2tes Koordinatensystem?!
+        # was ist, wenn spline[1, 2, ...]?
+        # BUG: wenn Hadle.left Wert = 0 -> DIV 0 -> error
+        koord.bezier_points[i].handle_left_type='FREE'
+        
+        
+        # todo in Grad speichern!!! testen...
+        
+        
+        PathPointA = PathPointA +[koord.bezier_points[i].handle_left.x*360/(2* math.pi)] # Grad
+        PathPointB = PathPointB +[koord.bezier_points[i].handle_left.y*360/(2* math.pi)]
+        PathPointC = PathPointC +[koord.bezier_points[i].handle_left.z*360/(2* math.pi)]
+        PathPointABC = PathPointABC + [math.sqrt(math.pow(PathPointA[i], 2) 
+                            + math.pow(PathPointB[i], 2) 
+                            + math.pow(PathPointC[i], 2))]
+        PathPointAB = PathPointAB + [math.sqrt(math.pow(PathPointA[i], 2) 
+                            + math.pow(PathPointB[i], 2))]
+        PathPointAC = PathPointAC + [math.sqrt(math.pow(PathPointA[i], 2) 
+                            + math.pow(PathPointC[i], 2))]
+        PathPointBC = PathPointBC + [math.sqrt(math.pow(PathPointB[i], 2) 
+                            + math.pow(PathPointC[i], 2))]
+       
+        # Achtung: Bei der folgenden Berechnung wird der "Fehler" gemacht das der Betrag des Vektors
+        # aus allen drei Achsen berechnet wird. Das hat zur folge das der berechnete Winkel auf kuerzestem
+        # Weg zwischen der Koordinatenachse und dem Vektor aufgespannt wird.
+        
+        '''
+        PathAngleA = PathAngleA + [math.degrees(math.acos(PathPointA[i]/PathPointABC[i]))]
+        PathAngleB = PathAngleB + [math.degrees(math.acos(PathPointB[i]/PathPointABC[i]))]
+        PathAngleC = PathAngleC + [math.degrees(math.acos(PathPointC[i]/PathPointABC[i]))]
+        PathAngleABC = PathAngleABC + [PathAngleA[i] + PathAngleB[i] + PathAngleC[i]]
+        '''
+        
+        
+        # Um den Winkel zu berechnen der ORTHOGONAL zur Koordinatenachse aufgespannt wird 
+        # ist der Betrag des auf den Koordinatenursprungs projezierten Vektors zu berechnen.
+        
+        
+        '''
+        PathAngleAx = PathAngleAx + [math.degrees(math.acos(PathPointA[i]/PathPointAB[i]))]
+        PathAngleBy = PathAngleBy + [math.degrees(math.acos(PathPointB[i]/PathPointBC[i]))]
+        PathAngleCz = PathAngleCz + [math.degrees(math.acos(PathPointC[i]/PathPointAC[i]))]       
+        PathAngleAxByCz = PathAngleAxByCz + [PathAngleAx[i] + PathAngleBy[i] + PathAngleCz[i]]         
+       '''
+   
+        # Validation: cos²PathAngleAx + cos²PathAngleBy + cos²PathAngleCz = 1
+        # Cos/Sin are expecting radians not degrees
+       
+        '''
+        ValRot = ValRot + [(math.pow(math.cos(PathAngleA[i] *math.pi/180.0),2) + math.pow(math.cos(PathAngleB[i]*math.pi/180.0),2) + math.pow(math.cos(PathAngleC[i]*math.pi/180.0),2))]
+        ValOrth = ValOrth + [(math.pow(math.cos(PathAngleAx[i]*math.pi/180.0),2) + math.pow(math.cos(PathAngleBy[i]*math.pi/180.0),2) + math.pow(math.cos(PathAngleCz[i]*math.pi/180.0),2))]
+        '''
+        
+    # Die Angaben die im Kuka Programm angegebenen Winkel sind keine der beiden oben berechneten. 
+    # --> Quaternion, Gimbal lock,wrist flip, spatial rotations (ToDo....)
+    # siehe Kuka: MES = {X -237, Y 0, Z 342, A 0, B 0, C 0 }
+    # siehe Kuka: OFFSET_FILE[] = "offset0022.dat"  
+    
+    
+    # bpy.ops.transform.translate(value=(X2,Y2,Z2),const raint_orientation='GLOBAL') 
+    fout.write(";FOLD PATH DATA" + "\n")
+    count= len(PathPointX) 
+    # Skalierung: 1:100 (vgl. Import)
+    Skalierung = 1000
+    
+    for i in range(0,count,1): # String erzeugen/ schreiben
+        '''        
+        StrPathPoint = ("PATHPTS[" + str(i) + "]={" +
+                        "X " + str(PathPointX[i]) + ", Y " + str(PathPointY[i]) +  
+                        ", Z " +str(PathPointZ[i]) +", A " + str(PathPointA[i]) + 
+                        ", B " + str(PathPointB[i]) +", C " + str(PathPointC[i]) +
+                        "} ")
+        fout.write(StrPathPoint + "\n")
+        '''        
+        fout.write("PATHPTS[" + str(i+1) + "]={" + 
+                   "X " + "{0:.5f}".format(PathPointX[i]*Skalierung) + ", Y " + "{0:.5f}".format(PathPointY[i]*Skalierung) +
+                   ", Z " + "{0:.5f}".format(PathPointZ[i]*Skalierung) + ", A " + "{0:.5f}".format(PathPointA[i] ) +
+                   ", B " + "{0:.5f}".format(PathPointB[i]) + ", C " + "{0:.5f}".format(PathPointC[i] ) +
+                   "} " + "\n")
+        '''
+        fout.write("PATHPAngles[" + str(i) + "]={" + 
+                   "Angle(A) " + "{0:.5f}".format(PathAngleA[i]) + ", Angle(B) " + "{0:.5f}".format(PathAngleB[i]) +
+                   ", Angle(C) " + "{0:.5f}".format(PathAngleC[i]) + ", PathAngleABC " + "{0:.3f}".format(PathAngleABC[i]) + 
+                   "PathPointABC " + "{0:.3f}".format(PathPointABC[i]) + "\n" +
+                   "ValRot: " + "{0:.3f}".format(ValRot[i]) + "\n")        
+        fout.write("PATHPAngles[" + str(i) + "]={" + 
+                   "Angle(Ax) " + "{0:.5f}".format(PathAngleAx[i]) + ", Angle(By) " + "{0:.5f}".format(PathAngleBy[i]) +
+                   ", Angle(Cz) " + "{0:.5f}".format(PathAngleCz[i]) +  
+                   "ValOrth: " + "{0:.3f}".format(ValOrth[i]) + "\n")        
+'''
+        # Write out the data
+        #dump(fout, ob.data)
+    fout.write(";ENDFOLD" + "\n")
+    # Close the file
+    fout.close();
+    
+    print('Curve2File done')
+    print('_____________________________________________________________________________')
+
+
+PATHPTS_Koord = point_world
+    print('PATHPTS-Origin  = PATHPTS auf point_world  gesetzt.')
+
+    print('PATHPTS_Angle wieder dem Origin zuweisen unter Beruecksichtigung der BaseOrientierung:')
+    PATHPTS_Angle=[]
+    for i in range(0,3):
+        PATHPTS_Angle = PATHPTS_Angle + [-(BASEPos_Angle[i] +dataPATHPTS_Rot[i])*(2*math.pi)/360 ] # [rad]
+        
+def SetAnimation():
+    positions = (0,0,2),(0,1,2),(3,2,1),(3,4,1),(1,2,1)
+    start_pos = (0,0,0)
+     
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, size=0.3, location=start_pos)
+    bpy.ops.object.shade_smooth()
+    ob = bpy.context.active_object
+     
+    frame_num = 0
+     
+    for position in positions:
+        bpy.context.scene.frame_set(frame_num)
+        ob.location = position
+        ob.keyframe_insert(data_path="location", index=-1)
+        frame_num += 10
+
+    # snipset
+     
+    scene = bpy.context.scene
+     
+    fps = scene.render.fps
+    fps_base = scene.render.fps_base
+     
+    def frame_to_time(frame_number):
+        raw_time = (frame_number - 1) / fps
+        return round(raw_time, 3)
+     
+    # key frames, try this with location
+    # keyframes on a cube
+    print('---')
+    for key in bpy.data.actions[0].fcurves:
+        for marker in key.keyframe_points:
+            frame = marker.co.x
+            frame_time = frame_to_time(frame)
+            print(frame, frame_time)
+        break
+     
+    # time line markers
+    for k, v in scene.timeline_markers.items():
+        frame = v.frame
+        frame_time = frame_to_time(frame)
+        print(frame, frame_time) 
+        
+import bpy
+
+
+TIMEPTS=[]
+raw_time=[]
+
+objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6'] 
+scene = bpy.context.scene
+fps = scene.render.fps
+fps_base = scene.render.fps_base
+
+#countPATHPTSObj, PATHPTSObjList = count_PATHPTSObj(PATHPTSObjName)
+countPATHPTSObj = 4
+PATHPTSObjList =('PTPObj_001','PTPObj_002','PTPObj_003','PTPObj_004')
+
+
+n=1 # Schleife fehlt noch....
+
+bpy.context.scene.objects.active = objEmpty_A6
+
+#bpy.data.objects[PATHPTSObjList[n]]
+
+ob = bpy.context.active_object
+
+def frame_to_time(frame_number):
+    raw_time = (frame_number - 1) / fps
+    return round(raw_time, 3)
+
+TIMEPTS=TIMEPTS + [24]
+
+def time_to_frame(time_value):
+    frame_number = (raw_time * fps) +1
+    return round(frame_number, 3)
+
+for position in PATHPTSObjList:
+    
+    bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n-1]))
+    ob.location = bpy.data.objects[PATHPTSObjList[n-1]].location
+    ob.keyframe_insert(data_path="location", index=-1)
+    
+    
+    
+class kuka_data (bpy.types.Operator):
+#class kuka_data (bpy.types.BlendData):    
+    print('kuka_data- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
+    ''' Import selected curve '''
+    # dir(bpy.ops.scene.kuka_data)
+    
+    bl_idname = "scene.kuka_data"
+    bl_label = "kuka_data (TB)" #Toolbar - Label
+    bl_description = "contains all required info for animation" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+    
+    'Optional class documentation string'
+    # todo: Klasse definieren: PATHPTS.loc/rot/TIMEPTS/LOADPTS/STOPPTS/ACTIONMSK
+    
+    PATHPTSCount = 0 
+    TIMEPTSCount = 1
+    LOADPTSCount = 2
+    STOPPTSCount = 3
+    ACTIONMSKCount = 4
+    '''
+    def __init__(self, name, salary): 
+      self.name = name
+      self.salary = salary
+    '''  
+    # todo: Objektstruktur überdenken...... (Objekt/ Klasse: an Empty aufhängen?!  Methoden: RfF_LocRot, .... Eigenschaften: PATHPTS,...
+    
+    def SetAnimationNew(self, context, TIMEPTS, TIMEPTSCount): 
+        self.AnimationSetup = SetAnimation(TIMEPTS, TIMEPTSCount)
+        print ("Total setAnimation %d" % kuka_data.setAnimation) 
+ 
+    
+    def PATHPTS(self, wert): 
+        PATHPTSCount += wert
+        print ("Total PATHPTS %d" % kuka_data.PATHPTSCount) 
+ 
+    def TIMEPTS(self): 
+        print ("Total TIMEPTS %d" % kuka_data.TIMEPTSCount)  
+        
+    def LOADPTS(self): 
+        print ("Total LOADPTS %d" % kuka_data.LOADPTSCount)  
+        
+    def STOPPTS(self): 
+        print ("Total STOPPTS %d" % kuka_data.STOPPTSCount)  
+    
+    def ACTIONMSK(self): 
+        print ("Total ACTIONMSK %d" % kuka_data.ACTIONMSKCount)  
+        
+    print('kuka_data- done - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ') 
+    print('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')    
+
+
+
+import bpy
+
+
+class MyProperties(bpy.types.PropertyGroup):
+    selected_object_index = bpy.props.IntProperty(
+            default=-1,
+            min=-1,
+            options={'HIDDEN', 'SKIP_SAVE', },
+            )
+
+
+class MYSCENE_UL_objects(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(text=item.name, translate=False, icon_value=icon)
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon_value=icon)
+
+
+class UIListPanelExample(bpy.types.Panel):
+    """Creates a Panel in the Object properties window"""
+    bl_label = "UIList Panel"
+    bl_idname = "OBJECT_PT_ui_list_example"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+
+    def draw(self, context):
+        layout = self.layout
+
+        myScene = context.scene
+        myProps = context.scene.myProps
+
+        layout.template_list(
+                listtype_name="MYSCENE_UL_objects",
+                dataptr=myScene,
+                propname="objects",
+                active_dataptr=myProps,
+                active_propname="selected_object_index",
+                rows=2,
+                type='DEFAULT',
+                )
+
+
+def register():
+    bpy.utils.register_class(MYSCENE_UL_objects)
+    bpy.utils.register_class(UIListPanelExample)
+    bpy.utils.register_class(MyProperties)
+    bpy.types.Scene.myProps = bpy.props.PointerProperty(type=MyProperties)
+
+
+def unregister():
+    bpy.utils.unregister_class(MYSCENE_UL_objects)
+    bpy.utils.unregister_class(UIListPanelExample)
+    bpy.utils.unregister_class(MyProperties)
+    del bpy.types.Scene.myProps
+
+
+if __name__ == "__main__":
+    register()
+    
+def RfS_LocRotX(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
+    # Aufruf von: create_PATHPTSObj, SetSafePos
+    # Diese Funktion wird nur bei Export aufgerufen.
+    # Wiedergabe von LOC/Rot bezogen auf Base
+    print('_____________________________________________________________________________')
+    print('Funktion: RfS_LocRot - lokale Koordinaten bezogen auf Base!')
+    
+    objBase = bpy.data.objects['Sphere_BASEPos']
+    PATHPTS_Angle = []
+    # PATHPTS_Angle Angle auch in Abhaengigkeit von BasePos Orientierung exportieren/ speichern!
+    # TODO: FALSCHE Zerlegung der Winkel in Abh. von Base!!!!!
+    PATHPTS_Angle = PATHPTS_Angle +[(dataPATHPTS_Rot[0] -objBase.rotation_euler.x) *360/(2*math.pi)]# C(X)
+    PATHPTS_Angle = PATHPTS_Angle +[(dataPATHPTS_Rot[1] -objBase.rotation_euler.y) *360/(2*math.pi)]# B(Y)
+    PATHPTS_Angle = PATHPTS_Angle +[(dataPATHPTS_Rot[2] -objBase.rotation_euler.z) *360/(2*math.pi)]# A(Z)
+    print('PATHPTS_Angle - ini: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
+    
+    objPATHPTS.rotation_euler = (0,0,0) # um die richtigen Koordinaten zu bekommen 
+    print('PATHPTS: bevor Origin auf BasePos' +str(objPATHPTS.data.vertices[0].co))
+    
+    # setzen des PATHPTS Origin auf  vertex[0] der BasePosition: 
+    SetOrigin(objPATHPTS, objBase)
+    
+    print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
+    
+    print('Umrechnung auf globale Koordinaten....')
+    print('Transformation von SafePos auf BasePos...')
+    vec = objPATHPTS.data.vertices[0].co # Achtung: Bei Aktuellem Objekt fuer PATHPTS liegt vertices[0] nicht im Ursprung des Objektes
+    print('vec: ' +str(vec))
+    eul = mathutils.Euler((objBase.rotation_euler.x, objBase.rotation_euler.y, objBase.rotation_euler.z), RotationModeTransform) # XYZ
+    print('eul: ' +str(eul))
+    vec3d = vec.to_3d()
+    mat_rot = eul.to_matrix()
+    mat_loc = vec3d
+    mat = mat_loc * mat_rot.to_3x3()
+    print('mat: ' + str(mat))
+    
+    #Achtung: lokale Koordinaten (bezogen auf Base) wie in Datei gespeichert
+    PATHPTS_Koord = mat
+    print('PATHPTS_Koord = point_local: ' + str(PATHPTS_Koord))
+    print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
+    
+    print('PATHPTS-Origin auf PATHPTS setzen ....')
+    # setzen des PATHPTS Origin auf  vertex[0] des PATHPTSObj:
+    SetOrigin(objPATHPTS, objPATHPTS)
+    
+    print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
+    
+    print('PATHPTS_Angle wieder dem Origin zuweisen')
+    objPATHPTS.rotation_euler.x = PATHPTS_Angle[0] *(2*math.pi)/360 +objBase.rotation_euler.x # C(X)[rad]
+    objPATHPTS.rotation_euler.y = PATHPTS_Angle[1] *(2*math.pi)/360 +objBase.rotation_euler.y # B(Y)[rad]
+    objPATHPTS.rotation_euler.z = PATHPTS_Angle[2] *(2*math.pi)/360 +objBase.rotation_euler.z # A(Z)[rad]
+    
+    print('PATHPTS_Koord: ' + str(PATHPTS_Koord))
+    print('PATHPTS_Angle: '+'A {0:.3f}'.format(PATHPTS_Angle[0])+' B {0:.3f}'.format(PATHPTS_Angle[1])+' C {0:.3f}'.format(PATHPTS_Angle[2]))
+    
+    
+    # todo: hier muss dann adjustment wieder abgezogen werden....
+    
+    print('RfS_LocRot done')
+    print('_____________________________________________________________________________')
+    return PATHPTS_Koord, PATHPTS_Angle 
+    
+    
+MatrixDef= createMatrix(3,3)
+MatrixDef = [(0.8192, -0.5736, 0.0),(0.5735, -0.8190, -0.0),(0,0,-1)]
+a= Matrix(MatrixDef) * Mrot # 
+b = Mrot * Matrix(MatrixDef)    
+
+
+ 0.8192 -0.5736  0.0
+-0.5735 -0.8190  0.0
+  0.0000  0.0000 -1.00
+
+    
+
+
+
+def createMatrix(rows, columns, default = 0):
+    m = []
+    for i in range(rows):
+        m.append([default for j in range(columns)])
+    return m
+
+
+MDef= createMatrix(3,3)
+MDef = [(0.8192, -0.5736, 0.0),(0.5735, -0.8190, -0.0),(0,0,-1)]
+MatrixDef = Matrix(MDef) 
+
+rotEulerMDef =MatrixDef.to_euler('XYZ')
+print('rotEulerMDef :'+ repr(rotEulerMDef))
+print()
+print('rotEulerMDef[0] :'+ repr(rotEulerMDef[0]*360/(2*3.14)))
+print('rotEulerMDef] :'+ repr(rotEulerMDef[1]*360/(2*3.14)))
+print('rotEulerMDef[2] :'+ repr(rotEulerMDef[2]*360/(2*3.14)))
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
