@@ -1,3 +1,8 @@
+
+
+def helloworld():
+    print('hello world...')
+
 # each item in a matrix is a vector so vector utility functions can be used
 file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/mathutils.html#mathutils.Vector
  
@@ -1193,6 +1198,692 @@ def setBezierHandles(obj, mode = 'AUTOMATIC'):
     bpy.ops.object.mode_set(mode='OBJECT', toggle=True)
     print('setBezierHandles done')
     print('_____________________________________________________________________________')
+# todo: testen, Achtung unterscheide zwischen + und - Faellen -> wird nicht benoetigt    
+# Teil 2:
+    # Mehrheitsentscheid für die Drehrichtung (z.B. +170 oder - 190)
+    # wenn y und z negativ, dann x auch negativ
+    # wenn x und z negativ, dann y auch negativ
+    # wenn x und y negativ, dann z auch negativ
+    '''
+    for i in range(countObj-1):
+        Rot = bpy.data.objects[ObjList[i]].rotation_euler
+        if Rot.y >0 and Rot.z >0 and Rot.x<0:
+            Rot.x = 2*math.pi + Rot.x
+        if Rot.y <0 and Rot.z <0 and Rot.x>0:
+            Rot.x = -2*math.pi + Rot.x
+        
+        if Rot.x >0 and Rot.z >0 and Rot.y<0:
+            Rot.y = 2*math.pi + Rot.y
+        if Rot.x <0 and Rot.z <0 and Rot.y>0:
+            Rot.y = -2*math.pi + Rot.y
+        
+        if Rot.x >0 and Rot.y >0 and Rot.z<0:
+            Rot.z = 2*math.pi + Rot.z
+        if Rot.x <0 and Rot.y <0 and Rot.z>0:
+            Rot.z = -2*math.pi + Rot.z
+    '''
+    # Teil 1: Status: wird auch bei quaternion benoetigt!
+    # wenn zum erreichen des folgenden Winkels mehr als 180° (PI) zurückzulegen ist, 
+    # dann zaehle 360° drauf (wenn er negativ ist) bzw. ziehe 360° (wenn er positiv ist)
     
 
+
+
+    bpy.data.objects['Empty_Zentralhand_A6'].animation_data.action.fcurves[4].keyframe_points[1].co
+    action_data =action.fcurves
+    action.fcurves[rotID[0]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, quaternion w Wert)
+    action.fcurves[rotID[1]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, quaternion x Wert)
+    action.fcurves[rotID[2]].keyframe_points[1].co # Ergebnis: Vector(Frame[1] Wert, quaternion y Wert)
+    action.fcurves[rotID[3]].keyframe_points[1].co
     
+
+
+print(ob.rotation_quaternion)
+        print(ob.rotation_euler)
+        
+        # von Quaternion wieder zurueck nach Euler um Drehungen ueber 360° zu eliminieren:
+        ob.rotation_mode = 'XYZ'
+        print(ob.rotation_quaternion)
+        print(ob.rotation_euler)
+        ob.rotation_mode = 'QUATERNION'
+        print(ob.rotation_quaternion)
+        print(ob.rotation_euler)
+        #ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_quaternion.to_euler()
+        #ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        
+def OptimizeRotationQuaternion(ObjList, countObj):
+    
+    QuaternionList= [bpy.data.objects[ObjList[0]].rotation_euler.to_quaternion()]
+    # Teil 1:
+    # wenn zum erreichen des folgenden Winkels alle drei Achsen ueber Null gehen müssen, 
+    # dann invertiere den folgenden Quaternion
+    
+    for n in range(countObj-1):
+        Rot1 = bpy.data.objects[ObjList[n]].rotation_quaternion.to_euler()
+        Rot2 = bpy.data.objects[ObjList[n+1]].rotation_quaternion.to_euler()
+        
+        DeltaQRota = [(QRot1.w <0 and QRot2.w>0),(QRot1.x <0 and QRot2.x>0),(QRot1.y <0 and QRot2.y>0),(QRot1.z <0 and QRot2.z>0)]
+        DeltaQRotb = [(QRot1.w >0 and QRot2.w<0),(QRot1.x >0 and QRot2.x<0),(QRot1.y >0 and QRot2.y<0),(QRot1.z >0 and QRot2.z>0)]
+                
+        if (DeltaQRota or DeltaQRotb == [1,1,1,1]) == [1,1,1,1]:
+            QRot2.w =  - QRot2.w
+            QRot2.x =  - QRot2.x
+            QRot2.y =  - QRot2.y
+            QRot2.z =  - QRot2.z
+        
+        
+        QuaternionList = QuaternionList + [bpy.data.objects[ObjList[n+1]].rotation_euler.to_quaternion()]
+        
+    return QuaternionList    
+
+
+
+        #ob.rotation_euler = bpy.data.objects[TargetObjList[n]].rotation_euler
+        
+        RotEuler1 = bpy.data.objects[TargetObjList[n]].rotation_euler
+        RotQuaternion1 = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        bpy.data.objects[TargetObjList[n]].rotation_mode = 'QUATERNION'
+        bpy.data.objects[TargetObjList[n]].rotation_mode = 'XYZ'
+        RotEuler2 = bpy.data.objects[TargetObjList[n]].rotation_euler
+        RotQuaternion2 = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+        
+        if RotEuler1 != RotEuler2:
+            
+            ob.rotation_quaternion = - ob.rotation_quaternion
+            #ob.rotation_quaternion.w = - ob.rotation_quaternion.w
+            #ob.rotation_quaternion.x = - ob.rotation_quaternion.x
+            #ob.rotation_quaternion.y = - ob.rotation_quaternion.y
+            #ob.rotation_quaternion.z = - ob.rotation_quaternion.z
+            
+def WtF_KeyPosX(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):
+    # Input: Keyword ( BASEPos, HOMEPos, SAFEPos, ADJUSTMENTPos, ..) Koordinaten und Winkel; Zielverzeichnis
+    # Process: 
+    # - schreiben der Koordinaten in eine Datei mit Endung *.cfg
+    # - Der Dateiname wird von *.dat uebernommen
+    # - Die Winkel werden wie folgt zugeordnet: C(X), B(Y), A(Z)
+    # Output: BASEPos {X 1023.24963, Y 1794.66641, Z 483.22785, A -35.00001, B -20.00001, C -179.00008} 
+        
+    print('_____________________________________________________________________________')
+    print('WtF_KeyPos :' + Keyword)
+    print('Remark: this file is not a part of the normal KUKA Ocutbot Software.')
+    print(Keyword + '_Angle A - Z [2]: ' +str(KeyPos_Angle[2]))
+    print(Keyword + '_Angle B - Y [1]: ' +str(KeyPos_Angle[1]))    #
+    print(Keyword + '_Angle C - X [0]: ' +str(KeyPos_Angle[0])) 
+    FilenameSRC = filepath
+    FilenameSRC = FilenameSRC.replace(".dat", FileExt) 
+    fout = open(FilenameSRC, FileMode) # FileMode: 'a' fuer Append oder 'w' zum ueberschreiben
+     
+    SkalierungPTP = 1000
+    # Winkel von XYZ -> CBA
+    fout.write( Keyword + " {" + 
+                   "X " + "{0:.5f}".format(KeyPos_Koord[0]*SkalierungPTP) + 
+                   ", Y " + "{0:.5f}".format(KeyPos_Koord[1]*SkalierungPTP) +
+                   ", Z " + "{0:.5f}".format(KeyPos_Koord[2]*SkalierungPTP) + 
+                   ", A " + "{0:.5f}".format(KeyPos_Angle[2]) +
+                   ", B " + "{0:.5f}".format(KeyPos_Angle[1]) + 
+                   ", C " + "{0:.5f}".format(KeyPos_Angle[0]) +
+                   "} " + "\n")
+    
+    fout.close();
+    print('WtF_KeyPos :' + Keyword + ' geschrieben.')
+    print('_____________________________________________________________________________')              
+            
+def WtF_KUKAdat(obj, objEmpty_A6, PATHPTSObjName, filepath, BASEPos_Koord, BASEPos_Angle):
+    
+    print('_____________________________________________________________________________')
+    print('WtF_KUKAdat')  
+    # Create a file for output
+    print('Exporting ' + filepath)
+    fout = open(filepath, 'w')
+
+    # PATHPTS[1]={X 105.1887, Y 125.6457, Z -123.9032, A 68.49588, B -26.74377, C 1.254162 }
+    # bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co.angle(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[1].co)
+    
+    PathPointX = []
+    PathPointY = []
+    PathPointZ = []
+    PathPointA = []
+    PathPointB = []
+    PathPointC = []
+    
+    #koord = bpy.data.curves[obj.name].splines[0]
+    #koord = bpy.data.curves[bpy.data.objects[obj.name].data.name].splines[0] # wichtig: name des Datenblocks verwenden
+    
+    PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
+    for i in range(countPATHPTSObj):    
+        dataPATHPTS_LocGL, dataPATHPTS_RotGL = RfS_LocRot(bpy.data.objects[PATHPTSObjList[i]], bpy.data.objects[PATHPTSObjList[i]].location, bpy.data.objects[PATHPTSObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        
+        PathPointX = PathPointX +[dataPATHPTS_LocGL[0]]
+        PathPointY = PathPointY +[dataPATHPTS_LocGL[1]]
+        PathPointZ = PathPointZ +[dataPATHPTS_LocGL[2]]
+        # ABC ->CBA
+        PathPointA = PathPointA +[dataPATHPTS_RotGL[2]] # Z - A Grad
+        PathPointB = PathPointB +[dataPATHPTS_RotGL[1]] # Y - B
+        PathPointC = PathPointC +[dataPATHPTS_RotGL[0]] # X - C 
+        
+    fout.write(";FOLD PATH DATA" + "\n")
+    count= len(PathPointX) 
+    # Skalierung: 1:100 (vgl. Import)
+    Skalierung = 1000
+    
+    for i in range(0,count,1):    
+        fout.write("PATHPTS[" + str(i+1) + "]={" + 
+                   "X " + "{0:.5f}".format(PathPointX[i]*Skalierung) + ", Y " + "{0:.5f}".format(PathPointY[i]*Skalierung) +
+                   ", Z " + "{0:.5f}".format(PathPointZ[i]*Skalierung) + ", A " + "{0:.5f}".format(Vorz3 *PathPointA[i] ) +
+                   ", B " + "{0:.5f}".format(Vorz2 *PathPointB[i]) + ", C " + "{0:.5f}".format(Vorz1 *PathPointC[i] ) +
+                   "} " + "\n")
+        
+    fout.write(";ENDFOLD" + "\n")
+    
+    # TIMEPTS[1]=1.7  
+    TIMEPTS_PATHPTS, TIMEPTS_PATHPTSCount = RfS_TIMEPTS(objEmpty_A6) # todo: Obj Liste in RfS_TIMEPTS
+    
+    fout.write(";FOLD TIME DATA" + "\n")
+    for i in range(0,TIMEPTS_PATHPTSCount,1):    
+        fout.write("TIMEPTS[" + str(i+1) + "]=" + 
+                   "{0:.5f}".format(TIMEPTS_PATHPTS[i] ) +
+                   "\n")
+    fout.write(";ENDFOLD" + "\n")
+    
+    # Close the file
+    fout.close();
+    print('WtF_KUKAdat done')
+    print('_____________________________________________________________________________')
+    
+    
+def RfS_LocRot(objPATHPTS, dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
+    # Aufruf von: create_PATHPTSObj, SetSafePos
+    # Diese Funktion wird nur bei Export, Refresh (unnoetiger Weise) und Import (ueber replaceCP) aufgerufen.
+    # Wiedergabe von LOC/Rot bezogen auf Base
+    
+    # World2Local - OK
+    
+    # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
+    # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
+    print('_____________________________________________________________________________')
+    print('Funktion: RfS_LocRotX - lokale Koordinaten bezogen auf Base!')
+    
+    objBase = bpy.data.objects['Sphere_BASEPos']
+    PATHPTS_Angle = []
+    
+    matrix_world = bpy.data.objects[objBase.name].matrix_world  #global
+    point_local  = dataPATHPTS_Loc                              #global 
+    
+    print('point_local'+ str(point_local))  # neuer Bezugspunkt
+    
+    #--------------------------------------------------------------------------
+    mat_rotX = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[0]), 3, 'X') # Global
+    mat_rotY = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[1]), 3, 'Y')
+    mat_rotZ = mathutils.Matrix.Rotation(math.radians(BASEPos_Angle[2]), 3, 'Z')
+    Mrot = mat_rotZ * mat_rotY * mat_rotX
+    print('Mrot :'+ str(Mrot))
+    mat_rotX2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
+    mat_rotY2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
+    mat_rotZ2 = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
+    Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2
+    print('Mrot2'+ str(Mrot2))
+    #--------------------------------------------------------------------------
+     
+    PATHPTS_Koord = matrix_world.inverted() *point_local    # transpose fuehrt zu einem andren Ergebnis?!
+    print('PATHPTS_Koord : '+ str(PATHPTS_Koord))           # neuer Bezugspunkt
+    
+    matrix_1R0 = Mrot.inverted()  * Mrot2 
+    print('matrix_1R0'+ str(matrix_1R0))
+    
+    newR =matrix_1R0.to_euler('XYZ')
+    
+    print('newR'+ str(newR))    
+    print('newR[0] :'+ str(newR[0]*360/(2*math.pi)))
+    print('newR[1] :'+ str(newR[1]*360/(2*math.pi)))
+    print('newR[2] :'+ str(newR[2]*360/(2*math.pi)))
+        
+    PATHPTS_Angle = (Vorz1* newR[0]*360/(2*math.pi), Vorz2*newR[1]*360/(2*math.pi), Vorz3*newR[2]*360/(2*math.pi))
+    
+    print('PATHPTS_Koord : ' + str(PATHPTS_Koord))
+    print('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
+    
+    print('RfS_LocRot done')
+    print('_____________________________________________________________________________')
+    return PATHPTS_Koord, PATHPTS_Angle 
+
+def SetCurvePos(objCurve, objBase, BASEPos_Koord, BASEPos_Angle):
+    print('_____________________________________________________________________________')
+    print('SetCurvePos: in Abhaengigkeit von Base Position')
+    print('BASEPos_Koord' + str(BASEPos_Koord)) 
+    print('BASEPos_Angle' + str(BASEPos_Angle))
+    #-----------------------------------
+    # Origin der Curve auf BASEPosition setzen   (ohne die Curve zu verschieben)
+    SetOrigin(objCurve, objBase)
+    # Kurve: Origin der Kurve auf BASEPosition verschieben
+    bpy.data.objects[objCurve.name].rotation_mode =RotationModePATHPTS #n YXZ, XYZ
+    objCurve.location = BASEPos_Koord.x,BASEPos_Koord.y ,BASEPos_Koord.z 
+    objCurve.rotation_euler = BASEPos_Angle[0] *(2*math.pi)/360,  BASEPos_Angle[1] *(2*math.pi)/360,BASEPos_Angle[2] *(2*math.pi)/360
+    print('SetCurvePos done')
+    print('_____________________________________________________________________________') 
+    
+def SetObjRelToBaseX(Obj, Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+    # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
+    # Aufruf bei Import
+    # Obj_Angle [rad]
+    # BASEPos_Angle [rad]
+    # Transformation Local2World
+    
+    objBase = bpy.data.objects['Sphere_BASEPos']
+    bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
+    
+    matrix_world =bpy.data.objects[objBase.name].matrix_world
+    point_local  = Obj_Koord    
+    if (Obj_Angle !='' and BASEPos_Angle !=''):
+        print('point_local'+ str(point_local))  # neuer Bezugspunkt
+        mat_rotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # C = -179 Global
+        mat_rotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y') # B = -20
+        mat_rotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z') # A = -35
+        Mrot = mat_rotZ * mat_rotY * mat_rotX
+        print('Mrot'+ str(Mrot))
+        mat_rotX2 = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # Local (bez. auf Base)
+        mat_rotY2 = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
+        mat_rotZ2 = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
+        Mrot2 = mat_rotZ2 * mat_rotY2 * mat_rotX2 # KUKA Erg.
+        print('Mrot2'+ str(Mrot2))
+    
+        rot_matrix_world = Mrot2.transposed() * Mrot.transposed()       
+        rot_matrix_world = rot_matrix_world.transposed()
+        rotEuler =rot_matrix_world.to_euler('XYZ')
+        Obj.rotation_euler = rotEuler
+    
+    print('rotEuler'+ str(rotEuler))
+    print('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
+    print('rotEuler[1] :'+ str(rotEuler[1]*360/(2*math.pi)))
+    print('rotEuler[2] :'+ str(rotEuler[2]*360/(2*math.pi)))
+    
+    point_world = matrix_world *point_local
+    Obj.location = point_world #Vector_World
+    print('point_world :'+ str(point_world))
+       
+    return
+
+
+
+def RefreshButton_todo(objEmpty_A6, TIMEPTS, TIMEPTSCount):
+    
+    # todo: under construction.....
+    # KeyFrames (in der Scene) setzen, unabhaengig ob TIMPTS from Scene/ from File
+    # Aufruf von: CurveImport
+    original_type = bpy.context.area.type
+    bpy.context.area.type = "VIEW_3D" 
+    bpy.ops.object.select_all(action='DESELECT')
+    print('_____________________________________________________________________________')
+    print('RefreshButton_todo_PATHPTS')
+    # erstellen von 'TIMEPTSCount' KeyFrames an den Positionen 'dataPATHPTS_Loc' mit der Ausrichtung 'dataPATHPTS_Rot'
+    # fuer das Objekt objEmpty_A6
+    PATHPTSObjName = 'PTPObj_'
+    # 1. Wieviele PTPObj Objekte sind in der Scene vorhanden? (Beachte: Viele Objekte koennen den selben Datencontainer verwenden)
+    PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+    print('Es sind ' + str(countPATHPTSObj) + 'PATHPTSObj in der Szene vorhanden.' )
+    # todo
+    TIMEPTS, TIMEPTSCount = RfS_TIMEPTS(objEmpty_A6)
+    print('Es sind ' + str(TIMEPTSCount) + 'TIMEPTS in der Szene vorhanden.' )
+    print('Folgende PATHPTSObj wurden in der Szene gefunden: ' + str(PATHPTSObjList))
+    
+    
+    # Datencontainer:  
+    for mesh in bpy.data.meshes:
+        print(mesh.name)  
+    # 2. Anpassen der Anzahl der Objekte auf 'PATHPTSCountFile'
+    # sicherstellen das kein ControlPoint selektiert ist:
+    bpy.ops.object.select_all(action='DESELECT')
+    
+    if PATHPTSCountFile <= countPATHPTSObj:
+        CountCP = countPATHPTSObj
+        print('Der Import hat weniger oder gleich viele PATHPTS als in der Szene bereits vorhanden.')
+    if PATHPTSCountFile > countPATHPTSObj:
+        CountCP = PATHPTSCountFile
+        print('Der Import hat mehr PATHPTS als in der Szene bereits vorhanden.')
+    # 3. Zuweisen von dataPATHPTS_Loc
+    # 4. Zuweisen von dataPATHPTS_Rot
+    # kuerze die Laenge der aktuellen Kurve auf die File-Kurve, wenn noetig
+    if PATHPTSCountFile < countPATHPTSObj:
+        print('Loeschen der ueberfluessigen PATHPTS Objekte aus der Szene...')
+        delList =[]
+        zuViel = countPATHPTSObj - PATHPTSCountFile
+        delList = [PATHPTSCountFile]*(PATHPTSCountFile+zuViel)
+        
+        for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
+            bpy.data.objects[PATHPTSObjList[n]].select = True
+            bpy.ops.object.delete()
+            bpy.ops.object.select_all(action='DESELECT')
+        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        CountCP = countPATHPTSObj
+        
+    for n in range(CountCP):
+        if (countPATHPTSObj-1) >= n: # Wenn ein PATHPTS Objekt vorhandenen ist,
+            # Waehle eine PATHPTS Objekt aus:
+            bpy.data.objects[PATHPTSObjList[n]].select
+            print('Waehle Objekt aus: ' + str(PATHPTSObjList[n]))
+            
+            if (PATHPTSCountFile-1) >= n: # Wenn ein Datenpunkt (PATHPTS) im File da ist, uebertrage loc und rot auf PATHPTSObj
+                print('PATHPTS Objekt ' + str(n) + ' vorhanen:' + str(bpy.data.objects[PATHPTSObjList[n]].name))
+                print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
+                      + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
+                      + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
+                
+                SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+                      
+        else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
+            print('Kein weiteres PATHPTS Objekt mehr in der Szene vorhanden.')
+            print('Erstelle neues PATHPTS Objekt.')
+            
+            # add an new MESH object
+            print('bpy.context.area.type: ' + bpy.context.area.type)
+            bpy.ops.object.add(type='MESH')  
+            #bpy.context.object.name = PATHPTSObjName + str(n+1) # "%03d" % 2
+            bpy.context.object.name = PATHPTSObjName + str("%03d" %(n+1)) # "%03d" % 2
+            PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+            bpy.data.objects[PATHPTSObjList[n]].data = bpy.data.objects[PATHPTSObjList[1]].data
+            print('IF - uebertrage loc: ' + str(dataPATHPTS_Loc[n]) 
+                      + ' und rot Daten:' + str(dataPATHPTS_Rot[n]) 
+                      + ' vom File auf Objekt:' + str(PATHPTSObjList[n]))
+            
+            SetObjRelToBase(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+                
+    bpy.context.area.type = original_type 
+    print('RefreshButton_todo_PATHPTS done')
+    print('_____________________________________________________________________________')  
+    
+    
+def SetKukaToCurve(objCurve):
+    print('_____________________________________________________________________________')
+    print('SetKukaToCurve')
+    # Achtung: SetKukaToCurve funktioniert nur richtig, wenn das Parenting vorher geloest wurde!
+    
+    '''
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.data.objects['Empty_Zentralhand_A6'].select
+    bpy.data.objects['BezierCircle'].select
+    bpy.ops.object.parent_clear(type='CLEAR')
+    '''
+    
+    # Empty_Zentralhand_A6 auf Startpunkt der Kurve setzen
+    # Achtung: Delta Location muss auf Nullgesetzt werden:
+    bpy.data.objects[objCurve.name].rotation_mode = RotationModeTransform #RotationModePATHPTS
+    objCurve.delta_location = (0,0,0)
+    
+    matrix_world = objCurve.matrix_world
+    # Wichtig: Beim letzten Punkt in der Kurve [-1] Anfangen, warum auch immer
+    # (ansonsten offset zwischen Punkt [0] und [-1]
+    point_local  = objCurve.data.splines[0].bezier_points[-1].co
+    
+    point_world  = matrix_world * point_local
+    
+    bpy.data.objects['Empty_Zentralhand_A6'].location = point_world
+    
+    #-----------------------------------
+    bpy.ops.object.select_all(action='DESELECT')
+    #-----------------------------------
+    print('SetKukaToCurve done')
+    print('_____________________________________________________________________________')
+    
+# set Kuka to HOMEPos
+        #objEmpty_A6.location, objEmpty_A6.rotation_euler = SetObjRelToBase(bpy.data.objects[PATHPTSObjName + str('001')].location, bpy.data.objects[PATHPTSObjName+ str('001')].rotation_euler, BASEPos_Koord, BASEPos_Angle)
+        #objEmpty_A6.location, objEmpty_A6.rotation_euler = HOMEPos_Koord, HOMEPos_Angle
+        
+
+def ClearParenting():
+    print('_____________________________________________________________________________')
+    print('ClearParenting')
+    objSafe = bpy.data.objects['Sphere_SAFEPos']
+    objBase = bpy.data.objects['Sphere_BASEPos']
+    objCurve = bpy.data.objects['BezierCircle']
+    objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+    # testen: objEmpty_A6 = bpy.context.scene.objects.get('Empty_Zentralhand_A6')
+    # 1. Parenting zwischen BASEPosition und Kurve loesen:
+    bpy.ops.object.select_all(action='DESELECT')
+    objCurve.select = True   
+    objBase.select= True
+    bpy.context.scene.objects.active = objBase 
+    bpy.ops.object.parent_clear(type='CLEAR')
+    
+    # 2. Parenting zwischen Zentralhand_A6 (Empty) und Kurve loesen:
+    bpy.ops.object.select_all(action='DESELECT')
+    objEmpty_A6.select=True
+    objCurve.select=True
+    bpy.context.scene.objects.active = objCurve
+    bpy.ops.object.parent_clear(type='CLEAR')
+    
+    # 3. Parenting zwischen SAFEPosition und Kurve loesen:
+    bpy.ops.object.select_all(action='DESELECT')
+    objCurve.select = True   
+    objSafe.select= True 
+    bpy.context.scene.objects.active = objSafe
+    bpy.ops.object.parent_clear(type='CLEAR')
+    print('ClearParenting done')
+    print('_____________________________________________________________________________')
+    
+def SetParenting():
+    print('_____________________________________________________________________________')
+    print('SetParenting')
+    objCurve = bpy.data.objects['BezierCircle']
+    objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+    # Parenting zwischen Zentralhand_A6 (Emppty) und Kurve:
+    bpy.ops.object.select_all(action='DESELECT')
+    objEmpty_A6.select=True
+    objCurve.select=True
+    bpy.context.scene.objects.active = objCurve
+    objEmpty_A6.parent=objCurve
+    bpy.ops.object.parent_set(type='FOLLOW', xmirror=False, keep_transform=True)
+        
+    # Parenting zwischen BASEPosition und Kurve:
+    #bpy.data.objects['Sphere_BASEPos'].parent=bpy.data.objects['BezierCircle']  
+        
+    print('SetParenting done')
+    print('_____________________________________________________________________________')
+
+def writelog(text):
+    FilenameLog = bpy.data.filepath
+    FilenameLog = FilenameLog.replace(".blend", '.log')
+    fout = open(FilenameLog, 'a')
+    localtime = time.asctime( time.localtime(time.time()) )
+    fout.write(localtime + " : " + text)
+    fout.close();
+
+def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
+    # Diese Funktion soll spaeter anhand einer chronologisch geordneten Objektgruppen 
+    # und Objekt/PATHPTS - Liste die KeyFrames eintragen
+    
+    
+    # TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen
+    
+    original_type         = bpy.context.area.type
+    bpy.context.area.type = "VIEW_3D"
+    bpy.ops.object.select_all(action='DESELECT')
+     
+    #TargetObjList = bpy.data.objects[PATHPTSObjList[n]] 
+         
+    #scene = bpy.context.scene
+    #fps = scene.render.fps
+    #fps_base = scene.render.fps_base
+    
+    PATHPTSObjList, countPATHPTSObj = count_PATHPTSObj(PATHPTSObjName)
+    
+    TIMEPTS = ValidateTIMEPTS(countPATHPTSObj, PATHPTSObjList, TIMEPTS)
+    PATHPTSObjList =  renamePATHObj(PATHPTSObjList)
+    
+    
+    TargetObjList = PATHPTSObjList # todo: Bei Bearbeitung und Konkatonierung per GUI Ablauf 
+    # von GetRout u. SetKeyFrames ueberdenken
+    
+    raw_time=[]
+    frame_number=[]
+    
+    bpy.context.scene.objects.active = objEmpty_A6
+    
+    # todo: Achtung, bei Konkatonation von KeyFrames muss der folgende Aufruf entfallen:
+    objEmpty_A6.select = True
+    bpy.ops.anim.keyframe_clear_v3d() #Remove all keyframe animation for selected objects
+    # --- Alternativ kann die TIMEPTS Reihe gemerged werden (Safepos + PathPTS); Vorteil: 
+    
+    ob = bpy.context.active_object
+    #bpy.data.objects[objCurve.name].rotation_mode = 'QUATERNION'
+    ob.rotation_mode = 'QUATERNION'
+    
+    #QuaternionList = OptimizeRotationQuaternion(TargetObjList, TIMEPTSCount)
+    
+    for n in range(countPATHPTSObj):
+        writelog(n)
+        bpy.context.scene.frame_set(time_to_frame(TIMEPTS[n])) 
+        ob.location = bpy.data.objects[TargetObjList[n]].location
+        # todo - done: keyframes auf quaternion um gimbal lock zu vermeiden
+                
+        ob.rotation_quaternion = bpy.data.objects[TargetObjList[n]].rotation_euler.to_quaternion()
+           
+        ob.keyframe_insert(data_path="location", index=-1)
+        # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
+        
+        ob.keyframe_insert(data_path="rotation_quaternion", index=-1)
+        #ob.keyframe_insert(data_path="rotation_euler", index=-1)
+            
+    if len(TIMEPTS)> countPATHPTSObj:
+        writelog('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
+    # todo: end frame not correct if PATHPTS added....
+    bpy.context.scene.frame_end = time_to_frame(TIMEPTS[TIMEPTSCount-1])
+    
+    bpy.data.scenes['Scene'].frame_current=1
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.area.type = original_type 
+
+
+        MRot2old = Rot2old.to_quaternion().to_matrix()
+        MRot2 = Rot2.to_quaternion().to_matrix()
+        DRot2old = MRot2old.determinant()
+        DRot2 = MRot2.determinant()
+        
+def ValidateTIMEPTS(PATHPTSObjList, TIMEPTS):
+    writelog('_____________________________________________________________________________')
+    writelog('ValidateTIMEPTS')
+    countPATHPTSObj = len(PATHPTSObjList)
+        
+    # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS
+    while len(TIMEPTS)<countPATHPTSObj:
+        for i in range(countPATHPTSObj):
+            if PATHPTSObjList[i].find('.')!=-1: # wenn Objektname = "PTPObj_017.001", wichtig, um festzustellen wo das PTPObj eingefuegt wurde
+                # Geschw. des letzten Positionswechsels ermitteln:
+                if (i+1) < countPATHPTSObj:
+                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i-1]].location
+                    v = s.length/(TIMEPTS[i]-TIMEPTS[i-1]) # [i] weil i der alte i+1 Eintrag ist
+                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    s = bpy.data.objects[PATHPTSObjList[i+1]].location - bpy.data.objects[PATHPTSObjList[i]].location
+                elif (i+1) >= countPATHPTSObj:
+                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
+                    v = s.length/(TIMEPTS[i-1]-TIMEPTS[i-2])
+                    # Zeit fuer eingefuegten PATHPTS mit dieser Geschw. ermitteln und einfuegen:
+                    s = bpy.data.objects[PATHPTSObjList[i-1]].location - bpy.data.objects[PATHPTSObjList[i-2]].location
+                
+                deltaT = abs(s.length /v)
+                NewTIMEPTS = deltaT + TIMEPTS[i-1] # v=s/t -> t = s/v
+                TIMEPTS.insert( i, NewTIMEPTS)
+                # alle anderen TIMEPTS zeitlich um NewTIMEPTS verschieben:
+                for n in range(i+1, len(TIMEPTS)):
+                    TIMEPTS[n] = TIMEPTS[n] +  deltaT
+
+def OptimizeRotation(ObjList):
+    countObj = len(ObjList)
+    # Begrenze Rotation auf 360 Grad
+    for i in range(countObj-1):
+        
+        Rot   = bpy.data.objects[ObjList[i]].rotation_euler
+        modRot= math.modf(Rot.x/ (2*math.pi)) # Ergebnis: (Rest, n)
+        Rot.x = modRot[0] * (2*math.pi) 
+        modRot= math.modf(Rot.y/ (2*math.pi)) # Ergebnis: (Rest, n)
+        Rot.y = modRot[0] * (2*math.pi) 
+        modRot= math.modf(Rot.z/ (2*math.pi)) # Ergebnis: (Rest, n)
+        Rot.z = modRot[0] * (2*math.pi) 
+        
+        
+        '''
+        if Rot.x <0:
+            Rot.x = Rot.x + (2*math.pi)
+        if Rot.y <0:
+            Rot.y = Rot.y + (2*math.pi) 
+        if Rot.z <0:
+            Rot.z = Rot.z + (2*math.pi)
+        '''
+    
+    # Teil 1:
+    # wenn zum erreichen des folgenden Winkels mehr als 180Grad (PI) zurueckzulegen ist, 
+    # dann zaehle 360Grad drauf (wenn er negativ ist) bzw. ziehe 360Grad ab (wenn er positiv ist)
+    
+
+    for i in range(countObj-1):
+        Rot1 = bpy.data.objects[ObjList[i]].rotation_euler
+        Rot2 = bpy.data.objects[ObjList[i+1]].rotation_euler
+        Rot2old = deepcopy(Rot2)
+
+        #Rot2Q = bpy.data.objects[ObjList[i+1]].rotation_euler.to_quaternion()
+
+        
+        #DeltaRot = [Rot2.x - Rot1.x,Rot2.y - Rot1.y,Rot2.z - Rot1.z]
+        '''
+        # wenn eine Drehung von - auf + oder + auf - erfolgt, korregiere das DeltaRot:
+        if Rot1.x <  0 and Rot2.x >=0:
+            DeltaRot[0] = Rot2.x - (2*math.pi + Rot1.x)
+        if Rot1.x >= 0 and Rot2.x <0:
+            DeltaRot[0] = (Rot2.x + 2*math.pi) - Rot1.x
+        
+        if Rot1.y <  0 and Rot2.y >=0:
+            DeltaRot[1] = Rot2.y - (2*math.pi + Rot1.y)
+        if Rot1.y >= 0 and Rot2.y <0:
+            DeltaRot[1] = (Rot2.y + 2*math.pi) - Rot1.y
+        
+        if Rot1.z <  0 and Rot2.z >=0:
+            DeltaRot[2] = Rot2.z - (2*math.pi + Rot1.z)
+        if Rot1.z >= 0 and Rot2.z <0:
+            DeltaRot[2] = (Rot2.z + 2*math.pi) - Rot1.z
+        '''
+        
+        
+        '''        
+        if  DeltaRot[0] > math.pi and Rot2.x < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.x =  2*math.pi + Rot2.x
+        elif DeltaRot[0] > math.pi and Rot2.x >=0:
+            Rot2.x = -2*math.pi + Rot2.x #-
+            
+        if  DeltaRot[1] > math.pi and Rot2.y < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.y =  2*math.pi + Rot2.y
+        elif DeltaRot[1] > math.pi and Rot2.y >=0:
+            Rot2.y = -2*math.pi + Rot2.y #-
+        
+        if  DeltaRot[2] > math.pi and Rot2.z < 0: # Achtung nur immer den folgenden aendern, da sonst nicht rueckwaertskompatibel
+            Rot2.z =  2*math.pi + Rot2.z
+        elif DeltaRot[2] > math.pi and Rot2.z >=0:
+            Rot2.z = -2*math.pi + Rot2.z #-
+        '''
+        
+        # Quaternation-Flip disabled
+        # ohne OptimRotation: Quaternion(( 0.1570675 9691238403, -0.639445 6028938293,  0.7424664497375488,  -0.1232177 3916482925))
+        # ohne flip:          Quaternion(( 0.1570675 3730773926, -0.639445 7221031189,  0.742466 390132904,  -0.1232177 9131889343))
+        # nach 1. flip (OK) : Quaternion((-0.1570675 0750541687,  0.639445 6624984741, -0.742466 4497375488,  0.1232177 7641773224)) auch ohne flip
+        # nach 2. flip (NOK): Quaternion(( 0.1570675 9691238403, -0.639445 6028938293,  0.742466 4497375488, -0.1232177 3916482925))
+        
+        
+        rF = 12
+        new = [round(Rot2.to_quaternion()[0],rF), round(Rot2.to_quaternion()[1],rF),round(Rot2.to_quaternion()[2],rF), round(Rot2.to_quaternion()[3],rF)]
+        old = [-round(Rot2old.to_quaternion()[0],rF), -round(Rot2old.to_quaternion()[1],rF),-round(Rot2old.to_quaternion()[2],rF), -round(Rot2old.to_quaternion()[3],rF)]
+        
+        if new[:] == old[:]: # notwendig um Quaternion flip zu vermeiden
+            Rot2.x = Rot2old.x
+            Rot2.y = Rot2old.y
+            Rot2.z = Rot2old.z
+        
+        print('')
+        
+    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS    
+    # Achtung: wird noch nicht benoetigt, da in der Funktion erst alle KeyFrames geloescht werden. D.h. TIMEPTS Werte 
+    # bleiben ggf. ungenutzt, ohne Fehler zu erzeugen.
+    # Achtung: wuerde Sinn machen eine Klasse PATHPTS erstellen um die Zuordnung von Zeit, Kraft, etc. zu bekommen.
+        
+    writelog('ValidateTIMEPTS done')    
+    writelog('_____________________________________________________________________________')
+    return TIMEPTS
+    
+    # Korrektur der TIMEPTS Werte, wenn groesser der Anzahl an PATHPTS         
