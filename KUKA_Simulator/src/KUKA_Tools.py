@@ -1,4 +1,9 @@
-#  ***** BEGIN GPL LICENSE BLOCK *****
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# coding Angabe in Zeilen 1 und 2 fÃ¼r Eclipse Luna/ Pydev 3.9 notwendig
+ # cp1252
+
+#  ***** BEGIN GPL LICENSE BLOCK ***** 
 #  https://github.com/EWa74/KUKA_Simulator.git
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -553,8 +558,25 @@ def SetOrigin(sourceObj, targetObj):
     bpy.ops.object.mode_set(mode='EDIT', toggle=True) #
     sourceObj.select = True 
     
+    # Sicherstellen das wir uns im Object Mode befinden:
+    #original_mode = bpy.context.mode
+    #if original_mode!= 'OBJECT':
+    #    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+        
     bpy.context.scene.objects.active = sourceObj
+    
+    # Sicherstellen das wir uns im Object Mode befinden:
+    #original_mode = bpy.context.mode
+    #if original_mode!= 'OBJECT':
+    #    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+        
     bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+    
+    # Sicherstellen das wir uns im Object Mode befinden:
+    #original_mode = bpy.context.mode
+    #if original_mode!= 'OBJECT':
+    #    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+        
     bpy.ops.object.select_all(action='DESELECT')
     
     bpy.context.area.type = original_type 
@@ -813,7 +835,7 @@ def ValidateTIMEPTS(PATHPTSObjList, TIMEPTS):
     countPATHPTSObj = len(PATHPTSObjList)
         
     # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS
-    while len(TIMEPTS)<countPATHPTSObj:
+    if len(TIMEPTS)<countPATHPTSObj: # while
         for i in range(countPATHPTSObj):
             if PATHPTSObjList[i].find('.')!=-1: # wenn Objektname = "PTPObj_017.001", wichtig, um festzustellen wo das PTPObj eingefuegt wurde
                 # Geschw. des letzten Positionswechsels ermitteln:
@@ -1289,6 +1311,7 @@ class KUKA_OT_animateptps (bpy.types.Operator):
         
         #TargetObjList= PATHPTSObjList
         #AnimateOBJScaling(TargetObjList)
+        
         AnimateOBJScaling(Route_ObjList)
         return {'FINISHED'} 
     writelog('- - -KUKA_OT_animatePTPs done- - - - - - -') 
@@ -1334,11 +1357,14 @@ def DefRoute(objEmpty_A6, filepath):
     PATHPTSObjList =  renamePATHObj(PATHPTSObjList)
         
     if filepath != 'none': # Aufruf von Button Import
+        # Achtung: ueberarbeiten!!
         TIMEPTS_PATHPTS, NAN = RfF_KeyPos('TIMEPTS', filepath, '.dat')
         TIMEPTS_PATHPTSCount = len (TIMEPTS_PATHPTS)
         
+        '''
         # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS:
-        TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS)
+        TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS) # TODO: Fehler!! PATHPTSObjList hat noch die'alten' Objekte!
+        '''
         for i in range(len (TIMEPTS_PATHPTS)):    
             bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
         
@@ -1396,13 +1422,13 @@ def AnimateOBJScaling(TargetObjList):
     # TODO: TargetObjList um Basepos erweitern
     
     # Funktion soll die PathPoints die gerade vom KUKA angefahren werden per Scaling der Objekte
-    # frühzeitig ausblenden und danach wieder einblenden
-    # evtl. später verschiedene Modi einstellbar (z.B. nur PTP vor dem Empty/ bzw. vor- & nach/ etc..)
+    # frï¿½hzeitig ausblenden und danach wieder einblenden
+    # evtl. spï¿½ter verschiedene Modi einstellbar (z.B. nur PTP vor dem Empty/ bzw. vor- & nach/ etc..)
     
     
-    # Ort & Zeit von Empty_A6 über seine Keyframes bekannt
+    # Ort & Zeit von Empty_A6 ï¿½ber seine Keyframes bekannt
     # PTPs bekommen eigene keyframes mit entsprechender Scaling-Angabe zugewiesen:
-    # Ziel: die nächsten 3 PTPs einblenden
+    # Ziel: die nï¿½chsten 3 PTPs einblenden
     
     original_type         = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D"
@@ -1410,7 +1436,7 @@ def AnimateOBJScaling(TargetObjList):
     
     
         
-    # 1. alle vorhandenen Keyframes für das Objekt löschen bevor neue gesetzt werden:
+    # 1. alle vorhandenen Keyframes fï¿½r das Objekt lï¿½schen bevor neue gesetzt werden:
     for n in range(len(TargetObjList)):
         bpy.data.objects[TargetObjList[n]].select = True #objEmpty_A6.select = True
         bpy.ops.anim.keyframe_clear_v3d() #Remove all keyframe animation for selected objects
@@ -1435,7 +1461,7 @@ def AnimateOBJScaling(TargetObjList):
         # welche Eigenschaft:      
         # bpy.data.objects['PTPObj_016'].scale -> Vector((1.0, 1.0, 1.0))
          #bpy.data.objects[TargetObjList[n]].scale
-        #keyframe für scaling setzen:
+        #keyframe fï¿½r scaling setzen:
         ob.scale =   (0.2, 0.2, 0.2)
         ob.keyframe_insert(data_path="scale", index=-1, frame=(bpy.context.scene.frame_current -25))
         ob.scale =   (1.0, 1.0, 1.0)
@@ -1507,7 +1533,7 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
         
         #bpy.data.actions['BGEAction'].keyframe_insert(data_path="location", index=-1)
         
-        # --->>>> ggf. das eigentliche action wieder von quaternion nach euler zurücktransformieren (dann evtl. GimbalLock noch OK?!)
+        # --->>>> ggf. das eigentliche action wieder von quaternion nach euler zurï¿½cktransformieren (dann evtl. GimbalLock noch OK?!)
         # bpy.data.actions['BGEAction'].fcurves.data.keyframe_insert(data_path="X_Location")    fcurve.data _path
         
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
