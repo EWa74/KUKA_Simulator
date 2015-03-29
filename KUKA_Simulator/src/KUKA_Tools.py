@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# coding Angabe in Zeilen 1 und 2 für Eclipse Luna/ Pydev 3.9 notwendig
+# coding Angabe in Zeilen 1 und 2 fuer Eclipse Luna/ Pydev 3.9 notwendig
  # cp1252
 
 #  ***** BEGIN GPL LICENSE BLOCK ***** 
@@ -1225,8 +1225,9 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
         objEmpty_A6.select=True
         bpy.context.scene.objects.active = objEmpty_A6
         #--------------------------------------------------------------------------------
-        
         return {'FINISHED'} 
+    
+    
     writelog('KUKA_OT_Import done')
 
 class KUKA_OT_RefreshButton (bpy.types.Operator):
@@ -1363,8 +1364,9 @@ def DefRoute(objEmpty_A6, filepath):
         
         '''
         # Korrektur der TIMEPTS Werte, wenn kleiner der Anzahl an PATHPTS:
+         '''
         TIMEPTS_PATHPTS = ValidateTIMEPTS(PATHPTSObjList, TIMEPTS_PATHPTS) # TODO: Fehler!! PATHPTSObjList hat noch die'alten' Objekte!
-        '''
+       
         for i in range(len (TIMEPTS_PATHPTS)):    
             bpy.data.objects[PATHPTSObjList[i]].kuka.TIMEPTS = TIMEPTS_PATHPTS[i]
         
@@ -1422,13 +1424,13 @@ def AnimateOBJScaling(TargetObjList):
     # TODO: TargetObjList um Basepos erweitern
     
     # Funktion soll die PathPoints die gerade vom KUKA angefahren werden per Scaling der Objekte
-    # fr�hzeitig ausblenden und danach wieder einblenden
-    # evtl. sp�ter verschiedene Modi einstellbar (z.B. nur PTP vor dem Empty/ bzw. vor- & nach/ etc..)
+    # fruehzeitig ausblenden und danach wieder einblenden
+    # evtl. spaeter verschiedene Modi einstellbar (z.B. nur PTP vor dem Empty/ bzw. vor- & nach/ etc..)
     
     
-    # Ort & Zeit von Empty_A6 �ber seine Keyframes bekannt
+    # Ort & Zeit von Empty_A6 ueber seine Keyframes bekannt
     # PTPs bekommen eigene keyframes mit entsprechender Scaling-Angabe zugewiesen:
-    # Ziel: die n�chsten 3 PTPs einblenden
+    # Ziel: die noechsten 3 PTPs einblenden
     
     original_type         = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D"
@@ -1436,7 +1438,7 @@ def AnimateOBJScaling(TargetObjList):
     
     
         
-    # 1. alle vorhandenen Keyframes f�r das Objekt l�schen bevor neue gesetzt werden:
+    # 1. alle vorhandenen Keyframes fuer das Objekt loeschen bevor neue gesetzt werden:
     for n in range(len(TargetObjList)):
         bpy.data.objects[TargetObjList[n]].select = True #objEmpty_A6.select = True
         bpy.ops.anim.keyframe_clear_v3d() #Remove all keyframe animation for selected objects
@@ -1461,7 +1463,7 @@ def AnimateOBJScaling(TargetObjList):
         # welche Eigenschaft:      
         # bpy.data.objects['PTPObj_016'].scale -> Vector((1.0, 1.0, 1.0))
          #bpy.data.objects[TargetObjList[n]].scale
-        #keyframe f�r scaling setzen:
+        #keyframe fuer scaling setzen:
         ob.scale =   (0.2, 0.2, 0.2)
         ob.keyframe_insert(data_path="scale", index=-1, frame=(bpy.context.scene.frame_current -25))
         ob.scale =   (1.0, 1.0, 1.0)
@@ -1533,7 +1535,7 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
         
         #bpy.data.actions['BGEAction'].keyframe_insert(data_path="location", index=-1)
         
-        # --->>>> ggf. das eigentliche action wieder von quaternion nach euler zur�cktransformieren (dann evtl. GimbalLock noch OK?!)
+        # --->>>> ggf. das eigentliche action wieder von quaternion nach euler zuroecktransformieren (dann evtl. GimbalLock noch OK?!)
         # bpy.data.actions['BGEAction'].fcurves.data.keyframe_insert(data_path="X_Location")    fcurve.data _path
         
         # file:///F:/EWa_WWW_Tutorials/Scripting/blender_python_reference_2_68_5/bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert
@@ -1549,6 +1551,7 @@ def SetKeyFrames(objEmpty_A6, TargetObjList, TIMEPTS):
         writelog('Achtung: mehr TIMEPTS als PATHPTS-Objekte vorhanden')
     # todo: end frame not correct if PATHPTS added....
     bpy.context.scene.frame_end = time_to_frame(TIMEPTS[len(TIMEPTS)-1])
+    bpy.context.scene.frame_preview_end = time_to_frame(TIMEPTS[len(TIMEPTS)-1])
     
     bpy.data.scenes['Scene'].frame_current=1
     bpy.ops.object.select_all(action='DESELECT')
@@ -1591,10 +1594,15 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
         zuViel = countPATHPTSObj - PATHPTSCountFile
         delList = [PATHPTSCountFile]*(PATHPTSCountFile+zuViel)
         
-        for n in range(PATHPTSCountFile, PATHPTSCountFile+zuViel, 1):      
-            bpy.data.objects[PATHPTSObjList[n]].select = True
-            bpy.ops.object.delete()
-            bpy.ops.object.select_all(action='DESELECT')
+        # http://blenderscripting.blogspot.de/2012/03/deleting-objects-from-scene.html
+        candidate_list = PATHPTSObjList[PATHPTSCountFile: PATHPTSCountFile+zuViel]
+        # select them only.
+        for object_name in candidate_list:
+            bpy.data.objects[object_name].select = True 
+        # remove all selected.
+        bpy.ops.object.delete(use_global=True)     # True, damit das Objekt auch aus dem DATABLOCK geloescht wird.
+        
+        
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
         CountCP = countPATHPTSObj
         
