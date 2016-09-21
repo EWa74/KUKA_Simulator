@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*- 
 
-#!/usr/bin/env python
+#!/usr/bin/env python 
 # -*- coding: utf-8 -*-
 # coding Angabe in Zeilen 1 und 2 fuer Eclipse Luna/ Pydev 3.9 notwendig
  # cp1252
