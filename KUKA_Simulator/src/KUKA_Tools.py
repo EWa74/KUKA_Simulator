@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- 
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # coding Angabe in Zeilen 1 und 2 fuer Eclipse Luna/ Pydev 3.9 notwendig
@@ -1014,7 +1016,7 @@ class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
                               
     # Export selected curve of the mesh
     bl_idname = "object.kuka_export"
-    bl_label = "KUKA_OT_Export (TB)" #Toolbar - Label
+    bl_label = "KUKA_OT_Export (TBxxx)" #Toolbar - Label
     bl_description = "Export selected Curve1" # Kommentar im Specials Kontextmenue
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
