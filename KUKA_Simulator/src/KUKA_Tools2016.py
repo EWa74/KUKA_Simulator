@@ -197,6 +197,8 @@ bpy.types.Object.kuka = \
 class createMatrix(object):
     writelog('_____________________________________________________________________________')
     writelog('createMatrix')
+    
+    
     def __init__(self, rows, columns, default=0):
         self.m = []
         for i in range(rows):
@@ -1028,6 +1030,18 @@ class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane) 
     
+    
+    # check poll() to avoid exception.
+    '''
+    if bpy.ops.object.mode_set.poll():
+        bpy.ops.object.mode_set(mode='EDIT')
+      
+    @classmethod
+    def poll(cls, context):
+        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+    '''
+    
+    
     # ExportHelper mixin class uses this
     filename_ext = ".dat"
 
@@ -1132,7 +1146,19 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
     bl_description = "Import selected Curve2" # Kommentar im Specials Kontextmenue
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
-    #                                  (in the Tools pane) 
+    #                                  (in the Tools pane)
+    
+    # check poll() to avoid exception.
+    '''
+    if bpy.ops.object.mode_set.poll():
+        bpy.ops.object.mode_set(mode='EDIT')
+      
+    @classmethod
+    def poll(cls, context):
+        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+    '''
+    
+     
 
     # ImportHelper mixin class uses this
     filename_ext = ".dat"
@@ -1250,6 +1276,18 @@ class KUKA_OT_RefreshButton (bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane) 
+    
+    # check poll() to avoid exception.
+    '''
+    if bpy.ops.object.mode_set.poll():
+        bpy.ops.object.mode_set(mode='EDIT')
+      
+    @classmethod
+    def poll(cls, context):
+        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+    '''
+    
+    
  
     def execute(self, context):  
         writelog('- - -refreshbutton - - - - - - -')
@@ -1308,6 +1346,16 @@ class KUKA_OT_animateptps (bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane) 
+    
+    # check poll() to avoid exception.
+    '''
+    if bpy.ops.object.mode_set.poll():
+        bpy.ops.object.mode_set(mode='EDIT')
+      
+    @classmethod
+    def poll(cls, context):
+        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+    '''
  
     def execute(self, context):  
         writelog('- - -animatePTPs - - - - - - -')
@@ -1339,6 +1387,17 @@ class KUKA_OT_bge_actionbutton (bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane) 
+    
+    
+    # check poll() to avoid exception.
+    '''
+    if bpy.ops.object.mode_set.poll():
+        bpy.ops.object.mode_set(mode='EDIT')
+      
+    @classmethod
+    def poll(cls, context):
+        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+    '''
  
     def execute(self, context):  
         writelog('- - -refreshbutton - - - - - - -')
@@ -1684,17 +1743,6 @@ class KUKA_PT_Panel(bpy.types.Panel):
     bl_context = "object"
     #bl_context = "scene"
     
-    # check poll() to avoid exception.
-    '''
-    if bpy.ops.object.mode_set.poll():
-        bpy.ops.object.mode_set(mode='EDIT')
-    '''
-    
-    '''    
-    @classmethod
-    def poll(cls, context):
-        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
-    '''
     
     def draw(self, context):
         
