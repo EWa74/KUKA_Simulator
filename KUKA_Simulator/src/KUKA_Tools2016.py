@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*- 
-   
+# -*- coding: utf-8 -*-    
 #!/usr/bin/env python 
 # -*- coding: utf-8 -*-
 # coding Angabe in Zeilen 1 und 2 fuer Eclipse Luna/ Pydev 3.9 notwendig
@@ -70,6 +69,8 @@
 # TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen -> Funktion RefreshButton
 # TODO: Beschriftung der PATHPTS im 3D view
 # TODO: GUI Feld um die Winkel bezogen auf Base oder Tool (bez. sich auf Base) editieren zu koennen
+
+
 '''
 
 ${workspace_loc:KUKA_OT_Export/src/KUKA_Tools.py}
@@ -91,6 +92,9 @@ bl_info = {
     "wiki_url": "http://...",
     "tracker_url": "http://..."
     }
+
+
+#import pydevd;pydevd.settrace() # notwendig weil breakpoints uebersprungen werden. warum auch immer
 
      
 #--- ### Imports
@@ -115,12 +119,14 @@ from bpy.types import Operator
 from symbol import except_clause
 from copy import deepcopy # fuer OptimizeRotation
 
+
+    
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
 objBase     = bpy.data.objects['Sphere_BASEPos']
 objSafe     = bpy.data.objects['Sphere_SAFEPos']
 objCurve    = bpy.data.objects['BezierCircle']
-#objCurve = bpy.data.curves[bpy.context.active_object.data.name]
+objCurve = bpy.data.curves[bpy.context.active_object.data.name]
 objHome     = bpy.data.objects['Sphere_HOMEPos']
 objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
 
@@ -136,7 +142,7 @@ Vorz2 = +1#-1 # -B = Y
 Vorz3 = +1#-1 # -A = Z
    
 CalledFrom =[] 
-filepath=[]
+filepath=[]    
 
 #import kuka_dat -> bug?: wird beim debuggen nicht aktualisiert....
 #from kuka_dat import *
@@ -1658,10 +1664,14 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
 
        
 class KUKA_PT_Panel(bpy.types.Panel):
+    '''
     writelog('_____________________________________________________________________________')
     writelog()
     writelog('KUKA_PT_Panel....')
     writelog()
+    '''
+    
+    
     """Creates a Panel in the scene context of the properties editor"""
     bl_label = "KUKA Panel" # heading of panel
     #bl_idname = "SCENE_PT_layout"
@@ -1680,12 +1690,14 @@ class KUKA_PT_Panel(bpy.types.Panel):
         bpy.ops.object.mode_set(mode='EDIT')
     '''
     
-    #@classmethod
-    #def poll(cls, context):
-    #    return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
-
+    '''    
+    @classmethod
+    def poll(cls, context):
+        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
+    '''
     
     def draw(self, context):
+        
         
         ob = context.object
         
@@ -1765,7 +1777,8 @@ class KUKA_PT_Panel(bpy.types.Panel):
         layout.label(text="create BGE (Euler) Action:")
         row = layout.row(align=True)
         
-        row.operator("object.bge_actionbutton")  
+        row.operator("object.bge_actionbutton") 
+        #pass 
            
     writelog('KUKA_PT_Panel done')
     writelog('_____________________________________________________________________________')
@@ -1783,7 +1796,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
 # ________________________________________________________________________________________________________________________
 
 
-#--- ### Register
+   
 def register(): 
     bpy.utils.register_module(__name__)
 
@@ -1792,5 +1805,4 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-
 
