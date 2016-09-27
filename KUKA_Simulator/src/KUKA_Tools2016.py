@@ -1147,7 +1147,7 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane)
-         
+          
     # check poll() to avoid exception.
     '''
     if bpy.ops.object.mode_set.poll():
