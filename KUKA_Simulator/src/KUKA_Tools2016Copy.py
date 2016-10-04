@@ -334,7 +334,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row(align=True)
         sub = row.row()
         sub.scale_x = 1.0
-        sub.operator("object.object_settings")  
+        sub.operator("object.kuka_initblendfile")  
         #row.operator("object.object_settings")  
         
         # Import/ Export Button:
@@ -379,9 +379,9 @@ class KUKA_PT_Panel(bpy.types.Panel):
     '''    
     
 class KUKA_OT_initBlendFile(bpy.types.Operator):
-    bl_idname = "object.object_settings"
-    bl_label = "object_settings (TB)" #Toolbar - Label
-    bl_description = "object_settings" # Kommentar im Specials Kontextmenue
+    bl_idname = "object.kuka_initblendfile"
+    bl_label = "initialize blend File" #Toolbar - Label
+    bl_description = "set object releated variables" # Kommentar im Specials Kontextmenue
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane)
@@ -425,10 +425,35 @@ class KUKA_OT_initBlendFile(bpy.types.Operator):
         print('\n KUKA_OT_initBlendFile')
         return {'FINISHED'} 
 
+# store keymaps here to access after registration
+addon_keymaps = []
+
 def register():
     bpy.utils.register_module(__name__)
+    '''
+    # handle the keymap
+    wm = bpy.context.window_manager
+    # Note that in background mode (no GUI available), keyconfigs are not available either, so we have to check this
+    # to avoid nasty errors in background case.
+    kc = wm.keyconfigs.addon
+    if kc:
+        km = wm.keyconfigs.addon.keymaps.new(name='Object Mode', space_type='EMPTY')
+        kmi = km.keymap_items.new(ObjectCursorArray.bl_idname, 'SPACE', 'PRESS', ctrl=True, shift=True)
+        kmi.properties.total = 4
+        addon_keymaps.append((km, kmi))
+    '''    
+        
 def unregister():
     bpy.utils.unregister_module(__name__)
+    '''
+    # Note: when unregistering, it's usually good practice to do it in reverse order you registered.
+    # Can avoid strange issues like keymap still referring to operators already unregistered...
+    # handle the keymap
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
+    addon_keymaps.clear()
+    '''
+    
     
 if __name__ == "__main__":
     register()
