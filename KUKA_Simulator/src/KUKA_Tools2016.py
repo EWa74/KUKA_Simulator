@@ -2,7 +2,11 @@
 #!/usr/bin/env python 
 # -*- coding: utf-8 -*-
 # coding Angabe in Zeilen 1 und 2 fuer Eclipse Luna/ Pydev 3.9 notwendig
- # cp1252
+# cp1252
+
+# ToDo: 02.10.2016 - Variablen in Funktion 'initBlendFile' verschoben. AddOn laeuft so noch nicht...
+
+
 
 #  ***** BEGIN GPL LICENSE BLOCK ***** 
 #  https://github.com/EWa74/KUKA_Simulator.git
@@ -120,7 +124,9 @@ from symbol import except_clause
 from copy import deepcopy # fuer OptimizeRotation
 
 
-    
+#blender myscene.blend --background --python myscript.py
+
+'''    
 # Global Variables:
 PATHPTSObjName = 'PTPObj_'
 objBase     = bpy.data.objects['Sphere_BASEPos']
@@ -143,6 +149,7 @@ Vorz3 = +1#-1 # -A = Z
    
 CalledFrom =[] 
 filepath=[]    
+'''
 
 #import kuka_dat -> bug?: wird beim debuggen nicht aktualisiert....
 #from kuka_dat import *
@@ -193,6 +200,38 @@ bpy.utils.register_class(ObjectSettings)
 
 bpy.types.Object.kuka = \
     bpy.props.PointerProperty(type=ObjectSettings)
+
+def initBlendFile():
+        
+    
+        
+    # Global Variables:
+    global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
+    global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
+    global Vorz1, Vorz2, Vorz3
+    global CalledFrom, filepath 
+    
+    PATHPTSObjName = 'PTPObj_'
+    objBase     = bpy.data.objects['Sphere_BASEPos']
+    objSafe     = bpy.data.objects['Sphere_SAFEPos']
+    objCurve    = bpy.data.objects['BezierCircle']
+    objHome     = bpy.data.objects['Sphere_HOMEPos']
+    objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+    
+    Mode = 'XYZ' # YXZ
+    
+    RotationModeBase = Mode
+    RotationModePATHPTS = Mode
+    RotationModeEmpty_Zentralhand_A6 = 'QUATERNION' # 'XYZ'
+    RotationModeTransform = Mode # XYZ YXZ
+    
+    Vorz1 = +1#-1 # +C = X
+    Vorz2 = +1#-1 # -B = Y
+    Vorz3 = +1#-1 # -A = Z
+       
+    CalledFrom =[] 
+    filepath=[]  
+
 
 class createMatrix(object):
     writelog('_____________________________________________________________________________')

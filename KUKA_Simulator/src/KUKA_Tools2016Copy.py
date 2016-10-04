@@ -181,7 +181,7 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
             PathPoint[i][0:3], PathAngle[i][0:3] = get_relative(bpy.data.objects[Route_ObjList[i]].location, bpy.data.objects[Route_ObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
         
         replace_CP(objCurve, PathPoint)  #relativ, weil Origin der Kurve auf BasePos liegt!
-         
+          
         bpy.ops.object.select_all(action='DESELECT')
         objEmpty_A6.select=True
         bpy.context.scene.objects.active = objEmpty_A6
