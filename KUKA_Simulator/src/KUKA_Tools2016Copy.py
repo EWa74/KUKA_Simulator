@@ -430,6 +430,43 @@ addon_keymaps = []
 
 def register():
     bpy.utils.register_module(__name__)
+    
+    # handle the keymap
+    #wm = bpy.context.window_manager
+    wm = bpy.data.objects
+    # Note that in background mode (no GUI available), keyconfigs are not available either, so we have to check this
+    # to avoid nasty errors in background case.
+    kc = wm.keyconfigs.addon
+    if kc:
+        PATHPTSObjName = 'PTPObj_'
+        objBase     = bpy.data.objects['Sphere_BASEPos']
+        objSafe     = bpy.data.objects['Sphere_SAFEPos']
+        objCurve    = bpy.data.objects['BezierCircle']
+        objHome     = bpy.data.objects['Sphere_HOMEPos']
+        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+        
+        Mode = 'XYZ' # YXZ
+        
+        RotationModeBase = Mode
+        RotationModePATHPTS = Mode
+        RotationModeEmpty_Zentralhand_A6 = 'QUATERNION' # 'XYZ'
+        RotationModeTransform = Mode # XYZ YXZ
+        
+        Vorz1 = +1#-1 # +C = X
+        Vorz2 = +1#-1 # -B = Y
+        Vorz3 = +1#-1 # -A = Z
+           
+        CalledFrom =[] 
+        filepath=[]  
+        
+        
+        
+        km = wm.keyconfigs.addon.keymaps.new(name='Object Mode', space_type='EMPTY')
+        kmi = km.keymap_items.new(ObjectCursorArray.bl_idname, 'SPACE', 'PRESS', ctrl=True, shift=True)
+        kmi.properties.total = 4
+        addon_keymaps.append((km, kmi))
+        
+        
     '''
     # handle the keymap
     wm = bpy.context.window_manager
