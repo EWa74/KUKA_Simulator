@@ -42,6 +42,12 @@ from copy import deepcopy # fuer OptimizeRotation
 
 print('\n\n\n\n\n\n')
 
+
+global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
+global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
+global Vorz1, Vorz2, Vorz3
+global CalledFrom, filepath 
+
 '''
 def initBlendFile():
     global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
@@ -372,7 +378,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
     writelog('_____________________________________________________________________________')
     '''    
     
-class initBlendFile(bpy.types.Operator):
+class KUKA_OT_initBlendFile(bpy.types.Operator):
     bl_idname = "object.object_settings"
     bl_label = "object_settings (TB)" #Toolbar - Label
     bl_description = "object_settings" # Kommentar im Specials Kontextmenue
@@ -390,9 +396,9 @@ class initBlendFile(bpy.types.Operator):
     '''
     @classmethod
     def poll(cls, context):
-        return (if "bpy" in locals()) # Test, ob bpy geladen ist
-    
+        return ("bpy" in locals()) # Test, ob bpy geladen ist
     '''
+    
     
     def execute(self, context):  
         # Global Variables:
@@ -416,14 +422,14 @@ class initBlendFile(bpy.types.Operator):
            
         CalledFrom =[] 
         filepath=[]  
+        print('\n KUKA_OT_initBlendFile')
         return {'FINISHED'} 
 
 def register():
     bpy.utils.register_module(__name__)
-
 def unregister():
-    bpy.utils.unregister_class(__name__)
-
+    bpy.utils.unregister_module(__name__)
+    
 if __name__ == "__main__":
     register()
 
