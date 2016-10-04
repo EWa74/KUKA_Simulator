@@ -42,7 +42,53 @@ from copy import deepcopy # fuer OptimizeRotation
 
 print('\n\n\n\n\n\n')
 
+'''
+def initBlendFile():
+    global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
+    global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
+    global Vorz1, Vorz2, Vorz3
+    global CalledFrom, filepath
+    
+    if "bpy" in locals():
+        #if bpy.data.objects['Sphere_BASEPos'] != None:
+        
+        
+        PATHPTSObjName = 'PTPObj_'
+        objBase     = bpy.data.objects['Sphere_BASEPos']
+        objSafe     = bpy.data.objects['Sphere_SAFEPos']
+        objCurve    = bpy.data.objects['BezierCircle']
+        objHome     = bpy.data.objects['Sphere_HOMEPos']
+        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+        
+        Mode = 'XYZ' # YXZ
+        
+        RotationModeBase = Mode
+        RotationModePATHPTS = Mode
+        RotationModeEmpty_Zentralhand_A6 = 'QUATERNION' # 'XYZ'
+        RotationModeTransform = Mode # XYZ YXZ
+        
+        Vorz1 = +1#-1 # +C = X
+        Vorz2 = +1#-1 # -B = Y
+        Vorz3 = +1#-1 # -A = Z
+           
+        CalledFrom =[] 
+        filepath=[]  
+        
+        print('objBase :' + objBase)
+        
+    # Global Variables:
+    
+    
+initBlendFile()
+'''
 
+def writelog(text=''):
+    FilenameLog = bpy.data.filepath
+    FilenameLog = FilenameLog.replace(".blend", '.log')
+    fout = open(FilenameLog, 'a')
+    localtime = time.asctime( time.localtime(time.time()) )
+    fout.write(localtime + " : " + str(text) + '\n')
+    fout.close();
 
 class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
     '''
@@ -276,12 +322,23 @@ class KUKA_PT_Panel(bpy.types.Panel):
             
         #row.column().prop(ob, "delta_scale")
         
+        
+        # Init variable from blendFile:
+        layout.label(text="Init variable from blendFile:")
+        row = layout.row(align=True)
+        sub = row.row()
+        sub.scale_x = 1.0
+        sub.operator("object.object_settings")  
+        #row.operator("object.object_settings")  
+        
         # Import/ Export Button:
         layout.label(text="Curvepath Import/ Export:")
         row = layout.row(align=True)        
         sub = row.row()
         sub.scale_x = 1.0
         sub.operator("object.kuka_import")  
+        
+        '''
         row.operator("object.kuka_export") 
         
         # Set KeyFrames Button:
@@ -301,15 +358,65 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row(align=True)
         
         row.operator("object.bge_actionbutton") 
+        
+        # Set Initialize blend-File Button:
+        layout.label(text="Initialize blend-File:")
+        row = layout.row(align=True)
+        
+        row.operator("object.init_blend_file")  
+        '''
+        
         #pass 
     '''       
     writelog('KUKA_PT_Panel done')
     writelog('_____________________________________________________________________________')
     '''    
+    
+class initBlendFile(bpy.types.Operator):
+    bl_idname = "object.object_settings"
+    bl_label = "object_settings (TB)" #Toolbar - Label
+    bl_description = "object_settings" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane)
+    
+    
+    
+    global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
+    global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
+    global Vorz1, Vorz2, Vorz3
+    global CalledFrom, filepath 
+    
+    '''
+    @classmethod
+    def poll(cls, context):
+        return (if "bpy" in locals()) # Test, ob bpy geladen ist
+    
+    '''
+    
+    def execute(self, context):  
+        # Global Variables:
+        PATHPTSObjName = 'PTPObj_'
+        objBase     = bpy.data.objects['Sphere_BASEPos']
+        objSafe     = bpy.data.objects['Sphere_SAFEPos']
+        objCurve    = bpy.data.objects['BezierCircle']
+        objHome     = bpy.data.objects['Sphere_HOMEPos']
+        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
         
+        Mode = 'XYZ' # YXZ
         
-      
-
+        RotationModeBase = Mode
+        RotationModePATHPTS = Mode
+        RotationModeEmpty_Zentralhand_A6 = 'QUATERNION' # 'XYZ'
+        RotationModeTransform = Mode # XYZ YXZ
+        
+        Vorz1 = +1#-1 # +C = X
+        Vorz2 = +1#-1 # -B = Y
+        Vorz3 = +1#-1 # -A = Z
+           
+        CalledFrom =[] 
+        filepath=[]  
+        return {'FINISHED'} 
 
 def register():
     bpy.utils.register_module(__name__)
