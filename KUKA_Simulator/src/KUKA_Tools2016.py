@@ -127,28 +127,11 @@ from copy import deepcopy # fuer OptimizeRotation
 #blender myscene.blend --background --python myscript.py
 
 '''    
-# Global Variables:
-PATHPTSObjName = 'PTPObj_'
-objBase     = bpy.data.objects['Sphere_BASEPos']
-objSafe     = bpy.data.objects['Sphere_SAFEPos']
-objCurve    = bpy.data.objects['BezierCircle']
-objCurve = bpy.data.curves[bpy.context.active_object.data.name]
-objHome     = bpy.data.objects['Sphere_HOMEPos']
-objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
+# Global Variables: 
+To avoid _Restricted Data error by aktivating the Addon it is 
+necessary to use a InitButton. -> KUKA_OT_InitBlendFile sets 
+the global variables
 
-Mode = 'XYZ' # YXZ
-
-RotationModeBase = Mode
-RotationModePATHPTS = Mode
-RotationModeEmpty_Zentralhand_A6 = 'QUATERNION' # 'XYZ'
-RotationModeTransform = Mode # XYZ YXZ
-
-Vorz1 = +1#-1 # +C = X
-Vorz2 = +1#-1 # -B = Y
-Vorz3 = +1#-1 # -A = Z
-   
-CalledFrom =[] 
-filepath=[]    
 '''
 
 #import kuka_dat -> bug?: wird beim debuggen nicht aktualisiert....
@@ -157,7 +140,7 @@ filepath=[]
 # http://wiki.blender.org/index.php/Doc:2.6/Manual/Extensions/Python/Properties
 # http://www.blender.org/documentation/blender_python_api_2_57_1/bpy.props.html
 
-
+'''
 def writelog(text=''):
     FilenameLog = bpy.data.filepath
     FilenameLog = FilenameLog.replace(".blend", '.log')
@@ -165,6 +148,7 @@ def writelog(text=''):
     localtime = time.asctime( time.localtime(time.time()) )
     fout.write(localtime + " : " + str(text) + '\n')
     fout.close();
+'''
 
 class ObjectSettings(bpy.types.PropertyGroup):
     ID = bpy.props.IntProperty()
@@ -201,24 +185,28 @@ bpy.utils.register_class(ObjectSettings)
 bpy.types.Object.kuka = \
     bpy.props.PointerProperty(type=ObjectSettings)
 
-class KUKA_OT_initBlendFile(bpy.types.Operator):
-    bl_idname = "object.object_settings"
-    bl_label = "object_settings (TB)" #Toolbar - Label
-    bl_description = "object_settings" # Kommentar im Specials Kontextmenue
+class KUKA_OT_InitBlendFile(bpy.types.Operator):
+    bl_idname = "object.kuka_init_blendfile"
+    bl_label = "initialize blend File" #Toolbar - Label
+    bl_description = "set object releated variables" # Kommentar im Specials Kontextmenue
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane)
     
-    
-    
-    global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
-    global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
-    global Vorz1, Vorz2, Vorz3
-    global CalledFrom, filepath 
-    
+    # bpy.ops.object.kuka_init_blendfile(
+
+    '''
+    @classmethod
+    def poll(cls, context):
+        return ("bpy" in locals()) # Test, ob bpy geladen ist
+    '''
     
     
     def execute(self, context):  
+        global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
+        global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
+        global Vorz1, Vorz2, Vorz3
+        global CalledFrom, filepath 
         # Global Variables:
         PATHPTSObjName = 'PTPObj_'
         objBase     = bpy.data.objects['Sphere_BASEPos']
@@ -240,24 +228,39 @@ class KUKA_OT_initBlendFile(bpy.types.Operator):
            
         CalledFrom =[] 
         filepath=[]  
+        
+        def writelog(text=''):
+            
+            
+            FilenameLog = bpy.data.filepath
+            FilenameLog = FilenameLog.replace(".blend", '.log')
+            fout = open(FilenameLog, 'a')
+            localtime = time.asctime( time.localtime(time.time()) )
+            fout.write(localtime + " : " + str(text) + '\n')
+            fout.close();
+    
+    
         print('\n KUKA_OT_initBlendFile')
         return {'FINISHED'} 
+    
 
 
 class createMatrix(object):
-    writelog('_____________________________________________________________________________')
-    writelog('createMatrix')
-    
     
     def __init__(self, rows, columns, default=0):
+        writelog('_____________________________________________________________________________')
+        writelog('createMatrix')
+        
         self.m = []
         for i in range(rows):
             self.m.append([default for j in range(columns)])
+        
+        writelog('createMatrix done')
+        writelog('_____________________________________________________________________________')  
+
     def __getitem__(self, index):
         return self.m[index]
-    writelog('createMatrix done')
-    writelog('_____________________________________________________________________________')  
-
+    
 
    
 def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):
@@ -1850,6 +1853,13 @@ class KUKA_PT_Panel(bpy.types.Panel):
             row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
             
         #row.column().prop(ob, "delta_scale")
+        
+        # Init variable from blendFile:
+        layout.label(text="Init variable from blendFile:")
+        row = layout.row(align=True)
+        sub = row.row()
+        sub.scale_x = 1.0
+        sub.operator("object.kuka_init_blendfile")  
         
         # Import/ Export Button:
         layout.label(text="Curvepath Import/ Export:")
