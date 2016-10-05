@@ -328,7 +328,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
             row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
             
         #row.column().prop(ob, "delta_scale")
-        
+         
         
         # Init variable from blendFile:
         layout.label(text="Init variable from blendFile:")

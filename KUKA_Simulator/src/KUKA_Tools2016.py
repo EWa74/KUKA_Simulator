@@ -1863,7 +1863,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
         # Animate PTPs Button:
         layout.label(text="Animate PTPs:")
         row = layout.row(align=True)
-        
+         
         row.operator("object.animateptps")  
         
         # Set BGE Action Button:
