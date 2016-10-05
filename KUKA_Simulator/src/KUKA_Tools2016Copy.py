@@ -102,6 +102,7 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
     writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
     '''
     
+    # bpy.ops.object.kuka_import(
     
     
     ''' Import selected curve '''
@@ -263,7 +264,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
     #bl_idname = "SCENE_PT_layout"
     bl_idname = "OBJECT_PT_layout"
     
-    # bpy.ops.OBJECT_PT_layout.module....
+    # bpy.ops.OBJECT_PT_layout.module.... 
     
     bl_space_type = 'PROPERTIES' # window type panel is displayed in
     bl_region_type = 'WINDOW' # region of window panel is displayed in
@@ -334,7 +335,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row(align=True)
         sub = row.row()
         sub.scale_x = 1.0
-        sub.operator("object.kuka_initblendfile")  
+        sub.operator("object.kuka_init_blendfile")  
         #row.operator("object.object_settings")  
         
         # Import/ Export Button:
@@ -378,21 +379,16 @@ class KUKA_PT_Panel(bpy.types.Panel):
     writelog('_____________________________________________________________________________')
     '''    
     
-class KUKA_OT_initBlendFile(bpy.types.Operator):
-    bl_idname = "object.kuka_initblendfile"
+class KUKA_OT_InitBlendFile(bpy.types.Operator):
+    bl_idname = "object.kuka_init_blendfile"
     bl_label = "initialize blend File" #Toolbar - Label
     bl_description = "set object releated variables" # Kommentar im Specials Kontextmenue
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane)
     
-    
-    
-    global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
-    global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
-    global Vorz1, Vorz2, Vorz3
-    global CalledFrom, filepath 
-    
+    # bpy.ops.object.kuka_init_blendfile(
+
     '''
     @classmethod
     def poll(cls, context):
@@ -401,6 +397,10 @@ class KUKA_OT_initBlendFile(bpy.types.Operator):
     
     
     def execute(self, context):  
+        global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
+        global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
+        global Vorz1, Vorz2, Vorz3
+        global CalledFrom, filepath 
         # Global Variables:
         PATHPTSObjName = 'PTPObj_'
         objBase     = bpy.data.objects['Sphere_BASEPos']
@@ -431,41 +431,6 @@ addon_keymaps = []
 def register():
     bpy.utils.register_module(__name__)
     
-    # handle the keymap
-    #wm = bpy.context.window_manager
-    wm = bpy.data.objects
-    # Note that in background mode (no GUI available), keyconfigs are not available either, so we have to check this
-    # to avoid nasty errors in background case.
-    kc = wm.keyconfigs.addon
-    if kc:
-        PATHPTSObjName = 'PTPObj_'
-        objBase     = bpy.data.objects['Sphere_BASEPos']
-        objSafe     = bpy.data.objects['Sphere_SAFEPos']
-        objCurve    = bpy.data.objects['BezierCircle']
-        objHome     = bpy.data.objects['Sphere_HOMEPos']
-        objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
-        
-        Mode = 'XYZ' # YXZ
-        
-        RotationModeBase = Mode
-        RotationModePATHPTS = Mode
-        RotationModeEmpty_Zentralhand_A6 = 'QUATERNION' # 'XYZ'
-        RotationModeTransform = Mode # XYZ YXZ
-        
-        Vorz1 = +1#-1 # +C = X
-        Vorz2 = +1#-1 # -B = Y
-        Vorz3 = +1#-1 # -A = Z
-           
-        CalledFrom =[] 
-        filepath=[]  
-        
-        
-        
-        km = wm.keyconfigs.addon.keymaps.new(name='Object Mode', space_type='EMPTY')
-        kmi = km.keymap_items.new(ObjectCursorArray.bl_idname, 'SPACE', 'PRESS', ctrl=True, shift=True)
-        kmi.properties.total = 4
-        addon_keymaps.append((km, kmi))
-        
         
     '''
     # handle the keymap
