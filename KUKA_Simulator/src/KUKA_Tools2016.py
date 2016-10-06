@@ -1310,7 +1310,16 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     bpy.context.area.type = original_type 
     #writelog('create_PATHPTSObj done')
     #writelog('_____________________________________________________________________________')
-    
+def writelog(text=''):
+            
+            
+            FilenameLog = bpy.data.filepath
+            FilenameLog = FilenameLog.replace(".blend", '.log')
+            fout = open(FilenameLog, 'a')
+            localtime = time.asctime( time.localtime(time.time()) )
+            fout.write(localtime + " : " + str(text) + '\n')
+            fout.close();
+                
 class createMatrix(object):
             
             def __init__(self, rows, columns, default=0):
@@ -1371,15 +1380,7 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
         CalledFrom =[] 
         filepath=[]  
         
-        def writelog(text=''):
-            
-            
-            FilenameLog = bpy.data.filepath
-            FilenameLog = FilenameLog.replace(".blend", '.log')
-            fout = open(FilenameLog, 'a')
-            localtime = time.asctime( time.localtime(time.time()) )
-            fout.write(localtime + " : " + str(text) + '\n')
-            fout.close();
+        
     
         
         
@@ -1428,7 +1429,7 @@ class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
             )
 
     def execute(self, context):
-        #writelog('FUNKTIONSAUFRUF - KUKA_OT_Export')
+        writelog('FUNKTIONSAUFRUF - KUKA_OT_Export')
         
         # Wichtig: Fuer die Interpolation (fcurves) wird Quaternation verwendet um Gimbal Lock zu vermeiden!
         objBase.rotation_mode     = RotationModeBase
