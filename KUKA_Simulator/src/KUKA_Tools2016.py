@@ -1311,7 +1311,22 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     #writelog('create_PATHPTSObj done')
     #writelog('_____________________________________________________________________________')
     
-               
+class createMatrix(object):
+            
+            def __init__(self, rows, columns, default=0):
+                #writelog('_____________________________________________________________________________')
+                #writelog('createMatrix')
+                
+                self.m = []
+                for i in range(rows):
+                    self.m.append([default for j in range(columns)])
+                
+                #writelog('createMatrix done')
+                #writelog('_____________________________________________________________________________')  
+        
+            def __getitem__(self, index):
+                return self.m[index]
+                           
 class KUKA_OT_InitBlendFile(bpy.types.Operator):
     bl_idname = "object.kuka_init_blendfile"
     bl_label = "initialize blend File" #Toolbar - Label
@@ -1366,21 +1381,7 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
             fout.write(localtime + " : " + str(text) + '\n')
             fout.close();
     
-        class createMatrix(object):
-            
-            def __init__(self, rows, columns, default=0):
-                #writelog('_____________________________________________________________________________')
-                #writelog('createMatrix')
-                
-                self.m = []
-                for i in range(rows):
-                    self.m.append([default for j in range(columns)])
-                
-                #writelog('createMatrix done')
-                #writelog('_____________________________________________________________________________')  
         
-            def __getitem__(self, index):
-                return self.m[index]
         
     
        
