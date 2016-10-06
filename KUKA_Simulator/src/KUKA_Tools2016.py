@@ -133,7 +133,8 @@ necessary to use a InitButton. -> KUKA_OT_InitBlendFile sets
 the global variables
 
 '''
-
+KUKAInitBlendFileExecuted = 'False'
+print('\n KUKAInitBlendFileExecuted:  ' + KUKAInitBlendFileExecuted)
 #import kuka_dat -> bug?: wird beim debuggen nicht aktualisiert....
 #from kuka_dat import *
 #import kuka_dat
@@ -1358,7 +1359,10 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
         global Mode, RotationModeBase, RotationModePATHPTS, RotationModeEmpty_Zentralhand_A6, RotationModeTransform
         global Vorz1, Vorz2, Vorz3
         global CalledFrom, filepath 
+        global KUKAInitBlendFileExecuted 
+        
         # Global Variables:
+        KUKAInitBlendFileExecuted = 'True'
         PATHPTSObjName = 'PTPObj_'
         objBase     = bpy.data.objects['Sphere_BASEPos']
         objSafe     = bpy.data.objects['Sphere_SAFEPos']
@@ -1398,8 +1402,8 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
 
   
 class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
-    #bpy.ops.curve.KUKA_OT_Export(
-                              
+    
+    # bpy.ops.curve.KUKA_OT_Export(                          
     # Export selected curve of the mesh
     bl_idname = "object.kuka_export"
     bl_label = "KUKA_OT_Export (TBxxx)" #Toolbar - Label
@@ -1413,11 +1417,12 @@ class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
     '''
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='EDIT')
-      
+    '''  
+    print('\n KUKA_OT_Export - KUKAInitBlendFileExecuted:  ' + KUKAInitBlendFileExecuted)
     @classmethod
     def poll(cls, context):
-        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
-    '''
+        return (KUKAInitBlendFileExecuted =='True') # Test, ob InitBlendFile vorher ausgefuehrt wurde.
+    
     
     
     # ExportHelper mixin class uses this
@@ -1524,14 +1529,9 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
     #                                  (in the Tools pane)
             
     # check poll() to avoid exception.
-    '''
-    if bpy.ops.object.mode_set.poll():
-        bpy.ops.object.mode_set(mode='EDIT')
-      
     @classmethod
     def poll(cls, context):
-        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
-    '''
+        return (KUKAInitBlendFileExecuted =='True') # Test, ob InitBlendFile vorher ausgefuehrt wurde.
     
      
 
@@ -1652,14 +1652,9 @@ class KUKA_OT_RefreshButton (bpy.types.Operator):
     #                                  (in the Tools pane) 
     
     # check poll() to avoid exception.
-    '''
-    if bpy.ops.object.mode_set.poll():
-        bpy.ops.object.mode_set(mode='EDIT')
-      
     @classmethod
     def poll(cls, context):
-        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
-    '''
+        return (KUKAInitBlendFileExecuted =='True') # Test, ob InitBlendFile vorher ausgefuehrt wurde.
     
     
  
@@ -1728,6 +1723,10 @@ class KUKA_OT_animateptps (bpy.types.Operator):
     def poll(cls, context):
         return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
     '''
+    @classmethod
+    def poll(cls, context):
+        return (KUKAInitBlendFileExecuted =='True') # Test, ob InitBlendFile vorher ausgefuehrt wurde.
+    
  
     def execute(self, context):  
         #writelog('- - -animatePTPs - - - - - - -')
@@ -1767,6 +1766,10 @@ class KUKA_OT_bge_actionbutton (bpy.types.Operator):
     def poll(cls, context):
         return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
     '''
+    @classmethod
+    def poll(cls, context):
+        return (KUKAInitBlendFileExecuted =='True') # Test, ob InitBlendFile vorher ausgefuehrt wurde.
+    
  
     def execute(self, context):  
         #writelog('- - -refreshbutton - - - - - - -')
