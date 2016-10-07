@@ -247,9 +247,9 @@ def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode)
             fout.write(";FOLD TIME DATA" + "\n")
             Count = len(KeyPos_Koord)
     
-        for i in range(0,Count,1):    
+        for i in range(0,Count-2,1):    
             fout.write(Keyword +"[" + str(i+1) + "]=" + 
-                       "{0:.5f}".format(KeyPos_Koord[i] ) +
+                       "{0:.5f}".format(KeyPos_Koord[i+1] ) +
                        "\n")
         fout.write(";ENDFOLD" + "\n")
         
@@ -400,6 +400,7 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
     
  
 def RfS_TIMEPTS(objEmpty_A6):
+    # Read from Scene
     
     # todo: objSafe -> action_name ...
     
