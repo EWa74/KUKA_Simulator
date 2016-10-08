@@ -1373,6 +1373,9 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
         return ("bpy" in locals()) # Test, ob bpy geladen ist
     '''
     
+    @classmethod
+    def poll(cls, context):
+        return (KUKAInitBlendFileExecuted =='False') # Test, ob InitBlendFile ausgefuehrt wurde.
     
     def execute(self, context):  
         global PATHPTSObjName, objBase, objSafe, objCurve, objHome, objEmpty_A6
