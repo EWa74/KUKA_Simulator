@@ -2011,8 +2011,8 @@ class KUKA_PT_Panel(bpy.types.Panel):
         # mouseover event?
         
         # ToDo: mouse_event  ‘MOUSEOVER’
-        
         '''
+        
         objects = bpy.data.objects
         PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
         
@@ -2123,13 +2123,13 @@ class KUKA_PT_Panel(bpy.types.Panel):
                 
         # Obj aus Listenauswahl im 3D view aktivieren (ToDo: blockiert das Arbeiten in der Scene! -> verschieben nach Operator?!:
         # mouseover event?
-        '''
+        
         objects = bpy.data.objects
         PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
         
         objScene = bpy.context.scene.objects.active
         obj = bpy.data.objects[scene.custom[scene.custom_index].name]
-        '''
+        
         
         '''
         # hier sollte, falls ein PTPObj in der Scene aktiviert wurde, 
@@ -2137,11 +2137,11 @@ class KUKA_PT_Panel(bpy.types.Panel):
         if (objScene.name != obj.name):
             scene.custom_index = PATHPTSObjList.index(objScene.name)
         '''
-        '''
+        
         bpy.ops.object.select_all(action='DESELECT')
         obj.select = True
         scene.objects.active = obj
-        '''
+        
         
         # Import/ Export Button:
         layout.label(text="Curvepath Import/ Export:")
