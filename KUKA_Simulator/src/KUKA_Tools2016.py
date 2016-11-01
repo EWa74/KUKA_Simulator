@@ -803,6 +803,12 @@ def count_PATHPTSObj(PATHPTSObjName):
     countObj = 0
     PATHPTSObjList=[]
     
+    '''
+    objects = bpy.data.objects
+    PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
+    countPATHPTSObj = len(PATHPTSObjList)
+    '''  
+    
     for item in bpy.data.objects:
         if item.type == "MESH":
             countObj = countObj +1
@@ -1331,6 +1337,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     bpy.context.area.type = original_type 
     writelog('create_PATHPTSObj done')
     writelog('_____________________________________________________________________________')
+
 def writelog(text=''):
             
             
@@ -1383,6 +1390,7 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
         global Vorz1, Vorz2, Vorz3
         global CalledFrom, filepath 
         global KUKAInitBlendFileExecuted 
+        
         
         # Global Variables:
         KUKAInitBlendFileExecuted = 'True'
@@ -1614,7 +1622,7 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
                 
         create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) # relative Koordinaten
         
-        # Achtung: die Reihenfolge fon SetCurvePos und SetBasePos muss eingehalten werden! 
+        # Achtung: die Reihenfolge von SetCurvePos und SetBasePos muss eingehalten werden! 
         # (da sonst die Curve nicht mit der Base mit verschoben wird!
        
         writelog('_________________KUKA_OT_Import - BASEPos_Koord' + str(BASEPos_Koord))
@@ -1693,6 +1701,8 @@ class KUKA_OT_RefreshButton (bpy.types.Operator):
         
         SAFEPos_Koord, SAFEPos_Angle = get_relative(objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
         PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+        #PATHPTSObjList =  renamePATHObj(PATHPTSObjList) # wird von DefRoute aufgerufen
+        
         
         
         #dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile = get_relative(objSafe, objSafe.location, objSafe.rotation_euler, BASEPos_Koord, BASEPos_Angle)
@@ -1710,6 +1720,13 @@ class KUKA_OT_RefreshButton (bpy.types.Operator):
         PathAngle = createMatrix(countRoute_ObjList,3)
         for i in range(countRoute_ObjList):    
             PathPoint[i][0:3], PathAngle[i][0:3] = get_relative(bpy.data.objects[Route_ObjList[i]].location, bpy.data.objects[Route_ObjList[i]].rotation_euler, BASEPos_Koord, BASEPos_Angle)        
+        
+        # PATHPTSObjList an create_PATHPTSObj uebergeben
+        # ToDo Okt 2016:
+        #PATHPTSCountFile = countPATHPTSObj
+        #create_PATHPTSObj(PathPoint, PathPoint, PATHPTSCountFile, BASEPos_Koord, BASEPos_Angle) # relative Koordinaten
+        
+        
         
         replace_CP(objCurve, PathPoint)  #relativ, weil Origin der Kurve auf BasePos liegt!
         
@@ -1762,47 +1779,6 @@ class KUKA_OT_animateptps (bpy.types.Operator):
         return {'FINISHED'} 
     
 
-
-
-class KUKA_OT_bge_actionbutton (bpy.types.Operator):
-    ''' Import selected curve '''
-    bl_idname = "object.bge_actionbutton"
-    bl_label = "BGEAction (TB)" #Toolbar - Label
-    bl_description = "Set Animation Data for BGE" # Kommentar im Specials Kontextmenue
-    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
-    #                                  parameters of this operator interactively 
-    #                                  (in the Tools pane) 
-    
-    
-    # check poll() to avoid exception.
-    '''
-    if bpy.ops.object.mode_set.poll():
-        bpy.ops.object.mode_set(mode='EDIT')
-      
-    @classmethod
-    def poll(cls, context):
-        return (bpy.context.active_object.type == 'CURVE') # Test, ob auch wirklich ein 'CURVE' Objekt aktiv ist.
-    '''
-    @classmethod
-    def poll(cls, context):
-        return (KUKAInitBlendFileExecuted =='True') # Test, ob InitBlendFile vorher ausgefuehrt wurde.
-    
- 
-    def execute(self, context):  
-        writelog('- - -refreshbutton - - - - - - -')
-        writelog('Testlog von KUKA_OT_bge_actionbutton')
-        
-
-        writelog('- - -KUKA_OT_bge_actionbutton done- - - - - - -')
-        return {'FINISHED'} 
-     
-    
-    
- 
-
-       
-
-
 #class CURVE_OT_RefreshButtonButton(bpy.types.Operator):
 # ToDo: ?
 # ________________________________________________________________________________________________________________________
@@ -1839,8 +1815,12 @@ class Uilist_actions(bpy.types.Operator):
             ('ADD', "Add", ""),
         )
     )
+    
+        
+    
 
     def invoke(self, context, event):
+        print("\n Start execute")
         #ToDo: nach jeder Aenderung muss die Refreshfunktion aufgerufen werden.
         #ToDo: bei 'REMOVE': akutell muss noch nach jeder aktion zuerst 'load PTPs from Scene' gedrueckt werden. Dann erst 'Refresh'
 
@@ -1849,26 +1829,6 @@ class Uilist_actions(bpy.types.Operator):
         
         objects = bpy.data.objects
         PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
-        
-        '''
-        # Obj aus Listenauswahl im 3D view aktivieren (ToDo: blockiert das Arbeiten in der Scene! -> verschieben nach Operator?!:
-        # mouseover event?
-        
-        # ToDo: mouse_event  ‘MOUSEOVER’
-        
-        objScene = bpy.context.scene.objects.active
-        obj = bpy.data.objects[scene.custom[scene.custom_index].name]
-        
-        # hier sollte, falls ein PTPObj in der Scene aktiviert wurde, 
-        # das Objekt auch beim wechsel zur Liste in dieser aktiv werden
-        #if (objScene.name != obj.name):
-        #    scene.custom_index = PATHPTSObjList.index(objScene.name)
-        
-        bpy.ops.object.select_all(action='DESELECT')
-        obj.select = True
-        scene.objects.active = obj
-        '''
-        
         
         bpy.ops.object.select_all(action='DESELECT')
         n = bpy.data.objects.find(PATHPTSObjList[idx])
@@ -1886,7 +1846,7 @@ class Uilist_actions(bpy.types.Operator):
                 scene.custom[idx-1].name = scene.custom[idx].name
                 scene.custom[idx].name = stack
                 
-                #Objektnamen aendern:
+                #Objektnamen / TIMEPTS aendern:
                 # https://blenderartists.org/forum/showthread.php?235702-How-to-make-a-property-pointing-to-an-object
                 '''
 -> index keine Feste groesse zum Identifizieren!!!
@@ -1896,15 +1856,21 @@ Even worse: The object index is in alphabetic order and therefore it may change 
                 '''
                 n = bpy.data.objects.find(PATHPTSObjList[idx])
                 stackObjName1= deepcopy(bpy.data.objects[n].name)     
-                stackObjName2= deepcopy(bpy.data.objects[n-1].name)               
+                stackTimePTSName1= deepcopy(bpy.data.objects[bpy.data.objects[n].name].kuka.TIMEPTS)
+                stackObjName2= deepcopy(bpy.data.objects[n-1].name)         
+                stackTimePTSName2= deepcopy(bpy.data.objects[bpy.data.objects[n-1].name].kuka.TIMEPTS)      
                 bpy.data.objects[n].name = stackObjName2
+                bpy.data.objects[bpy.data.objects[n].name].kuka.TIMEPTS = stackTimePTSName2
                 bpy.data.objects[n].name = stackObjName1
+                bpy.data.objects[bpy.data.objects[n].name].kuka.TIMEPTS = stackTimePTSName1
                 bpy.data.objects[n-1].name = stackObjName2 
+                bpy.data.objects[bpy.data.objects[n-1].name].kuka.TIMEPTS = stackTimePTSName2
                        
                 item_prev = scene.custom[idx-1].name
                 scene.custom_index -= 1
                 info = 'Object %d moved up' % (scene.custom_index + 1)
-
+                
+                
             elif self.action == 'DOWN' and idx < len(scene.custom) - 1:
                 
                 #Itemliste aendern:
@@ -1912,20 +1878,28 @@ Even worse: The object index is in alphabetic order and therefore it may change 
                 scene.custom[idx+1].name = scene.custom[idx].name
                 scene.custom[idx].name = stack
                 
-                #Objektliste aendern:
+                #Objektliste / TIMEPTS aendern:
                 n = bpy.data.objects.find(PATHPTSObjList[idx])
-                stackObjName1= deepcopy(bpy.data.objects[n].name)     
-                stackObjName2= deepcopy(bpy.data.objects[n+1].name)     
+                stackObjName1= deepcopy(bpy.data.objects[n].name)    
+                stackTimePTSName1= deepcopy(bpy.data.objects[bpy.data.objects[n].name].kuka.TIMEPTS) 
+                stackObjName2= deepcopy(bpy.data.objects[n+1].name)    
+                stackTimePTSName2= deepcopy(bpy.data.objects[bpy.data.objects[n+1].name].kuka.TIMEPTS)  
                            
                 bpy.data.objects[n].name = stackObjName2
+                bpy.data.objects[bpy.data.objects[n].name].kuka.TIMEPTS = stackTimePTSName2
                 bpy.data.objects[n].name = stackObjName1
+                bpy.data.objects[bpy.data.objects[n].name].kuka.TIMEPTS = stackTimePTSName1
                 bpy.data.objects[n+1].name = stackObjName2 
+                bpy.data.objects[bpy.data.objects[n+1].name].kuka.TIMEPTS = stackTimePTSName2
                                 
                 item_prev = scene.custom[idx+1].name
                 scene.custom_index += 1
                 info = 'Object %d moved up' % (scene.custom_index + 1)
                 
             elif self.action == 'REMOVE':
+                
+                # ToDo: verhindern das andere objekte dupliziert/ geloescht werden!
+                
                 # min. 1 Objekt muss erhalten bleiben!
                 if (len(PATHPTSObjList)>1):
                     # selection
@@ -1945,6 +1919,8 @@ Even worse: The object index is in alphabetic order and therefore it may change 
                 #ToDo: akutell muss noch nach jeder aktion zuerst 'load PTPs from Scene' gedrueckt werden. Dann erst 'Refresh'
                 
         if self.action == 'ADD':
+            # ToDo: verhindern das andere objekte dupliziert/ geloescht werden!
+            
             idx = scene.custom_index 
             duplicate_activeSceneObject()
             #bpy.ops.object.duplicate_move() funktioniert nicht
@@ -1959,22 +1935,29 @@ Even worse: The object index is in alphabetic order and therefore it may change 
             info = '%s added to list' % (item.name)
             self.report({'INFO'}, info)
         
+        
+
+        
         return {"FINISHED"}
+
 
 # -------------------------------------------------------------------
 # draw
 # -------------------------------------------------------------------
 
+
 # custom list
 class UL_items(UIList):
-
+    
+     
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         split = layout.split(0.3)
         split.label("Index: %d" % (index))
         split.prop(item, "name", text="", emboss=False, translate=False, icon='MANIPUL')
+    
+    print('\n UL_items')
+    
 
-    def invoke(self, context, event):
-        pass   
 
 # draw the panel
 class KUKA_PT_Panel(bpy.types.Panel):
@@ -1990,10 +1973,6 @@ class KUKA_PT_Panel(bpy.types.Panel):
     bl_category = "KUKA Tools"
     bl_label = "KUKA Tools"
     
-    
-    
-    
-
     def draw(self, context):
         
         '''
@@ -2004,6 +1983,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         
+        
         #scene = context.object
         
         #--------------------------------------------------------------------------------------------------------------------
@@ -2011,24 +1991,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
         # mouseover event?
         
         # ToDo: mouse_event  ‘MOUSEOVER’
-        '''
         
-        objects = bpy.data.objects
-        PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
-        
-        objScene = bpy.context.scene.objects.active
-        obj = bpy.data.objects[scene.custom[scene.custom_index].name]
-        
-        # hier sollte, falls ein PTPObj in der Scene aktiviert wurde, 
-        # das Objekt auch beim wechsel zur Liste in dieser aktiv werden
-        #if (objScene.name != obj.name):
-        #    scene.custom_index = PATHPTSObjList.index(objScene.name)
-        
-        bpy.ops.object.select_all(action='DESELECT')
-        obj.select = True
-        scene.objects.active = obj
-        '''
-        #--------------------------------------------------------------------------------------------------------------------
         
         
         
@@ -2045,16 +2008,8 @@ class KUKA_PT_Panel(bpy.types.Panel):
         if KUKAInitBlendFileExecuted=='True': 
                 
             print('\n if KUKAInitBlendFileExecuted')
-            PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
+            #PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
             
-            
-            for ob in bpy.data.objects.values():
-                for i in range(countPATHPTSObj):
-                    if ob.name == PATHPTSObjList[i]:
-                        
-                        pass
-                  
-            #ob.name.startswith("PTP")    
                 
             # layout.prop_search(scene, "theChosenObject", bpy.data, "objects", "select a PaThPoint:")
         
@@ -2124,11 +2079,11 @@ class KUKA_PT_Panel(bpy.types.Panel):
         # Obj aus Listenauswahl im 3D view aktivieren (ToDo: blockiert das Arbeiten in der Scene! -> verschieben nach Operator?!:
         # mouseover event?
         
-        objects = bpy.data.objects
-        PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
+        #objects = bpy.data.objects
+        #PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
         
-        objScene = bpy.context.scene.objects.active
-        obj = bpy.data.objects[scene.custom[scene.custom_index].name]
+        #objScene = bpy.context.scene.objects.active
+        #obj = bpy.data.objects[scene.custom[scene.custom_index].name]
         
         
         '''
@@ -2138,9 +2093,9 @@ class KUKA_PT_Panel(bpy.types.Panel):
             scene.custom_index = PATHPTSObjList.index(objScene.name)
         '''
         
-        bpy.ops.object.select_all(action='DESELECT')
-        obj.select = True
-        scene.objects.active = obj
+        #bpy.ops.object.select_all(action='DESELECT')
+        #obj.select = True
+        #scene.objects.active = obj
         
         
         # Import/ Export Button:
@@ -2163,6 +2118,8 @@ class KUKA_PT_Panel(bpy.types.Panel):
          
         row.operator("object.animateptps")  
         
+    #def invoke(self, context, event):
+    
         
         
 
