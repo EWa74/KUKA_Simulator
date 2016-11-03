@@ -23,34 +23,21 @@
 #  ***** END GPL LICENSE BLOCK *****
 # Version: 100R
 # Next steps:
-# Abgleich mit KUKA und Definition der daraus folgenden GUI Panels
+# [ongoing] Abgleich mit KUKA und Definition der daraus folgenden GUI Panels
 # code optimization: less parenting, more fcurve controlled objekts/bones
 # naming convention
 # gui panel (add/remove pathpoints, timepts
 #
 
 
-# todo: geladenes File anzeigen
-#git
-# V-REP -> Roboter Simulation
-# todo: RefreshFunktion (wenn Boje oder Kurve +/- Punkte bekommt. Button Boje +/-; done, aber: inset keyframe fehlt noch
-# Listenfeld dazu verwenden um Obj +/-
-# TIMEPTS einlesen und I-Keys setzen -> Empty: follow path entfaellt dann: done
+# Infos
 # bpy.data.window_managers["WinMan"] ... propvalue
 # bpy.app.handlers.frame_change_pre.append(bpy.ops.curve.cureexport('BezierCurve'))
-# Window.GetScreenInfo(Window.Types.VIEW3D)
-#  
+# Window.GetScreenInfo(Window.Types.VIEW3D) 
 # Beachte: x=(1,2,3) ist TUPEL, d.h. nicht veraenderbar; x = [1,2,3] ist Listse (veraenderbar)
-# bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co.angle(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[1].co)
-    
+# bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0].co.angle(bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[1].co)    
 # ARMATURE: Position und Winkel auf Plausibilitaet abfragen: bone constraints eingestellt; werden diese ueberschritten "springt" der Arm
 # bpy.data.objects['OBJ_KUKA_Armature'].pose.bones['Bone_KUKA_Zentralhand_A4'].rotation_euler 
-
-# handling vom POP UP window: alternativ *.src laden ODER default TP auswaehlen --> Panel(bpy_struct)
-# button um nach editieren der Kurve das Kuka_Empty auf den ersten Kurvenpunkt zu setzen
-
-# Phyton code aufraeumen
-# Doku update
 # Info: 
 # 0. SAFE POSITION: muss immer von Hand im Menue angegeben werden. auch BASEPosition!
 # 1. Kuka startet von HOMEPOSITION und faehrt zur BASEPosition
@@ -59,18 +46,28 @@
 # 4. Kuka faehrt zur SAFEPosition 
 # 5. Keine Wiederholung: fahre zur HOMEPOSITION
 # 6. Wiederholung: Wiederhole Punkte 2, 3, 4
- 
+
+# [done] todo: RefreshFunktion (wenn Boje oder Kurve +/- Punkte bekommt. Button Boje +/-; done, aber: inset keyframe fehlt noch
+# [done] Listenfeld dazu verwenden um Obj +/-
+# [done] TIMEPTS einlesen und I-Keys setzen -> Empty: follow path entfaellt dann: done
+# handling vom POP UP window: alternativ *.src laden ODER default TP auswaehlen --> Panel(bpy_struct)
+# [done] (refresh) button um nach editieren der Kurve das Kuka_Empty auf den ersten Kurvenpunkt zu setzen
+# [done] obj. rename um 001.001 etc. zu vermeiden!!!
+# [done] TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen -> Funktion RefreshButton
+
+# todo: geladenes File anzeigen
+#git
+# V-REP -> Roboter Simulation
+# Phyton code aufraeumen
+# Doku update 
 # ToDo: ToolPosition (oder Baseposition) auslesen und offset beruecksichtigen MES ={ :  enthalten in *.dat -> OBJ_KUKA_EndEffector zuweisen
 # BasePosition: (noch kein korrespondierender KUKA File bekannt !!! -> ALe
-# todo: globale variablen definieren??.....
+# todo: globale variablen definieren??..... --> Properties oder Klasse?
 # todo: Verschiedene Import/ Export Funktionen beruecksichtigen (XYZ/ KUKA YXZ)
-# todo: [done] obj. rename um 001.001 etc. zu vermeiden!!!
 # Datenmodell und Funktionen beschreiben!!!
-
-# TODO: pruefen ob TIMEPTS = PATHPTS ist und ggf. neue keyframes und TIMEPTS setzen -> Funktion RefreshButton
 # TODO: Beschriftung der PATHPTS im 3D view
 # TODO: GUI Feld um die Winkel bezogen auf Base oder Tool (bez. sich auf Base) editieren zu koennen
-
+# writelog ueber Flag ein-/ausschalten
 
 '''
 
@@ -96,7 +93,6 @@ bl_info = {
 
 
 #import pydevd;pydevd.settrace() # notwendig weil breakpoints uebersprungen werden. warum auch immer
-
      
 #--- ### Imports
 
@@ -125,30 +121,55 @@ import fnmatch
 
 '''    
 # Global Variables: 
-To avoid _Restricted Data error by aktivating the Addon it is 
+To avoid _Restricted Data error by activating the Addon it is 
 necessary to use a InitButton. -> KUKA_OT_InitBlendFile sets 
 the global variables
-
 '''
 KUKAInitBlendFileExecuted = 'False'
 print('\n KUKAInitBlendFileExecuted:  ' + KUKAInitBlendFileExecuted)
-#import kuka_dat -> bug?: wird beim debuggen nicht aktualisiert....
-#from kuka_dat import *
-#import kuka_dat
+# import kuka_dat -> bug?: wird beim debuggen nicht aktualisiert....
+# from kuka_dat import *
+# import kuka_dat
 # http://wiki.blender.org/index.php/Doc:2.6/Manual/Extensions/Python/Properties
 # http://www.blender.org/documentation/blender_python_api_2_57_1/bpy.props.html
 
 
 
+        
+def update_loc(self, context):
+        kuka = bpy.data.objects 
+        ob = bpy.context.scene.objects.active
+        print("my test function update_loc", self)
+        
+        print(kuka[ob.name].kuka.type)
+
+def update_rot(self, context):
+        print("my test function update_rot", self)
+    
+      
+    
 class ObjectSettings(bpy.types.PropertyGroup):
+    
     # Access it e.g. like
     # bpy.context.object.kuka.PATHPTS
     
+    
+        
+        
+    
+        
+        
     ID = bpy.props.IntProperty()
     # type: BASEPos, PTP, HOMEPos, ADJUSTMENTPos
-    type = bpy.props.StringProperty()
-    
-    PATHPTS = bpy.props.FloatVectorProperty(size=6)
+    #type = bpy.props.StringProperty()
+    type = bpy.props.EnumProperty(
+        items=(
+            ('BASEPos', "Base Position", "a"),
+            ('PTP', "Path Point", "b"),
+            ('HOMEPos', "Home Position", "c"),
+            ('ADJUSTMENTPos', "Adjustment Position", "d"),
+        )
+    )
     
     # LOADPTS[1]={FX NAN, FY NAN, FZ NAN, TX NAN, TY NAN, TZ NAN }
     # bpy.data.objects['PTPObj_001'].PATHPTS.LOADPTS[:] 
@@ -172,20 +193,44 @@ class ObjectSettings(bpy.types.PropertyGroup):
     
     # RouteNbr
     RouteNbr = bpy.props.IntProperty()  
+       
     
+    
+    #PATHPTS = bpy.props.FloatVectorProperty(size=6)
+    
+    
+    PATHPTSloc = bpy.props.FloatVectorProperty(name="Location",
+    default=(0.0, 0.0, 0.0),
+    options={'ANIMATABLE'}, 
+    subtype='TRANSLATION', 
+    size=3,
+    update=update_loc)
+    
+    PATHPTSrot = bpy.props.FloatVectorProperty(name="Rotation",
+    default=(0.0, 0.0, 0.0),
+    #min=(-10.0,-10.0,-10.0, -180.0, -180.0, -180.0),
+    #max=(+10.0,+10.0,+10.0, 180.0, 180.0, 180.0),
+    options={'ANIMATABLE'}, 
+    subtype='EULER', 
+    size=3,
+    update=update_rot)
+
+       
+        
 bpy.utils.register_class(ObjectSettings)
 
 bpy.types.Object.kuka = \
-    bpy.props.PointerProperty(type=ObjectSettings)
-
-
-def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):
+    bpy.props.PointerProperty(type=ObjectSettings)        
+        
+def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):            
+    ''' 
+    Write to File 
+    Create a file for output
+    KeyPos_Angle [rad]
+    '''
     
-            
     writelog('_____________________________________________________________________________')
     writelog('WtF_KeyPos :' + Keyword)  
-    # Create a file for output
-    # KeyPos_Angle [rad] 
     FilenameSRC = filepath
     FilenameSRC = FilenameSRC.replace(".dat", FileExt) 
     fout = open(FilenameSRC, FileMode) # FileMode: 'a' fuer Append oder 'w' zum ueberschreiben
@@ -260,10 +305,13 @@ def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode)
     writelog('_____________________________________________________________________________')
 
 def RfF_KeyPos(Keyword, filepath, FileExt):
+    '''
+    Read from File
+    [Grad] Werte werden eingelesen und in [rad] umgewandelt
+    '''
+    
     writelog('_____________________________________________________________________________')
     writelog('RfF_KeyPos :' + Keyword)  
-    # Create a file for output
-    # [Grad] Werte werden eingelesen und in [rad] umgewandelt
     Skalierung  = 1000
     FilenameSRC = filepath
     FilenameSRC = FilenameSRC.replace(".dat", FileExt) 
@@ -400,9 +448,12 @@ def RfF_KeyPos(Keyword, filepath, FileExt):
     
  
 def RfS_TIMEPTS(objEmpty_A6):
-    # Read from Scene
+    '''
+    Read from Scene
     
-    # todo: objSafe -> action_name ...
+    todo: objSafe -> action_name ...
+    
+    '''
     
     writelog('_____________________________________________________________________________')
     writelog('RfS TIMEPTS')
@@ -453,11 +504,17 @@ def RfS_TIMEPTS(objEmpty_A6):
 
 
 def FindFCurveID(objEmpty_A6, action):
+    '''
+    find F-curve ID
+    
+    todo: Unklar: mehrere Actions moeglich?! -> fuehrt ggf. zu einer Liste als Rueckgabewert:
+    '''
+    
+    
     writelog('_____________________________________________________________________________')
     writelog('FindFCurveID')
    
     #ob_target = objEmpty_A6
-    # todo: Unklar: mehrere Actions moeglich?! -> fuehrt ggf. zu einer Liste als Rueckgabewert:
     
     writelog(action.name)
     
@@ -517,15 +574,19 @@ def ApplyScale(objCurve):
 
 
 def SetOrigin(sourceObj, targetObj):
+
+    '''
+    todo: Sicherheitsabfrage/bug: 'EDIT' Mode line 919, in SetOrigin
+    TypeError: Converting py args to operator properties:  enum "EDIT" not found in ('OBJECT')
+    -> Verwendung minimieren durch ersetzen der Transformation durch Ueberlagerung der FCurve Werte!
+    Fehler scheint aufzutreten, wenn z.B. Baseobjekt "ge-Hidded" (ausgeblendet) wird....pruefen
+    oder der Layer auf dem BASEPos, SAFEPos liegen ausgeblendet ist
+    Die Funktion hier ist sch...; Achtung: wenn im Editmode nicht Vertex select aktive ist sondern z.B. Faces oder Edges gibt Probleme...
+    '''
+    
     writelog('_____________________________________________________________________________')
     writelog('SetOrigin')
     
-    # todo: Sicherheitsabfrage/bug: 'EDIT' Mode line 919, in SetOrigin
-    # TypeError: Converting py args to operator properties:  enum "EDIT" not found in ('OBJECT')
-    # -> Verwendung minimieren durch ersetzen der Transformation durch Ueberlagerung der FCurve Werte!
-    # Fehler scheint aufzutreten, wenn z.B. Baseobjekt "ge-Hidded" (ausgeblendet) wird....pruefen
-    # oder der Layer auf dem BASEPos, SAFEPos liegen ausgeblendet ist
-    # Die Funktion hier ist sch...; Achtung: wenn im Editmode nicht Vertex select aktive ist sondern z.B. Faces oder Edges gibt Probleme...
     original_type = bpy.context.area.type
     bpy.context.area.type = "VIEW_3D" 
     
@@ -595,6 +656,7 @@ def get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle)
     #
     # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
     # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
+    
     writelog('_____________________________________________________________________________')
     writelog('Funktion: get_relativeX - lokale Koordinaten bezogen auf Base!')
             
@@ -804,6 +866,7 @@ def count_PATHPTSObj(PATHPTSObjName):
     PATHPTSObjList=[]
     
     '''
+    diese 3 Zeilen koennten die for-if Schleife ersetzten:
     objects = bpy.data.objects
     PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
     countPATHPTSObj = len(PATHPTSObjList)
@@ -905,8 +968,6 @@ def ValidateTIMEPTS(PATHPTSObjList, TIMEPTS):
     
 
 def frame_to_time(frame_number):
-    
-    
     fps = bpy.context.scene.render.fps
     raw_time = (frame_number - 1) / fps
     return round(raw_time, 3)
@@ -1030,8 +1091,8 @@ def DefRoute(objEmpty_A6, filepath):
     
     # 1. Schritt: Umsetzung nur fuer einfache Reihenfolge
     
-    # todo: GUI Liste abfragen (falls vorhanden) Reihenfolge der Objektgruppen/-Objekte zum erstellen der Route
-    # n x [....] beruecksichtigen...???
+    # [done] todo: GUI Liste abfragen (falls vorhanden) Reihenfolge der Objektgruppen/-Objekte zum erstellen der Route
+    # [open] n x [....] beruecksichtigen...???
     
     # todo: Bei Bearbeitung und Konkatonierung per GUI Ablauf (Object.RouteNbr)
     
@@ -1941,6 +2002,29 @@ Even worse: The object index is in alphabetic order and therefore it may change 
         return {"FINISHED"}
 
 
+
+
+class GUI_EditLocRot(bpy.types.Operator):
+    bl_idname = "kuka.edit_loc_rot"
+    bl_label = "Edit Loc Rot based on BasePos"
+
+
+    def invoke(self, context, event):
+        print("\n invoke GUI_EditLocRot")
+        
+        return {"FINISHED"}
+    
+    def execute(self, context):
+        print("\n execute GUI_EditLocRot")
+        print("\n kuka.PATHPTSloc: " + str(bpy.context.object.kuka.PATHPTSloc))
+        #bpy.context.object.kuka.PATHPTS
+        
+        return bpy.types.Operator.execute(context)
+        
+            
+
+
+
 # -------------------------------------------------------------------
 # draw
 # -------------------------------------------------------------------
@@ -1983,6 +2067,9 @@ class KUKA_PT_Panel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         
+        kuka = bpy.data.objects # bpy.types.Object.kuka
+        # kuka['Cube'].kuka.
+        
         
         #scene = context.object
         
@@ -1992,11 +2079,6 @@ class KUKA_PT_Panel(bpy.types.Panel):
         
         # ToDo: mouse_event  ‘MOUSEOVER’
         
-        
-        
-        
-        
-        layout.label(text="Path Point (PTP):")
        
         # Liste initialisieren:
         # PATHPTSObjName ist erst nach druecken des InitBlendFile Button bekannt
@@ -2005,58 +2087,40 @@ class KUKA_PT_Panel(bpy.types.Panel):
         #layout.prop_search(scene, "theChosenObject", scene, "objects")
         
         obs = bpy.data.objects
-        if KUKAInitBlendFileExecuted=='True': 
-                
-            print('\n if KUKAInitBlendFileExecuted')
+        if KUKAInitBlendFileExecuted=='True':  
+            #print('\n if KUKAInitBlendFileExecuted')
             #PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-            
-                
             # layout.prop_search(scene, "theChosenObject", bpy.data, "objects", "select a PaThPoint:")
+            pass
         
         
         # Init variable from blendFile:
-        layout.label(text="Init variable from blendFile:")
         row = layout.row(align=True)
         sub = row.row()
         sub.scale_x = 1.0
-        sub.operator("object.kuka_init_blendfile")  
+        sub.operator("object.kuka_init_blendfile", text="init .blend")  
         
-            
+        row = layout.row(align=True)
+        row.prop(kuka[ob.name].kuka, "type", text="Origin:")
+                    
         # Create two columns, by using a split layout.
-        layout.label(text="Tool location / orientation:")
         row = layout.row()
-
-        row.column().prop(ob, "delta_location")
-        if ob.rotation_mode == 'QUATERNION':
-            row.column().prop(ob, "delta_rotation_quaternion", text="Rotation")
-        elif ob.rotation_mode == 'AXIS_ANGLE':
-            #row.column().label(text="Tool_Rotation")
-            #row.column().prop(pchan, "delta_rotation_angle", text="Angle")
-            #row.column().prop(pchan, "delta_rotation_axis", text="Axis")
-            #row.column().prop(ob, "delta_rotation_axis_angle", text="Rotation")
-            row.column().label(text="Not for Axis-Angle")
-        else:
-            row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
+        #row.column().prop(ob, "delta_location")
+        row.column().prop(kuka[ob.name].kuka, "PATHPTSloc", text="Location") # =============================================================================================
+        row.column().prop(kuka[ob.name].kuka, "PATHPTSrot", text="Rotation")
+        
+        #ob.rotation_mode ='rotation_euler'
         
         
-        layout.label(text="Base location / orientation:")
-        row = layout.row()
-
-        row.column().prop(ob, "delta_location")
-        if ob.rotation_mode == 'QUATERNION':
-            row.column().prop(ob, "delta_rotation_quaternion", text="Rotation")
-        elif ob.rotation_mode == 'AXIS_ANGLE':
-            #row.column().label(text="Tool_Rotation")
-            #row.column().prop(pchan, "delta_rotation_angle", text="Angle")
-            #row.column().prop(pchan, "delta_rotation_axis", text="Axis")
-            #row.column().prop(ob, "delta_rotation_axis_angle", text="Rotation")
-            row.column().label(text="Not for Axis-Angle")
-        else:
-            row.column().prop(ob, "delta_rotation_euler", text="Delta Rotation")
         
-
-
-
+        #ToDo 02.11.2016:
+        #row.column().prop("kuka.edit_loc_rot", "PATHPTS", text="PTPKord2016")
+        #layout.prop(bpy.context.object.kuka, 'PATHPTSloc')
+        #bpy.context.object.kuka.PATHPTS
+        
+        
+        
+        
         rows = 2
         row = layout.row()
         row.template_list("UL_items", "", scene, "custom", scene, "custom_index", rows=rows)
