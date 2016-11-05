@@ -136,33 +136,230 @@ print('\n KUKAInitBlendFileExecuted:  ' + KUKAInitBlendFileExecuted)
 
 
         
-def update_loc(self, context):
+
+    
+def writelog(text=''):
+            
+            
+            FilenameLog = bpy.data.filepath
+            FilenameLog = FilenameLog.replace(".blend", '.log')
+            fout = open(FilenameLog, 'a')
+            localtime = time.asctime( time.localtime(time.time()) )
+            fout.write(localtime + " : " + str(text) + '\n')
+            fout.close();
+
+
+def update_GUIloc(self, context):
+        
+        
+        '''
+        
+        Beschreibung:
+        Die location-Values des aktiven Objektes sollen in Abhaengigkeit des unter 'kuka.ORIGINType' ausgewaehlten Koordinatensystems 
+        a) richtig angezeigt werden
+        b) editierbar sein
+        Vorgehensweise:
+        1. ob = aktives Objekt der Szene
+        
+        unterscheide zwischen Anzeige und Eingabe:
+        Anzeige:
+        die permanente Anzeige unter 'Panel' muss 'kuka.ORIGINType' beruecksichtigen. D.h. die Berechnung muss im Panel selber erfolgen.
+        
+        Eingabe:
+        Bei Eingabe erfolgt der Ausruf der 'update_GUIloc' Funktion:
+        2. IF kuka.ORIGINType == z.B. BASEPos:
+              > berechne die Positionswerte in Abhaengigkeit von 'kuka.ORIGINType'
+              > uebergebe diese Werte dem GUI-Feld
+              
+        '''
+        
         kuka = bpy.data.objects 
         ob = bpy.context.scene.objects.active
         print("my test function update_loc", self)
         
-        print(kuka[ob.name].kuka.type)
+        print(kuka[ob.name].kuka.ORIGINType) # 'BASEPos','PTP', 'HOMEPos', 'ADJUSTMENTPos'
+        
+           
 
-def update_rot(self, context):
+def update_GUIrot(self, context):
         print("my test function update_rot", self)
+        
+
+def get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
+    # dataPATHPTS_Loc/Rot [rad]: absolute
+    # BASEPos_Koord/Angle [rad]: absolute
+    # Aufruf von: Diese Funktion wird nur bei Refresh und Import aufgerufen.
+    # Wiedergabe von LOC/Rot bezogen auf Base
+    
+    # World2Local - OK (absolute -> relative)
+    
+    # Gegeben: Mtrans, Mrot = Base / Vtrans_abs, Mrot_abs
+    # Ges:  Mrot_rel, Vtrans_rel
+    #
+    # Mworld  / Mworld_rel / Mworld_abs mit world = trans * rot
+    # Mtrans  / Mtrans_rel / Mtrans_abs
+    # Mrot    / Mrot_rel   / Mrot_abs
+    #
+    # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
+    # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
+    
+    writelog('_____________________________________________________________________________')
+    writelog('Funktion: get_relativeX - lokale Koordinaten bezogen auf Base!')
+            
+    Mtrans    = mathutils.Matrix.Translation(Vector(BASEPos_Koord))
+    Vtrans_abs = dataPATHPTS_Loc                              #global 
+    writelog('Vtrans_abs'+ str(Vtrans_abs))  # neuer Bezugspunkt
+    
+    #--------------------------------------------------------------------------
+    MrotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # Global
+    MrotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y')
+    MrotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z')
+    Mrot = MrotZ * MrotY * MrotX
+    writelog('Mrot :'+ str(Mrot))
+    
+    Mworld_rel = Mtrans * Mrot.to_4x4()
+    
+    Mrot_absX = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
+    Mrot_absY = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
+    Mrot_absZ = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
+    Mrot_abs = Mrot_absZ * Mrot_absY * Mrot_absX
+    writelog('Mrot_abs :'+ str(Mrot_abs))
+    #--------------------------------------------------------------------------
+     
+    #PATHPTS_Koord = matrix_world.inverted() *point_local    # transpose fuehrt zu einem andren Ergebnis?!
+    Vtrans_rel   = Mworld_rel.inverted() *Vtrans_abs  
+    PATHPTS_Koord = Vtrans_rel
+    
+    writelog('PATHPTS_Koord : '+ str(PATHPTS_Koord))           # neuer Bezugspunkt
+    
+    Mrot_rel = Mrot.inverted()  * Mrot_abs 
+    writelog('Mrot_rel'+ str(Mrot_rel))
+    
+    newR = Mrot_rel.to_euler('XYZ')
+    
+    writelog('newR'+ str(newR))    
+    writelog('newR[0] :'+ str(newR[0]*360/(2*math.pi)))
+    writelog('newR[1] :'+ str(newR[1]*360/(2*math.pi)))
+    writelog('newR[2] :'+ str(newR[2]*360/(2*math.pi)))
+        
+    PATHPTS_Angle = (Vorz1* newR[0], Vorz2*newR[1], Vorz3*newR[2]) # [rad]     
+    
+    writelog('PATHPTS_Koord : ' + str(PATHPTS_Koord))
+    writelog('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
+    
+    writelog('get_relative done')
+    writelog('_____________________________________________________________________________')
+    return PATHPTS_Koord, PATHPTS_Angle 
+
+def get_absolute(Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+    # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
+    # Aufruf bei Import
+    # Obj_Koord, Obj_Angle [rad]: relativ
+    # BASEPos_Koord, BASEPos_Angle [rad]: absolut 
+    
+    # Transformation Local2World
+    
+    # Gegeben: Mtrans, Mrot = Base --> Mworld/ Mrot_rel, Vtrans_rel --> Mworld_rel
+    # Ges:  Vtrans_abs, Mrot_abs
+    #
+    # Mworld  / Mworld_rel / Mworld_abs mit world = trans * rot
+    # Mtrans  / Mtrans_rel / Mtrans_abs
+    # Mrot    / Mrot_rel   / Mrot_abs
+    
+    # 01012014 objBase = bpy.data.objects['kukaBASEPosObj']
+    #bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
+    writelog('_____________________________________________________________________________')
+    writelog('get_absolute ')
+    
+    matrix_world =bpy.data.objects[objBase.name].matrix_world
+    #point_local  = Obj_Koord 
+    
+    Mtrans     = mathutils.Matrix.Translation(Vector(BASEPos_Koord))
+    Vtrans_rel = Obj_Koord                              #lokal 
+    writelog('Vtrans_rel'+ str(Vtrans_rel))  # neuer Bezugspunkt
+      
+    MrotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # C = -179 Global
+    MrotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y') # B = -20
+    MrotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z') # A = -35
+    Mrot = MrotZ * MrotY * MrotX
+    writelog('Mrot'+ str(Mrot))
+    
+    Mworld = Mtrans * Mrot.to_4x4()
+    
+    Mrot_relX = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # Local (bez. auf Base)
+    Mrot_relY = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
+    Mrot_relZ = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
+    Mrot_rel = Mrot_relZ * Mrot_relY * Mrot_relX # KUKA Erg.
+    writelog('Mrot_rel'+ str(Mrot_rel))
+
+    Mrot_abs = Mrot_rel.transposed() * Mrot.transposed()       
+    Mrot_abs = Mrot_abs.transposed()
+    rotEuler =Mrot_abs.to_euler('XYZ')
+    
+    writelog('rotEuler'+ str(rotEuler))
+    writelog('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
+    writelog('rotEuler[1] :'+ str(rotEuler[1]*360/(2*math.pi)))
+    writelog('rotEuler[2] :'+ str(rotEuler[2]*360/(2*math.pi)))
+        
+    Vtrans_abs = Mworld *Vtrans_rel
+    writelog('Vtrans_abs :'+ str(Vtrans_abs))
+    
+    writelog('get_absolute done')
+    writelog('_____________________________________________________________________________')
+       
+    return Vtrans_abs, rotEuler
+
+                  
+def count_PATHPTSObj(PATHPTSObjName):
+    writelog('_____________________________________________________________________________')
+    writelog('count_PATHPTSObj')
+    countPATHPTSObj = 0
+    countObj = 0
+    PATHPTSObjList=[]
+    
+    '''
+    diese 3 Zeilen koennten die for-if Schleife ersetzten:
+    objects = bpy.data.objects
+    PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
+    countPATHPTSObj = len(PATHPTSObjList)
+    '''  
+    
+    for item in bpy.data.objects:
+        if item.type == "MESH":
+            countObj = countObj +1
+            writelog(item.name)  
+            if PATHPTSObjName in item.name:
+                countPATHPTSObj = countPATHPTSObj +1
+                PATHPTSObjList = PATHPTSObjList + [item.name]
+          
+    # Nullen voranstellen: http://blenderscripting.blogspot.de/2011/05/padding-number-with-zeroes.html
+    # oder neu sortieren:       http://blenderscripting.blogspot.de/2011/05/python-32-semi-natural-sorting.html    
+    pattern = '\d+'  # one or more numerical characters  
+    def SortObjList(pose):  
+        match = re.search(pattern, pose)  
+        return int(match.group())  
+    PATHPTSObjList = sorted(PATHPTSObjList, key=SortObjList)
+    writelog('PATHPTSObjList sorted: ' + str(PATHPTSObjList))
     
       
     
-class ObjectSettings(bpy.types.PropertyGroup):
+    writelog('Anzahl an Objekten in der Szene - countObj: ' +str(countObj))
+    writelog('Anzahl an PathPoint Objekten in der Szene - countPATHPTSObj: ' +str(countPATHPTSObj))
+    writelog('count_PATHPTSObj')
+    writelog('_____________________________________________________________________________')
+    return PATHPTSObjList, countPATHPTSObj
+    
+class ObjectSettings(bpy.types.PropertyGroup): # self, context, 
     
     # Access it e.g. like
     # bpy.context.object.kuka.PATHPTS
     
     
         
-        
-    
-        
-        
     ID = bpy.props.IntProperty()
     # type: BASEPos, PTP, HOMEPos, ADJUSTMENTPos
     #type = bpy.props.StringProperty()
-    type = bpy.props.EnumProperty(
+    ORIGINType = bpy.props.EnumProperty(
         items=(
             ('BASEPos', "Base Position", "a"),
             ('PTP', "Path Point", "b"),
@@ -193,34 +390,68 @@ class ObjectSettings(bpy.types.PropertyGroup):
     
     # RouteNbr
     RouteNbr = bpy.props.IntProperty()  
-       
-    
-    
-    #PATHPTS = bpy.props.FloatVectorProperty(size=6)
-    
     
     PATHPTSloc = bpy.props.FloatVectorProperty(name="Location",
-    default=(0.0, 0.0, 0.0),
-    options={'ANIMATABLE'}, 
-    subtype='TRANSLATION', 
-    size=3,
-    update=update_loc)
-    
-    PATHPTSrot = bpy.props.FloatVectorProperty(name="Rotation",
-    default=(0.0, 0.0, 0.0),
-    #min=(-10.0,-10.0,-10.0, -180.0, -180.0, -180.0),
-    #max=(+10.0,+10.0,+10.0, 180.0, 180.0, 180.0),
-    options={'ANIMATABLE'}, 
-    subtype='EULER', 
-    size=3,
-    update=update_rot)
-
-       
+        default=(0.0, 0.0, 0.0),
+        options={'ANIMATABLE'}, 
+        subtype='TRANSLATION', 
+        size=3,
+        update=update_GUIloc)
         
+    PATHPTSrot = bpy.props.FloatVectorProperty(name="Rotation",
+        default=(0.0, 0.0, 0.0),
+        #min=(-10.0,-10.0,-10.0, -180.0, -180.0, -180.0),
+        #max=(+10.0,+10.0,+10.0, 180.0, 180.0, 180.0),
+        options={'ANIMATABLE'}, 
+        subtype='EULER', 
+        size=3,
+        update=update_GUIrot)
+
 bpy.utils.register_class(ObjectSettings)
 
 bpy.types.Object.kuka = \
-    bpy.props.PointerProperty(type=ObjectSettings)        
+    bpy.props.PointerProperty(type=ObjectSettings) 
+    
+'''    
+class ObjectSettingsB(bpy.types.PropertyGroup):        
+    
+    
+    if (KUKAInitBlendFileExecuted =='True'):
+        
+        PATHPTSObjList=[]
+        countPATHPTSObj=[]
+        # PATHPTSObjList initialisieren/updaten
+        #obj = bpy.data.objects
+        #PATHPTSObjList = fnmatch.filter([obj[i].name for i in range(len(obj))] , 'PTPObj_*')
+        #countPATHPTSObj = len(PATHPTSObjList)
+        
+        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj('PTPObj_')
+        
+        # kuka.PATHPTSloc/ rot initialisieren/updaten
+        #kuka = bpy.data.objects # bpy.types.Object.kuka
+            # kuka['Cube'].kuka.
+        obj = bpy.data.objects    
+        for i in range(countPATHPTSObj):
+            if obj[PATHPTSObjList[i]].kuka.ORIGINType == "BASEPos":
+                KoordName =  'kukaBASEPosObj'
+            
+            BASEPos_Koord = obj[KoordName].location
+            BASEPos_Angle = obj[KoordName].rotation_euler
+            dataPATHPTS_Loc = obj[PATHPTSObjList[i]].location
+            dataPATHPTS_Rot = obj[PATHPTSObjList[i]].rotation_euler
+            
+            helperLocRot = get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle)
+            
+            #obj[PATHPTSObjList[i]].kuka.PATHPTSloc = helperLocRot[0:3]
+            #obj[PATHPTSObjList[i]].kuka.PATHPTSrot = helperLocRot[3:6]
+ 
+      
+bpy.utils.register_class(ObjectSettingsB)
+
+bpy.types.Object.kuka = \
+    bpy.props.PointerProperty(type=ObjectSettingsB)    
+'''    
+        
         
 def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):            
     ''' 
@@ -579,7 +810,7 @@ def SetOrigin(sourceObj, targetObj):
     todo: Sicherheitsabfrage/bug: 'EDIT' Mode line 919, in SetOrigin
     TypeError: Converting py args to operator properties:  enum "EDIT" not found in ('OBJECT')
     -> Verwendung minimieren durch ersetzen der Transformation durch Ueberlagerung der FCurve Werte!
-    Fehler scheint aufzutreten, wenn z.B. Baseobjekt "ge-Hidded" (ausgeblendet) wird....pruefen
+    Fehler scheint aufzutreten, wenn z.B. kukaBASEPosObjekt "ge-Hidded" (ausgeblendet) wird....pruefen
     oder der Layer auf dem BASEPos, SAFEPos liegen ausgeblendet ist
     Die Funktion hier ist sch...; Achtung: wenn im Editmode nicht Vertex select aktive ist sondern z.B. Faces oder Edges gibt Probleme...
     '''
@@ -639,129 +870,7 @@ def SetOrigin(sourceObj, targetObj):
     writelog('_____________________________________________________________________________')
 
 
-def get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
-    # dataPATHPTS_Loc/Rot [rad]: absolute
-    # BASEPos_Koord/Angle [rad]: absolute
-    # Aufruf von: Diese Funktion wird nur bei Refresh und Import aufgerufen.
-    # Wiedergabe von LOC/Rot bezogen auf Base
-    
-    # World2Local - OK (absolute -> relative)
-    
-    # Gegeben: Mtrans, Mrot = Base / Vtrans_abs, Mrot_abs
-    # Ges:  Mrot_rel, Vtrans_rel
-    #
-    # Mworld  / Mworld_rel / Mworld_abs mit world = trans * rot
-    # Mtrans  / Mtrans_rel / Mtrans_abs
-    # Mrot    / Mrot_rel   / Mrot_abs
-    #
-    # dataPATHPTS_Loc = Global --> PATHPTS_Koord bezogen auf Base 
-    # dataPATHPTS_Rot = Global --> PATHPTS_Angle bezogen auf Base
-    
-    writelog('_____________________________________________________________________________')
-    writelog('Funktion: get_relativeX - lokale Koordinaten bezogen auf Base!')
-            
-    Mtrans    = mathutils.Matrix.Translation(Vector(BASEPos_Koord))
-    Vtrans_abs = dataPATHPTS_Loc                              #global 
-    writelog('Vtrans_abs'+ str(Vtrans_abs))  # neuer Bezugspunkt
-    
-    #--------------------------------------------------------------------------
-    MrotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # Global
-    MrotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y')
-    MrotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z')
-    Mrot = MrotZ * MrotY * MrotX
-    writelog('Mrot :'+ str(Mrot))
-    
-    Mworld_rel = Mtrans * Mrot.to_4x4()
-    
-    Mrot_absX = mathutils.Matrix.Rotation(dataPATHPTS_Rot[0], 3, 'X') # Global
-    Mrot_absY = mathutils.Matrix.Rotation(dataPATHPTS_Rot[1], 3, 'Y')
-    Mrot_absZ = mathutils.Matrix.Rotation(dataPATHPTS_Rot[2], 3, 'Z')  
-    Mrot_abs = Mrot_absZ * Mrot_absY * Mrot_absX
-    writelog('Mrot_abs :'+ str(Mrot_abs))
-    #--------------------------------------------------------------------------
-     
-    #PATHPTS_Koord = matrix_world.inverted() *point_local    # transpose fuehrt zu einem andren Ergebnis?!
-    Vtrans_rel   = Mworld_rel.inverted() *Vtrans_abs  
-    PATHPTS_Koord = Vtrans_rel
-    
-    writelog('PATHPTS_Koord : '+ str(PATHPTS_Koord))           # neuer Bezugspunkt
-    
-    Mrot_rel = Mrot.inverted()  * Mrot_abs 
-    writelog('Mrot_rel'+ str(Mrot_rel))
-    
-    newR = Mrot_rel.to_euler('XYZ')
-    
-    writelog('newR'+ str(newR))    
-    writelog('newR[0] :'+ str(newR[0]*360/(2*math.pi)))
-    writelog('newR[1] :'+ str(newR[1]*360/(2*math.pi)))
-    writelog('newR[2] :'+ str(newR[2]*360/(2*math.pi)))
-        
-    PATHPTS_Angle = (Vorz1* newR[0], Vorz2*newR[1], Vorz3*newR[2]) # [rad]     
-    
-    writelog('PATHPTS_Koord : ' + str(PATHPTS_Koord))
-    writelog('PATHPTS_Angle: '+'C X {0:.3f}'.format(PATHPTS_Angle[0])+' B Y {0:.3f}'.format(PATHPTS_Angle[1])+' A Z {0:.3f}'.format(PATHPTS_Angle[2]))
-    
-    writelog('get_relative done')
-    writelog('_____________________________________________________________________________')
-    return PATHPTS_Koord, PATHPTS_Angle 
 
-def get_absolute(Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
-    # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
-    # Aufruf bei Import
-    # Obj_Koord, Obj_Angle [rad]: relativ
-    # BASEPos_Koord, BASEPos_Angle [rad]: absolut 
-    
-    # Transformation Local2World
-    
-    # Gegeben: Mtrans, Mrot = Base --> Mworld/ Mrot_rel, Vtrans_rel --> Mworld_rel
-    # Ges:  Vtrans_abs, Mrot_abs
-    #
-    # Mworld  / Mworld_rel / Mworld_abs mit world = trans * rot
-    # Mtrans  / Mtrans_rel / Mtrans_abs
-    # Mrot    / Mrot_rel   / Mrot_abs
-    
-    # 01012014 objBase = bpy.data.objects['Sphere_BASEPos']
-    #bpy.data.objects[Obj.name].rotation_mode =RotationModeTransform
-    writelog('_____________________________________________________________________________')
-    writelog('get_absolute ')
-    
-    matrix_world =bpy.data.objects[objBase.name].matrix_world
-    #point_local  = Obj_Koord 
-    
-    Mtrans     = mathutils.Matrix.Translation(Vector(BASEPos_Koord))
-    Vtrans_rel = Obj_Koord                              #lokal 
-    writelog('Vtrans_rel'+ str(Vtrans_rel))  # neuer Bezugspunkt
-      
-    MrotX = mathutils.Matrix.Rotation(BASEPos_Angle[0], 3, 'X') # C = -179 Global
-    MrotY = mathutils.Matrix.Rotation(BASEPos_Angle[1], 3, 'Y') # B = -20
-    MrotZ = mathutils.Matrix.Rotation(BASEPos_Angle[2], 3, 'Z') # A = -35
-    Mrot = MrotZ * MrotY * MrotX
-    writelog('Mrot'+ str(Mrot))
-    
-    Mworld = Mtrans * Mrot.to_4x4()
-    
-    Mrot_relX = mathutils.Matrix.Rotation(Obj_Angle[0], 3, 'X') # Local (bez. auf Base)
-    Mrot_relY = mathutils.Matrix.Rotation(Obj_Angle[1], 3, 'Y') # 0,20,35 = X = -C, Y = -B, Z = -A
-    Mrot_relZ = mathutils.Matrix.Rotation(Obj_Angle[2], 3, 'Z')
-    Mrot_rel = Mrot_relZ * Mrot_relY * Mrot_relX # KUKA Erg.
-    writelog('Mrot_rel'+ str(Mrot_rel))
-
-    Mrot_abs = Mrot_rel.transposed() * Mrot.transposed()       
-    Mrot_abs = Mrot_abs.transposed()
-    rotEuler =Mrot_abs.to_euler('XYZ')
-    
-    writelog('rotEuler'+ str(rotEuler))
-    writelog('rotEuler[0] :'+ str(rotEuler[0]*360/(2*math.pi)))
-    writelog('rotEuler[1] :'+ str(rotEuler[1]*360/(2*math.pi)))
-    writelog('rotEuler[2] :'+ str(rotEuler[2]*360/(2*math.pi)))
-        
-    Vtrans_abs = Mworld *Vtrans_rel
-    writelog('Vtrans_abs :'+ str(Vtrans_abs))
-    
-    writelog('get_absolute done')
-    writelog('_____________________________________________________________________________')
-       
-    return Vtrans_abs, rotEuler
  
 def OptimizeRotation(ObjList):
     writelog('_____________________________________________________________________________')
@@ -858,44 +967,7 @@ def OptimizeRotationQuaternion(ObjList, countObj):
 
 # ________________________________________________________________________________________________________________________
 
-def count_PATHPTSObj(PATHPTSObjName):
-    writelog('_____________________________________________________________________________')
-    writelog('count_PATHPTSObj')
-    countPATHPTSObj = 0
-    countObj = 0
-    PATHPTSObjList=[]
-    
-    '''
-    diese 3 Zeilen koennten die for-if Schleife ersetzten:
-    objects = bpy.data.objects
-    PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
-    countPATHPTSObj = len(PATHPTSObjList)
-    '''  
-    
-    for item in bpy.data.objects:
-        if item.type == "MESH":
-            countObj = countObj +1
-            writelog(item.name)  
-            if PATHPTSObjName in item.name:
-                countPATHPTSObj = countPATHPTSObj +1
-                PATHPTSObjList = PATHPTSObjList + [item.name]
-          
-    # Nullen voranstellen: http://blenderscripting.blogspot.de/2011/05/padding-number-with-zeroes.html
-    # oder neu sortieren:       http://blenderscripting.blogspot.de/2011/05/python-32-semi-natural-sorting.html    
-    pattern = '\d+'  # one or more numerical characters  
-    def SortObjList(pose):  
-        match = re.search(pattern, pose)  
-        return int(match.group())  
-    PATHPTSObjList = sorted(PATHPTSObjList, key=SortObjList)
-    writelog('PATHPTSObjList sorted: ' + str(PATHPTSObjList))
-    
-      
-    
-    writelog('Anzahl an Objekten in der Szene - countObj: ' +str(countObj))
-    writelog('Anzahl an PathPoint Objekten in der Szene - countPATHPTSObj: ' +str(countPATHPTSObj))
-    writelog('count_PATHPTSObj')
-    writelog('_____________________________________________________________________________')
-    return PATHPTSObjList, countPATHPTSObj
+
 
 def renamePATHObj(PATHPTSObjList):
     writelog('_____________________________________________________________________________')
@@ -1399,15 +1471,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
     writelog('create_PATHPTSObj done')
     writelog('_____________________________________________________________________________')
 
-def writelog(text=''):
-            
-            
-            FilenameLog = bpy.data.filepath
-            FilenameLog = FilenameLog.replace(".blend", '.log')
-            fout = open(FilenameLog, 'a')
-            localtime = time.asctime( time.localtime(time.time()) )
-            fout.write(localtime + " : " + str(text) + '\n')
-            fout.close();
+
                 
 class createMatrix(object):
             
@@ -1456,10 +1520,10 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
         # Global Variables:
         KUKAInitBlendFileExecuted = 'True'
         PATHPTSObjName = 'PTPObj_'
-        objBase     = bpy.data.objects['Sphere_BASEPos']
-        objSafe     = bpy.data.objects['Sphere_SAFEPos']
+        objBase     = bpy.data.objects['kukaBASEPosObj']
+        objSafe     = bpy.data.objects['kukaSAFEPosObj']
         objCurve    = bpy.data.objects['BezierCircle']
-        objHome     = bpy.data.objects['Sphere_HOMEPos']
+        objHome     = bpy.data.objects['kukaHOMEPosObj']
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
         
         Mode = 'XYZ' # YXZ
@@ -1539,7 +1603,7 @@ class KUKA_OT_Export (bpy.types.Operator, ExportHelper):
         # Entspricht [STRG] + A (Apply Scale)
         # um nicht auch das Tool selber zu beeinflussen muss das parenting dafuer geloest werden. (--> def ApplyScale)
         
-        # nur fuer Scaling, da Location, Rotatation (mit Hilfe des Mesh-Objektes 'Sphere_BASEPos') beim Export in *.src file geschrieben wird:
+        # nur fuer Scaling, da Location, Rotatation (mit Hilfe des Mesh-Objektes 'kukaBASEPosObj') beim Export in *.src file geschrieben wird:
         # --> [STRG] + A (Apply Location, Rotation) wird nicht normiert sondern wieder eingelesen! (KUKA BASEPosition)
         writelog('- - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
         writelog(' FUNKTIONSAUFRUF KUKA_OT_Export KUKA_Tools')
@@ -2002,29 +2066,6 @@ Even worse: The object index is in alphabetic order and therefore it may change 
         return {"FINISHED"}
 
 
-
-
-class GUI_EditLocRot(bpy.types.Operator):
-    bl_idname = "kuka.edit_loc_rot"
-    bl_label = "Edit Loc Rot based on BasePos"
-
-
-    def invoke(self, context, event):
-        print("\n invoke GUI_EditLocRot")
-        
-        return {"FINISHED"}
-    
-    def execute(self, context):
-        print("\n execute GUI_EditLocRot")
-        print("\n kuka.PATHPTSloc: " + str(bpy.context.object.kuka.PATHPTSloc))
-        #bpy.context.object.kuka.PATHPTS
-        
-        return bpy.types.Operator.execute(context)
-        
-            
-
-
-
 # -------------------------------------------------------------------
 # draw
 # -------------------------------------------------------------------
@@ -2091,6 +2132,13 @@ class KUKA_PT_Panel(bpy.types.Panel):
             #print('\n if KUKAInitBlendFileExecuted')
             #PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
             # layout.prop_search(scene, "theChosenObject", bpy.data, "objects", "select a PaThPoint:")
+            
+            '''
+            objects = bpy.data.objects
+            PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
+            countPATHPTSObj = len(PATHPTSObjList)
+            kuka[ob.name].kuka
+            '''
             pass
         
         
@@ -2100,14 +2148,16 @@ class KUKA_PT_Panel(bpy.types.Panel):
         sub.scale_x = 1.0
         sub.operator("object.kuka_init_blendfile", text="init .blend")  
         
-        row = layout.row(align=True)
-        row.prop(kuka[ob.name].kuka, "type", text="Origin:")
+        if (KUKAInitBlendFileExecuted =='True'):
+            row = layout.row(align=True)
+            row.prop(kuka[ob.name].kuka, "ORIGINType", text="Origin:")
+            #print(kuka[ob.name].kuka.ORIGINType)
                     
-        # Create two columns, by using a split layout.
-        row = layout.row()
-        #row.column().prop(ob, "delta_location")
-        row.column().prop(kuka[ob.name].kuka, "PATHPTSloc", text="Location") # =============================================================================================
-        row.column().prop(kuka[ob.name].kuka, "PATHPTSrot", text="Rotation")
+            # Create two columns, by using a split layout.
+            row = layout.row()
+            #row.column().prop(ob, "delta_location")
+            row.column().prop(kuka[ob.name].kuka, "PATHPTSloc", text="Location") # =============================================================================================
+            row.column().prop(kuka[ob.name].kuka, "PATHPTSrot", text="Rotation")
         
         #ob.rotation_mode ='rotation_euler'
         
