@@ -175,33 +175,78 @@ Bei Eingabe erfolgt der Ausruf der 'update_GUIloc' Funktion:
 
         
            
-class applyGUIlocrot (bpy.types.Operator):
+class set_locrot (bpy.types.Operator):
     
-    ''' apply location/ rotation '''
-    bl_idname = "object.apply_locrot"
-    bl_label = "apply loc/rot" #Toolbar - Label
-    bl_description = "apply location/ rotation" # Kommentar im Specials Kontextmenue
+    ''' set location/ rotation from GUI to Object '''
+    bl_idname = "object.set_locrot"
+    bl_label = "set loc/rot" #Toolbar - Label
+    bl_description = "set location/ rotation" # Kommentar im Specials Kontextmenue
     bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
     #                                  parameters of this operator interactively 
     #                                  (in the Tools pane) 
     
+    # ToDo: Achtung: nur OK bei BasePosObj; am besten weitere Properties anlegen. z.B. PATHPTSlocBase, PATHPTSlocHome, ...
+     
     def execute(self, context): 
-        print("my test function applyGUIlocrot", self)
-        
         objActive = bpy.context.scene.objects.active
-        objBase = bpy.context.scene.objects['kukaBASEPosObj']
+        orgType = bpy.context.scene.objects.active.kuka.ORIGINType
+        
+        if orgType == 'BASEPos':
+            objBase = bpy.context.scene.objects['kukaBASEPosObj']
+        elif orgType == 'HOMEPos':
+            objBase = bpy.context.scene.objects['kukaHOMEPosObj']
+        elif orgType == 'SAFEPos':
+            objBase = bpy.context.scene.objects['kukaSAFEPosObj']
+        else:
+            objBase = bpy.context.scene.objects['kukaBASEPosObj'] # um Fehler abzufangen
         
         BASEPos_Koord = objBase.location
-        print('\n objBase.location: ' + str(objBase.location))
         BASEPos_Angle = objBase.rotation_euler
-        dataPATHPTS_Loc = bpy.data.objects[objActive.name].kuka.PATHPTSloc # Achtung: nur OK bei BasePosObj; am besten weitere Properties anlegen. z.B. PATHPTSlocBase, PATHPTSlocHome, ...
-        print('\n dataPATHPTS_Loc: ' + str(dataPATHPTS_Loc))
+        
+        dataPATHPTS_Loc = bpy.data.objects[objActive.name].kuka.PATHPTSloc 
         dataPATHPTS_Rot = bpy.data.objects[objActive.name].kuka.PATHPTSrot
         
         helperLoc, helperRot = get_absolute(dataPATHPTS_Loc, dataPATHPTS_Rot, objBase, BASEPos_Koord, BASEPos_Angle)
         
         objActive.location = helperLoc
         objActive.rotation_euler = helperRot
+        return {'FINISHED'}
+
+class get_rel_locrot (bpy.types.Operator):
+    
+    ''' get relative location/ rotation '''
+    bl_idname = "object.get_rel_locrot"
+    bl_label = "get relative loc/rot" #Toolbar - Label
+    bl_description = "get relative location/ rotation" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+    
+    # ToDo: Achtung: nur OK bei BasePosObj; am besten weitere Properties anlegen. z.B. PATHPTSlocBase, PATHPTSlocHome, ...
+     
+    def execute(self, context): 
+        objActive = bpy.context.scene.objects.active
+        orgType = bpy.context.scene.objects.active.kuka.ORIGINType
+        
+        if orgType == 'BASEPos':
+            objBase = bpy.context.scene.objects['kukaBASEPosObj']
+        elif orgType == 'HOMEPos':
+            objBase = bpy.context.scene.objects['kukaHOMEPosObj']
+        elif orgType == 'SAFEPos':
+            objBase = bpy.context.scene.objects['kukaSAFEPosObj']
+        else:
+            objBase = bpy.context.scene.objects['kukaBASEPosObj'] # um Fehler abzufangen
+        
+        BASEPos_Koord = objBase.location
+        BASEPos_Angle = objBase.rotation_euler
+        
+        dataPATHPTS_Loc = bpy.data.objects[objActive.name].location 
+        dataPATHPTS_Rot = bpy.data.objects[objActive.name].rotation_euler
+        
+        helperLoc, helperRot = get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle)
+        
+        bpy.data.objects[objActive.name].kuka.PATHPTSloc = helperLoc
+        bpy.data.objects[objActive.name].kuka.PATHPTSrot = helperRot
         return {'FINISHED'}
         
 
@@ -381,10 +426,10 @@ class ObjectSettings(bpy.types.PropertyGroup): # self, context,
     #type = bpy.props.StringProperty()
     ORIGINType = bpy.props.EnumProperty(
         items=(
-            ('BASEPos', "Base Position", "a"),
-            ('PTP', "Path Point", "b"),
-            ('HOMEPos', "Home Position", "c"),
-            ('ADJUSTMENTPos', "Adjustment Position", "d"),
+            ('BASEPos', "Base Position", "coordinates relative to Base-Position"),
+            ('SAFEPos', "Safe Position", "coordinates relative to Safe-Position"),
+            ('HOMEPos', "Home Position", "coordinates relative to Home-Position"),
+            ('ADJUSTMENTPos', "Adjustment Position", "coordinates relative to Adjustment-Position"),
         )
     )
     
@@ -2109,10 +2154,6 @@ class KUKA_PT_Panel(bpy.types.Panel):
 #class UIListPanelExample(Panel):
     """Creates a Panel in the Object properties window"""
     bl_idname = 'OBJECT_PT_my_panel'
-    '''
-    bl_space_type = "TEXT_EDITOR"
-    bl_region_type = "UI"
-    '''
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
     bl_category = "KUKA Tools"
@@ -2174,14 +2215,16 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(kuka[ob.name].kuka, "ORIGINType", text="Origin:")
         #print(kuka[ob.name].kuka.ORIGINType)
+        
+        props = row.operator("object.set_locrot", text="set Position")
+        props = row.operator("object.get_rel_locrot", text="get Position")
                 
         # Create two columns, by using a split layout.
         row = layout.row()
         #row.column().prop(ob, "delta_location")
         row.column().prop(kuka[obj.name].kuka, "PATHPTSloc", text="Location") 
         row.column().prop(kuka[obj.name].kuka, "PATHPTSrot", text="Rotation")
-        props = row.operator("object.apply_locrot", text="apply Loc/Rot")
-        
+                
         #ob.rotation_mode ='rotation_euler'
         
         
