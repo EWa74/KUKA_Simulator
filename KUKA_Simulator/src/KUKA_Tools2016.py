@@ -149,40 +149,60 @@ def writelog(text=''):
             fout.close();
 
 
-def update_GUIloc(self, context):
+
         
+'''
+
+Beschreibung:
+Die location-Values des aktiven Objektes sollen in Abhaengigkeit des unter 'kuka.ORIGINType' ausgewaehlten Koordinatensystems 
+a) richtig angezeigt werden
+b) editierbar sein
+Vorgehensweise:
+1. ob = aktives Objekt der Szene
+
+unterscheide zwischen Anzeige und Eingabe:
+Anzeige:
+die permanente Anzeige unter 'Panel' muss 'kuka.ORIGINType' beruecksichtigen. D.h. die Berechnung muss im Panel selber erfolgen.
+
+Eingabe:
+Bei Eingabe erfolgt der Ausruf der 'update_GUIloc' Funktion:
+2. IF kuka.ORIGINType == z.B. BASEPos:
+      > berechne die Positionswerte in Abhaengigkeit von 'kuka.ORIGINType'
+      > uebergebe diese Werte dem GUI-Feld
+      
+'''
         
-        '''
-        
-        Beschreibung:
-        Die location-Values des aktiven Objektes sollen in Abhaengigkeit des unter 'kuka.ORIGINType' ausgewaehlten Koordinatensystems 
-        a) richtig angezeigt werden
-        b) editierbar sein
-        Vorgehensweise:
-        1. ob = aktives Objekt der Szene
-        
-        unterscheide zwischen Anzeige und Eingabe:
-        Anzeige:
-        die permanente Anzeige unter 'Panel' muss 'kuka.ORIGINType' beruecksichtigen. D.h. die Berechnung muss im Panel selber erfolgen.
-        
-        Eingabe:
-        Bei Eingabe erfolgt der Ausruf der 'update_GUIloc' Funktion:
-        2. IF kuka.ORIGINType == z.B. BASEPos:
-              > berechne die Positionswerte in Abhaengigkeit von 'kuka.ORIGINType'
-              > uebergebe diese Werte dem GUI-Feld
-              
-        '''
-        
-        kuka = bpy.data.objects 
-        ob = bpy.context.scene.objects.active
-        print("my test function update_loc", self)
-        
-        print(kuka[ob.name].kuka.ORIGINType) # 'BASEPos','PTP', 'HOMEPos', 'ADJUSTMENTPos'
+
         
            
-
-def update_GUIrot(self, context):
-        print("my test function update_rot", self)
+class applyGUIlocrot (bpy.types.Operator):
+    
+    ''' apply location/ rotation '''
+    bl_idname = "object.apply_locrot"
+    bl_label = "apply loc/rot" #Toolbar - Label
+    bl_description = "apply location/ rotation" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} #Set this options, if you want to update  
+    #                                  parameters of this operator interactively 
+    #                                  (in the Tools pane) 
+    
+    def execute(self, context): 
+        print("my test function applyGUIlocrot", self)
+        
+        objActive = bpy.context.scene.objects.active
+        objBase = bpy.context.scene.objects['kukaBASEPosObj']
+        
+        BASEPos_Koord = objBase.location
+        print('\n objBase.location: ' + str(objBase.location))
+        BASEPos_Angle = objBase.rotation_euler
+        dataPATHPTS_Loc = bpy.data.objects[objActive.name].kuka.PATHPTSloc # Achtung: nur OK bei BasePosObj; am besten weitere Properties anlegen. z.B. PATHPTSlocBase, PATHPTSlocHome, ...
+        print('\n dataPATHPTS_Loc: ' + str(dataPATHPTS_Loc))
+        dataPATHPTS_Rot = bpy.data.objects[objActive.name].kuka.PATHPTSrot
+        
+        helperLoc, helperRot = get_absolute(dataPATHPTS_Loc, dataPATHPTS_Rot, objBase, BASEPos_Koord, BASEPos_Angle)
+        
+        objActive.location = helperLoc
+        objActive.rotation_euler = helperRot
+        return {'FINISHED'}
         
 
 def get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle):
@@ -251,7 +271,7 @@ def get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle)
     writelog('_____________________________________________________________________________')
     return PATHPTS_Koord, PATHPTS_Angle 
 
-def get_absolute(Obj_Koord, Obj_Angle, BASEPos_Koord, BASEPos_Angle):
+def get_absolute(Obj_Koord, Obj_Angle, objBase, BASEPos_Koord, BASEPos_Angle):
     # Obj_Koord und Obj_Angle sind lokale Angaben bezogen auf Base
     # Aufruf bei Import
     # Obj_Koord, Obj_Angle [rad]: relativ
@@ -396,7 +416,7 @@ class ObjectSettings(bpy.types.PropertyGroup): # self, context,
         options={'ANIMATABLE'}, 
         subtype='TRANSLATION', 
         size=3,
-        update=update_GUIloc)
+        update=None)
         
     PATHPTSrot = bpy.props.FloatVectorProperty(name="Rotation",
         default=(0.0, 0.0, 0.0),
@@ -405,7 +425,7 @@ class ObjectSettings(bpy.types.PropertyGroup): # self, context,
         options={'ANIMATABLE'}, 
         subtype='EULER', 
         size=3,
-        update=update_GUIrot)
+        update=None)
 
 bpy.utils.register_class(ObjectSettings)
 
@@ -1440,7 +1460,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
                 bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
                 
                 #get_absolute(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
-                bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler = get_absolute(Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+                bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler = get_absolute(Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], objBase, BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                 
                       
         else: # wenn kein Kurvenpunkt zum ueberschreiben da ist, generiere einen neuen und schreibe den File-Datenpunkt
@@ -1465,7 +1485,7 @@ def create_PATHPTSObj(dataPATHPTS_Loc, dataPATHPTS_Rot, PATHPTSCountFile, BASEPo
             bpy.data.objects[PATHPTSObjList[n]].rotation_mode =RotationModePATHPTS
             
             #get_absolute(bpy.data.objects[PATHPTSObjList[n]], Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
-            bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler = get_absolute(Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
+            bpy.data.objects[PATHPTSObjList[n]].location, bpy.data.objects[PATHPTSObjList[n]].rotation_euler = get_absolute(Vector(dataPATHPTS_Loc[n]), dataPATHPTS_Rot[n], objBase, BASEPos_Koord, BASEPos_Angle) #Transformation Local2World
                
     bpy.context.area.type = original_type 
     writelog('create_PATHPTSObj done')
@@ -1759,7 +1779,7 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
         writelog('_________________SAFEPos_Angle' +'X C {0:.3f}'.format(SAFEPos_Angle[0])+' B Y {0:.3f}'.format(SAFEPos_Angle[1])+' A Z {0:.3f}'.format(SAFEPos_Angle[2]))
         # Achtung: Die Reihenfolge der Aufrufe von SetBasePos und get_absolute darf nicht vertauscht werden!
         
-        objSafe.location, objSafe.rotation_euler = get_absolute(SAFEPos_Koord, SAFEPos_Angle, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
+        objSafe.location, objSafe.rotation_euler = get_absolute(SAFEPos_Koord, SAFEPos_Angle, objBase, BASEPos_Koord, BASEPos_Angle )        #Transformation Local2World
         writelog('_________________KUKA_OT_Import - BASEPos_Koord' + str(BASEPos_Koord))
         writelog('_________________KUKA_OT_Import - BASEPos_Angle' +'X C {0:.3f}'.format(BASEPos_Angle[0])+' B Y {0:.3f}'.format(BASEPos_Angle[1])+' A Z {0:.3f}'.format(BASEPos_Angle[2]))
         writelog('_________________SAFEPos_Koord: ' + str(SAFEPos_Koord))
@@ -2111,6 +2131,8 @@ class KUKA_PT_Panel(bpy.types.Panel):
         kuka = bpy.data.objects # bpy.types.Object.kuka
         # kuka['Cube'].kuka.
         
+        obj = bpy.context.scene.objects.active
+        
         
         #scene = context.object
         
@@ -2127,7 +2149,7 @@ class KUKA_PT_Panel(bpy.types.Panel):
         # pruefen ob PATHPTSObjList als Obj vorhanden ist.
         #layout.prop_search(scene, "theChosenObject", scene, "objects")
         
-        obs = bpy.data.objects
+        #obs = bpy.data.objects
         if KUKAInitBlendFileExecuted=='True':  
             #print('\n if KUKAInitBlendFileExecuted')
             #PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
@@ -2148,16 +2170,17 @@ class KUKA_PT_Panel(bpy.types.Panel):
         sub.scale_x = 1.0
         sub.operator("object.kuka_init_blendfile", text="init .blend")  
         
-        if (KUKAInitBlendFileExecuted =='True'):
-            row = layout.row(align=True)
-            row.prop(kuka[ob.name].kuka, "ORIGINType", text="Origin:")
-            #print(kuka[ob.name].kuka.ORIGINType)
-                    
-            # Create two columns, by using a split layout.
-            row = layout.row()
-            #row.column().prop(ob, "delta_location")
-            row.column().prop(kuka[ob.name].kuka, "PATHPTSloc", text="Location") # =============================================================================================
-            row.column().prop(kuka[ob.name].kuka, "PATHPTSrot", text="Rotation")
+        #if (KUKAInitBlendFileExecuted =='True'):
+        row = layout.row(align=True)
+        row.prop(kuka[ob.name].kuka, "ORIGINType", text="Origin:")
+        #print(kuka[ob.name].kuka.ORIGINType)
+                
+        # Create two columns, by using a split layout.
+        row = layout.row()
+        #row.column().prop(ob, "delta_location")
+        row.column().prop(kuka[obj.name].kuka, "PATHPTSloc", text="Location") 
+        row.column().prop(kuka[obj.name].kuka, "PATHPTSrot", text="Rotation")
+        props = row.operator("object.apply_locrot", text="apply Loc/Rot")
         
         #ob.rotation_mode ='rotation_euler'
         
