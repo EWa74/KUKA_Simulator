@@ -2135,6 +2135,38 @@ Even worse: The object index is in alphabetic order and therefore it may change 
 # draw
 # -------------------------------------------------------------------
 
+# select_list_item_in_scene
+class Uilist_selectListItemInScene(bpy.types.Operator):
+    bl_idname = "custom.select_list_item_in_scene"
+    bl_label = "Select List Item in Scene"
+    bl_description = "Select List Item in Scene"
+
+    def execute(self, context):
+        scn = context.scene
+        bpy.ops.object.select_all(action='DESELECT')
+        obj = bpy.data.objects[scn.custom[scn.custom_index].name]
+        obj.select = True
+
+        return{'FINISHED'}
+
+
+# select_scene_item_in_list
+class Uilist_selectSceneItemInList(bpy.types.Operator):
+    bl_idname = "custom.select_scene_item_in_list"
+    bl_label = "Select Scene Item in List"
+    bl_description = "Select Scene Item in List"
+
+    def execute(self, context):
+        scn = context.scene
+        
+        PATHPTSObjList = fnmatch.filter( [bpy.data.objects[i].name for i in range(len(bpy.data.objects))] , 'PTPObj_*')
+        if PATHPTSObjList!="":
+            
+            for i in range(len(PATHPTSObjList)):
+                if PATHPTSObjList[i] == bpy.context.scene.objects.active.name:
+                    bpy.context.scene.custom_index = i
+
+        return{'FINISHED'}
 
 # custom list
 class UL_items(UIList):
@@ -2252,6 +2284,8 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row()
         col = row.column(align=True)
         
+        col.operator("custom.select_list_item_in_scene", icon="PASTEDOWN")
+        col.operator("custom.select_scene_item_in_list", icon="COPYDOWN")
         col.operator("custom.get_pathpts", icon="FILE_REFRESH")
         col.operator("custom.get_filelist", icon="FILESEL")
         
