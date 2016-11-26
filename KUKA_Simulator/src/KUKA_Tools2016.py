@@ -471,11 +471,15 @@ class ObjectSettings(bpy.types.PropertyGroup): # self, context,
         subtype='EULER', 
         size=3,
         update=None)
+    
+     
 
 bpy.utils.register_class(ObjectSettings)
 
 bpy.types.Object.kuka = \
     bpy.props.PointerProperty(type=ObjectSettings) 
+    
+
     
 '''    
 class ObjectSettingsB(bpy.types.PropertyGroup):        
@@ -1581,13 +1585,23 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
         global CalledFrom, filepath 
         global KUKAInitBlendFileExecuted 
         
-        
         # Global Variables:
         KUKAInitBlendFileExecuted = 'True'
         PATHPTSObjName = 'PTPObj_'
         objBase     = bpy.data.objects['kukaBASEPosObj']
         objSafe     = bpy.data.objects['kukaSAFEPosObj']
-        objCurve    = bpy.data.objects['BezierCircle']
+        objCurve     = bpy.data.objects['BezierCircle']
+        #bpy.types.Scene.pathname = StringProperty(name="HelloWorld")
+        #objCurve    = bpy.data.objects[bpy.types.Scene.pathname[1]['name']] # ToDo: Listenfeld mit concatonate of several curves
+        #      objCurve    = bpy.data.objects[str(bpy.context.scene.pathname)] # ToDo: Listenfeld mit concatonate of several curves
+        
+        
+        
+        
+        print('\n InitButton - objCurve.name: ' + str(objCurve.name))
+        # --> doch an KUKA-Klasse haengen damit jedes PTPObj einer Kurve zugeordnet ist (fuer mehrere Kurven)!
+        
+        
         objHome     = bpy.data.objects['kukaHOMEPosObj']
         objEmpty_A6 = bpy.data.objects['Empty_Zentralhand_A6']
         
@@ -2146,6 +2160,7 @@ class Uilist_selectListItemInScene(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
         obj = bpy.data.objects[scn.custom[scn.custom_index].name]
         obj.select = True
+        bpy.context.scene.objects.active = obj
 
         return{'FINISHED'}
 
@@ -2243,6 +2258,19 @@ class KUKA_PT_Panel(bpy.types.Panel):
         sub.scale_x = 1.0
         sub.operator("object.kuka_init_blendfile", text="init .blend")  
         
+        
+        #layout.prop_search(context.scene, "day_night_lamp", bpy.data, "curves", "Bahnkurve: ") 
+        #ToDo: Beziercurve auswaehlen (vorher mit GreacePencil gezeichnet und konvertiert)
+        #objCurve    = bpy.data.objects['BezierCircle']
+        row = layout.row(align=True)
+        #row.prop(bpy.data, "curves", text="Bahnkurve:")
+        #     layout.prop_search(context.scene, "pathname", bpy.data, "curves", "Path")
+        #objCurve    = bpy.data.objects[bpy.types.Scene.pathname[1]['name']]
+        #objCurve    = bpy.data.objects[str(bpy.context.scene.pathname)] # ToDo: Listenfeld mit concatonate of several curves
+        
+        
+        
+        #    print('\n Panel - objCurve.name: ' + str(objCurve.name))
         #if (KUKAInitBlendFileExecuted =='True'):
         row = layout.row(align=True)
         row.prop(kuka[ob.name].kuka, "ORIGINType", text="Origin:")
@@ -2414,11 +2442,13 @@ def register():
     bpy.types.Scene.theChosenObject = bpy.props.StringProperty()
     bpy.types.Scene.custom = CollectionProperty(type=CustomProp)
     bpy.types.Scene.custom_index = IntProperty()
+    bpy.types.Scene.pathname = StringProperty()
     
 def unregister():
     bpy.utils.unregister_module(__name__)
     del bpy.types.Scene.custom
     del bpy.types.Scene.custom_index
+    del bpy.types.Scene.pathname
     #ToDo: theChosenObject bringt Fehler beim unregister des Addons unter userpreferences
     #del bpy.types.Object.theChosenObject
 
