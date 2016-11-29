@@ -479,48 +479,6 @@ bpy.utils.register_class(ObjectSettings)
 bpy.types.Object.kuka = \
     bpy.props.PointerProperty(type=ObjectSettings) 
     
-
-    
-'''    
-class ObjectSettingsB(bpy.types.PropertyGroup):        
-    
-    
-    if (KUKAInitBlendFileExecuted =='True'):
-        
-        PATHPTSObjList=[]
-        countPATHPTSObj=[]
-        # PATHPTSObjList initialisieren/updaten
-        #obj = bpy.data.objects
-        #PATHPTSObjList = fnmatch.filter([obj[i].name for i in range(len(obj))] , 'PTPObj_*')
-        #countPATHPTSObj = len(PATHPTSObjList)
-        
-        PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj('PTPObj_')
-        
-        # kuka.PATHPTSloc/ rot initialisieren/updaten
-        #kuka = bpy.data.objects # bpy.types.Object.kuka
-            # kuka['Cube'].kuka.
-        obj = bpy.data.objects    
-        for i in range(countPATHPTSObj):
-            if obj[PATHPTSObjList[i]].kuka.ORIGINType == "BASEPos":
-                KoordName =  'kukaBASEPosObj'
-            
-            BASEPos_Koord = obj[KoordName].location
-            BASEPos_Angle = obj[KoordName].rotation_euler
-            dataPATHPTS_Loc = obj[PATHPTSObjList[i]].location
-            dataPATHPTS_Rot = obj[PATHPTSObjList[i]].rotation_euler
-            
-            helperLocRot = get_relative(dataPATHPTS_Loc, dataPATHPTS_Rot, BASEPos_Koord, BASEPos_Angle)
-            
-            #obj[PATHPTSObjList[i]].kuka.PATHPTSloc = helperLocRot[0:3]
-            #obj[PATHPTSObjList[i]].kuka.PATHPTSrot = helperLocRot[3:6]
- 
-      
-bpy.utils.register_class(ObjectSettingsB)
-
-bpy.types.Object.kuka = \
-    bpy.props.PointerProperty(type=ObjectSettingsB)    
-'''    
-        
         
 def WtF_KeyPos(Keyword, KeyPos_Koord, KeyPos_Angle, filepath, FileExt, FileMode):            
     ''' 
@@ -1585,12 +1543,19 @@ class KUKA_OT_InitBlendFile(bpy.types.Operator):
         global CalledFrom, filepath 
         global KUKAInitBlendFileExecuted 
         
+        
         # Global Variables:
         KUKAInitBlendFileExecuted = 'True'
         PATHPTSObjName = 'PTPObj_'
         objBase     = bpy.data.objects['kukaBASEPosObj']
         objSafe     = bpy.data.objects['kukaSAFEPosObj']
-        objCurve     = bpy.data.objects['BezierCircle']
+        
+        #bpy.types.Scene.pathname       = StringProperty(name="PathName")
+        #bpy.context.scene.pathname = 'BezierCircle'
+        objCurve    = bpy.data.objects[bpy.context.scene.pathname]
+        #objCurve     = bpy.data.objects['BezierCircle']
+        #bpy.context.scene.pathname = 'BezierCircle'
+        #objCurve    = bpy.data.objects[bpy.context.scene.pathname]
         #bpy.types.Scene.pathname = StringProperty(name="HelloWorld")
         #objCurve    = bpy.data.objects[bpy.types.Scene.pathname[1]['name']] # ToDo: Listenfeld mit concatonate of several curves
         #      objCurve    = bpy.data.objects[str(bpy.context.scene.pathname)] # ToDo: Listenfeld mit concatonate of several curves
@@ -1869,7 +1834,21 @@ class KUKA_OT_Import (bpy.types.Operator, ImportHelper): # OT fuer Operator Type
         return {'FINISHED'} 
     
     
-    
+class KUKA_OT_SelectPath(bpy.types.Operator):
+    bl_idname = "object.kuka_select_path"
+    bl_label = "kuka_select_path" #Toolbar - Label
+    bl_description = "select curve object" # Kommentar im Specials Kontextmenue
+    bl_options = {'REGISTER', 'UNDO'} 
+   
+    def execute(self, context):  
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.scene.objects.active = bpy.context.scene.objects[bpy.context.scene.pathname]
+        bpy.context.scene.objects.active.select=True
+        objCurve    = bpy.data.objects[bpy.context.scene.pathname]
+        print('\n objCurve.name: ' + str(objCurve.name))
+        info = 'pathname Button: %s selected' % (bpy.context.scene.pathname)
+        self.report({'INFO'}, info)
+        return {'FINISHED'}     
 
 class KUKA_OT_RefreshButton (bpy.types.Operator):
     ''' Import selected curve '''
@@ -1994,6 +1973,7 @@ def get_activeSceneObject():
 
 # duplicate selected object
 def duplicate_activeSceneObject():
+    # used for Pathpoints in the list field
     scene = bpy.context.scene
     src_obj = bpy.context.active_object
     
@@ -2221,36 +2201,10 @@ class KUKA_PT_Panel(bpy.types.Panel):
         
         obj = bpy.context.scene.objects.active
         
-        
-        #scene = context.object
-        
-        #--------------------------------------------------------------------------------------------------------------------
-        # Obj aus Listenauswahl im 3D view aktivieren (ToDo: blockiert das Arbeiten in der Scene! -> verschieben nach Operator?!:
-        # mouseover event?
-        
-        # ToDo: mouse_event  ‘MOUSEOVER’
-        
-       
         # Liste initialisieren:
         # PATHPTSObjName ist erst nach druecken des InitBlendFile Button bekannt
         # prop_search(data, property, search_data, search_property, text="", text_ctxt="", translate=True, icon='NONE')
         # pruefen ob PATHPTSObjList als Obj vorhanden ist.
-        #layout.prop_search(scene, "theChosenObject", scene, "objects")
-        
-        #obs = bpy.data.objects
-        if KUKAInitBlendFileExecuted=='True':  
-            #print('\n if KUKAInitBlendFileExecuted')
-            #PATHPTSObjList, countPATHPTSObj  = count_PATHPTSObj(PATHPTSObjName)
-            # layout.prop_search(scene, "theChosenObject", bpy.data, "objects", "select a PaThPoint:")
-            
-            '''
-            objects = bpy.data.objects
-            PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
-            countPATHPTSObj = len(PATHPTSObjList)
-            kuka[ob.name].kuka
-            '''
-            pass
-        
         
         # Init variable from blendFile:
         row = layout.row(align=True)
@@ -2258,20 +2212,17 @@ class KUKA_PT_Panel(bpy.types.Panel):
         sub.scale_x = 1.0
         sub.operator("object.kuka_init_blendfile", text="init .blend")  
         
+        sub.operator("object.kuka_select_path", text="Path") 
+        layout.prop_search(context.scene, "pathname", bpy.data, "curves", "Path Name")
         
-        #layout.prop_search(context.scene, "day_night_lamp", bpy.data, "curves", "Bahnkurve: ") 
-        #ToDo: Beziercurve auswaehlen (vorher mit GreacePencil gezeichnet und konvertiert)
-        #objCurve    = bpy.data.objects['BezierCircle']
-        row = layout.row(align=True)
-        #row.prop(bpy.data, "curves", text="Bahnkurve:")
-        #     layout.prop_search(context.scene, "pathname", bpy.data, "curves", "Path")
-        #objCurve    = bpy.data.objects[bpy.types.Scene.pathname[1]['name']]
-        #objCurve    = bpy.data.objects[str(bpy.context.scene.pathname)] # ToDo: Listenfeld mit concatonate of several curves
+        # ToDo: Beziercurve auswaehlen (vorher mit GreacePencil gezeichnet und konvertiert)
+        # --> OK. aber: die Kurve orientiert sich an den PTPObj
+        # --> d.h. die PTPObj muessen erst an Hand der neuen Kurve erstellt werden,
+        # 2 Moeglichkeiten:
+        # a): PTPObj von alter Kurve auf neue verschieben/ Anzahl anpassen
+        # b): neue PTPObj Gruppe erstellen 
+        # ToDo: Listenfeld mit concatonate of several curves
         
-        
-        
-        #    print('\n Panel - objCurve.name: ' + str(objCurve.name))
-        #if (KUKAInitBlendFileExecuted =='True'):
         row = layout.row(align=True)
         row.prop(kuka[ob.name].kuka, "ORIGINType", text="Origin:")
         #print(kuka[ob.name].kuka.ORIGINType)
@@ -2286,16 +2237,6 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row.column().prop(kuka[obj.name].kuka, "PATHPTSrot", text="Rotation")
                 
         #ob.rotation_mode ='rotation_euler'
-        
-        
-        
-        #ToDo 02.11.2016:
-        #row.column().prop("kuka.edit_loc_rot", "PATHPTS", text="PTPKord2016")
-        #layout.prop(bpy.context.object.kuka, 'PATHPTSloc')
-        #bpy.context.object.kuka.PATHPTS
-        
-        
-        
         
         rows = 2
         row = layout.row()
@@ -2317,29 +2258,6 @@ class KUKA_PT_Panel(bpy.types.Panel):
         col.operator("custom.get_pathpts", icon="FILE_REFRESH")
         col.operator("custom.get_filelist", icon="FILESEL")
         
-                
-        # Obj aus Listenauswahl im 3D view aktivieren (ToDo: blockiert das Arbeiten in der Scene! -> verschieben nach Operator?!:
-        # mouseover event?
-        
-        #objects = bpy.data.objects
-        #PATHPTSObjList = fnmatch.filter( [objects [i].name for i in range(len(objects ))] , 'PTPObj_*')
-        
-        #objScene = bpy.context.scene.objects.active
-        #obj = bpy.data.objects[scene.custom[scene.custom_index].name]
-        
-        
-        '''
-        # hier sollte, falls ein PTPObj in der Scene aktiviert wurde, 
-        # das Objekt auch beim wechsel zur Liste in dieser aktiv werden
-        if (objScene.name != obj.name):
-            scene.custom_index = PATHPTSObjList.index(objScene.name)
-        '''
-        
-        #bpy.ops.object.select_all(action='DESELECT')
-        #obj.select = True
-        #scene.objects.active = obj
-        
-        
         # Import/ Export Button:
         layout.label(text="Curvepath Import/ Export:")
         row = layout.row(align=True)        
@@ -2359,13 +2277,6 @@ class KUKA_PT_Panel(bpy.types.Panel):
         row = layout.row(align=True)
          
         row.operator("object.animateptps")  
-        
-    #def invoke(self, context, event):
-    
-        
-        
-
-        
         
         
         
@@ -2439,18 +2350,16 @@ class CustomProp(bpy.types.PropertyGroup):
    
 def register():
     bpy.utils.register_module(__name__)
-    bpy.types.Scene.theChosenObject = bpy.props.StringProperty()
     bpy.types.Scene.custom = CollectionProperty(type=CustomProp)
     bpy.types.Scene.custom_index = IntProperty()
     bpy.types.Scene.pathname = StringProperty()
+    
     
 def unregister():
     bpy.utils.unregister_module(__name__)
     del bpy.types.Scene.custom
     del bpy.types.Scene.custom_index
     del bpy.types.Scene.pathname
-    #ToDo: theChosenObject bringt Fehler beim unregister des Addons unter userpreferences
-    #del bpy.types.Object.theChosenObject
 
 if __name__ == "__main__":
     register()
