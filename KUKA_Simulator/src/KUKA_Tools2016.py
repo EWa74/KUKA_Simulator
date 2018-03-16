@@ -80,8 +80,8 @@ bpy.data.curves[bpy.context.active_object.data.name].splines[0].bezier_points[0]
 bl_info = { 
     "name": "KUKA_OT_Export",
     "author": "Eric Wahl",
-    "version": (1, 0, 1),
-    "blender": (2, 5, 7),
+    "version": (1, 0, 3),
+    "blender": (2, 7, 9),
     "api": 36147,
     "location": "View3D >Objects >KUKA_Tools",
     "category": "Curve",
